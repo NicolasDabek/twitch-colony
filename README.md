@@ -61,7 +61,7 @@ Raccourcis du simulateur : **B** !bois · **P** !pierre · **C** !chasse · **V*
 
 ## Objectifs à trois niveaux
 
-Un panneau **Court / Moyen / Long terme** (avec barres de progression) est affiché dans l'overlay, la démo 2D et la vue 3D (version compacte sur mobile) :
+Un panneau **Objectifs** (trois lignes sans étiquette, court → moyen → long terme, chacune avec sa barre de progression colorée) est affiché dans l'overlay, la démo 2D et la vue 3D (version compacte sur mobile) :
 - **Court terme : défis communautaires** toutes les 5 min (coupez du bois, taillez de la pierre, chassez, votez nombreux, survivez à la prochaine menace). Réussi : +25 ressources, +10 nourriture, +3 points pour chaque participant.
 - **Moyen terme : projets** (loger les villageois, défenses du palier, Grenier, réserve pour l'hiver, Palissade, Marché, Atelier) et **bâtiments débloqués par palier** : Grenier (Hameau, l'hiver coûte moitié moins), Palissade (Village, +10 défense), Marché (Bourg, +1 bois et +1 pierre / 10 s), Atelier (Ville, `!bois` / `!pierre` +25 %).
 - **Long terme : Cité (21 bâtiments) + Merveille** en 3 phases (débloquée à la Ville). **La partie est gagnée quand les deux sont achevés.** Des **badges de session** marquent les étapes (premières fondations, raid repoussé, hiver survécu, 3 défis, orage, fête, Merveille, paliers).

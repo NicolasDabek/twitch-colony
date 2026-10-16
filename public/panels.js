@@ -9,10 +9,10 @@ const left=t=>Math.max(0,Math.ceil((t-clk())/1000)), mmss=t=>{ const x=left(t); 
 const bar=(cur,need,cls='')=>`<div class="pbar ${cls}"><i style="width:${need?Math.min(100,cur/need*100):0}%"></i></div>`;
 const rate=v=>v?`<small class="rate ${v<0?'neg':''}">${v>0?'+':''}${v}/min</small>`:'';
 function objectives(s,compact){ const o=s.objectives; if(!o) return '';
-  const row=(lab,k,x)=>`<div class="obj"><div class="ol"><b>${lab}</b><span>${esc(x.label)}</span><em>${Math.floor(x.cur)}/${x.need}${x.ends&&k==='short'?' · '+mmss(x.ends):''}</em></div>${bar(x.cur,x.need,k)}</div>`;
+  const row=(k,x)=>`<div class="obj"><div class="ol"><span>${esc(x.label)}</span><em>${Math.floor(x.cur)}/${x.need}${x.ends&&k==='short'?' · '+mmss(x.ends):''}</em></div>${bar(x.cur,x.need,k)}</div>`;
   const ns=o.nextStage?`<div class="sub">${ico('palier')} Prochain palier : ${esc(o.nextStage.name)} (${o.nextStage.cur}/${o.nextStage.need} bâtiments)</div>`:'';
   const na=s.nextAffordable?`<div class="sub">${ico('build')} Prochain bâtiment : ${NAME[s.nextAffordable.name]} — ${s.nextAffordable.affordable?'abordable, !construire '+s.nextAffordable.name:'il manque '+esc(s.nextAffordable.missing)}</div>`:'';
-  return `<h3><span>${ico('defi')} Objectifs</span></h3>`+row('Court','short',o.short)+row('Moyen','mid',o.mid)+row('Long','long',o.long)+(compact?'':ns+na); }
+  return `<h3><span>${ico('defi')} Objectifs</span></h3>`+row('short',o.short)+row('mid',o.mid)+row('long',o.long)+(compact?'':ns+na); }
 function foyer(s){ const f=s.foyer; if(!f) return ''; const p=f.hp/f.max, d=s.defense||{};
   return `<div class="fy"><span class="fyl">${ico('foyer')} Grand Foyer</span>${bar(f.hp,f.max,'hp '+(p<.3?'low':p<.6?'mid':''))}<b>${f.hp}/${f.max} PV</b></div>`+
     `<div class="sub">${ico('bouclier')} Défense ${d.total||0} (tours ${d.tours||0} · défenseurs ${d.defenseurs||0}${d.remparts?' · remparts '+d.remparts:''}${d.strategie?' · murs '+d.strategie:''}) contre force ${s.raidPower||0} · <code>!defendre</code> <code>!reparer</code></div>`; }
