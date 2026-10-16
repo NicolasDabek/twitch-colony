@@ -20,7 +20,7 @@ assert.ok(!mask('abcdefghijklmnopqrstuvwxyz0123').includes('qrst'));
 const g2=new Colony({cooldownMs:0}); g2.chat('A','!bois'); g2.chat('A','!bois'); assert.equal(g2.res.bois,14);
 console.log('config OK');
 const fs=require('fs'),path=require('path');
-for(const [a,b] of [['server/game.js','docs/game.js'],['public/overlay.js','docs/overlay.js'],['public/controls.js','docs/controls.js'],['public/style.css','docs/style.css'],['public/demo.css','docs/demo.css']])
+for(const [a,b] of [['server/game.js','docs/game.js'],['public/overlay.js','docs/overlay.js'],['public/controls.js','docs/controls.js'],['public/style.css','docs/style.css'],['public/demo.css','docs/demo.css'],['public/3d/main.js','docs/3d/main.js'],['public/3d/three.module.js','docs/3d/three.module.js']])
   assert.equal(fs.readFileSync(path.join(__dirname,'..',a),'utf8'),fs.readFileSync(path.join(__dirname,'..',b),'utf8'),`${b} périmé : lancez npm run build:pages`);
 console.log('docs OK');
 // ─── Analyse game design ───
@@ -64,3 +64,13 @@ c=mk(); c.chat('A','!bois'); c.chat('B','!pierre'); c.chat('C','!chasse'); c.cha
 c.sub('Z'); assert.equal(c.alert.kind,'sub'); c.cheer('Y',100); assert.equal(c.alert.kind,'bits'); c.res.bois=999; c.build('hutte'); assert.equal(c.alert.kind,'build');
 for(const f of ['docs/index.html','public/sim.html','public/confidentialite.html']) assert.ok(/name="viewport"/.test(fs.readFileSync(path.join(__dirname,'..',f),'utf8')),f+' viewport');
 console.log('ui OK');
+// Placement 3D : stable, sans chevauchement, seed par partie
+{ const {layout}=require('./game'); const L=['hutte','ferme','carriere','tour','hutte','ferme','hutte','tour','carriere','ferme','hutte','hutte'];
+  for(const sd of [1,42,1337,987654321]){
+    const full=layout(sd,L).items; assert.equal(full.length,L.length);
+    for(let k=1;k<L.length;k++) assert.deepEqual(layout(sd,L.slice(0,k)).items,full.slice(0,k),'les bâtiments existants ne bougent pas');
+    const cells=new Set(); for(const b of full) for(let i=0;i<b.w;i++) for(let j=0;j<b.h;j++){ const k=(b.x+i)+','+(b.z+j); assert.ok(!cells.has(k),'chevauchement'); cells.add(k); assert.ok(!['11,11','12,11','11,12','12,12'].includes(k),'case du Phare'); }
+  }
+  assert.notDeepEqual(layout(1,L).items,layout(2,L).items);
+  const g=new Colony({seed:77}); assert.equal(g.state().seed,77); const g2=new Colony(); assert.ok(Number.isInteger(g2.state().seed)); }
+console.log('3d layout OK');

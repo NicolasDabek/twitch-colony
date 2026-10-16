@@ -1,0 +1,21 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Twitch Colony — village 3D</title><link rel="stylesheet" href="style.css"></head><body>
+<canvas id="c"></canvas><div id="labels"></div>
+<div class="hud">
+ <div class="card res" id="res"></div>
+ <div class="card goal" id="goal"></div>
+ <div class="card vote" id="vote"></div>
+ <div class="card alert" id="alert"></div>
+ <div class="card ctl" id="ctl">
+  <div class="row">
+   <button data-c="!bois" title="!bois">🪵<span> Bois</span></button><button data-c="!pierre" title="!pierre">🪨<span> Pierre</span></button><button data-c="!chasse" title="!chasse">🍖<span> Chasse</span></button>
+   <button data-b="hutte" title="Construire une hutte">🛖<span> Hutte</span></button><button data-b="ferme" title="Construire une ferme">🌾<span> Ferme</span></button><button data-b="carriere" title="Construire une carrière">⛏️<span> Carrière</span></button><button data-b="tour" title="Construire une tour">🏰<span> Tour</span></button>
+   <button data-bits="500" class="gold" title="500 Bits : Phare">💎<span> 500 Bits</span></button><button data-t="sub" class="gold" title="Sub : +1 colon">⭐<span> Sub</span></button>
+   <button id="rl" aria-label="Pivoter à gauche">⟲</button><button id="rr" aria-label="Pivoter à droite">⟳</button><button data-t="reset" title="Nouvelle partie (nouvelle seed)">🔄</button>
+  </div>
+  <small class="help">Partie <b id="seed"></b> · glisser / WASD / flèches : déplacer · molette / pincer : zoom · Q/E : pivoter · <span id="msg"></span></small>
+ </div>
+ <div class="legal">Les Bits permettent à la communauté d'influencer la partie en direct. Ils ne donnent accès à aucun objet, compte, service ou avantage en dehors de ce stream.</div>
+</div>
+<script src="../game.js"></script><script src="../driver-server.js"></script>
+<script type="module" src="main.js"></script></body></html>

@@ -9,13 +9,34 @@ const BUILDINGS = {
 };
 const STAGES=[{name:'Campement',min:0},{name:'Village',min:3},{name:'Bourg',min:7},{name:'Ville',min:12}];
 const MIN=60000, PHARE_MS=10*MIN, ORAGE_MS=2*MIN, THREAT_MS=15*MIN, ACTIVE_WINDOW=5*MIN;
+
+// ─── Placement 3D (village isométrique) ───
+// Déterministe : même seed + même liste ⇒ mêmes positions. Chaque bâtiment i dépend
+// uniquement de la seed et des bâtiments 0..i-1 : les bâtiments existants ne bougent jamais.
+const FOOT={hutte:[1,1],ferme:[2,2],carriere:[2,1],tour:[1,1]};
+function mulberry(a){ return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function layout(seed,list,N=24){
+  const occ=new Uint8Array(N*N), out=[], c=N/2-1;
+  const mark=(x,z,w,h)=>{ for(let i=0;i<w;i++) for(let j=0;j<h;j++) occ[(z+j)*N+x+i]=1; };
+  mark(c,c,2,2); // réservé au Phare de la session (centre)
+  const free=(x,z,w,h,pad)=>{ if(x<0||z<0||x+w>N||z+h>N) return false;
+    for(let i=-pad;i<w+pad;i++) for(let j=-pad;j<h+pad;j++){ const a=x+i,b=z+j; if(a>=0&&b>=0&&a<N&&b<N&&occ[b*N+a]) return false; } return true; };
+  list.forEach((type,i)=>{
+    const [w,h]=FOOT[type]||[1,1], r=mulberry((seed>>>0)^Math.imul(i+1,0x9E3779B1)); let p=null;
+    for(let k=0;k<600&&!p;k++){ const span=Math.min(N,8+i*1.5+k/40), x=Math.floor(N/2-span/2+r()*span), z=Math.floor(N/2-span/2+r()*span); if(free(x,z,w,h,1)) p=[x,z]; }
+    for(let k=0;k<N*N&&!p;k++){ const x=k%N,z=Math.floor(k/N); if(free(x,z,w,h,0)) p=[x,z]; }
+    if(!p) return; mark(p[0],p[1],w,h); out.push({type,x:p[0],z:p[1],w,h,rot:Math.floor(r()*4)});
+  });
+  return {items:out,phare:{x:c,z:c,w:2,h:2},occ};
+}
 class Colony {
   constructor(opts={}){
     this.cooldownMs=opts.cooldownMs??5000; this.voteDurationMs=opts.voteDurationMs??30000;
-    this.threatMs=opts.threatMs??THREAT_MS; this.now=opts.now||(()=>Date.now()); this.rng=opts.rng||Math.random;
+    this.threatMs=opts.threatMs??THREAT_MS; this.now=opts.now||(()=>Date.now()); this.rng=opts.rng||Math.random; this.fixedSeed=opts.seed;
     this.reset();
   }
   reset(){
+    this.seed=this.fixedSeed??Math.floor(this.rng()*1e9);
     this.res={bois:10,pierre:0,nourriture:20}; this.pop=3; this.buildings=[];
     this.leaders={}; this.optout=new Set(); this.vote=null; this.weather='clair'; this.weatherUntil=0;
     this.special=null; this.bitsTotal=0; this.goals=[{bits:5000,label:'Orage magique',done:false}];
@@ -130,9 +151,9 @@ class Colony {
     const tally={}; if(this.vote){ this.vote.options.forEach(o=>tally[o]=0); Object.values(this.vote.voters).forEach(o=>tally[o]++); }
     const costs={}; Object.keys(BUILDINGS).forEach(b=>costs[b]=this.cost(b));
     return {res:this.res,pop:this.pop,buildings:this.buildings,weather:this.weather,special:this.special,bitsTotal:this.bitsTotal,goals:this.goals,
-      vote:this.vote&&{title:this.vote.title,tally,ends:this.vote.ends},leaderboard:top,log:this.log,feed:this.feed,alert:this.alert,cooldownMs:this.cooldownMs,goal:this.goals[0],
+      vote:this.vote&&{title:this.vote.title,tally,ends:this.vote.ends},seed:this.seed,leaderboard:top,log:this.log,feed:this.feed,alert:this.alert,cooldownMs:this.cooldownMs,goal:this.goals[0],
       stage:STAGES[this.stage].name,threat:this.nextThreat,towersNeeded:this.stage+1,towers:this.count('tour'),costs,active:this.activeViewers(),now:this.now()};
   }
 }
-if(typeof module!=='undefined'&&module.exports) module.exports={Colony,BUILDINGS,STAGES};
-else globalThis.TwitchColony={Colony,BUILDINGS,STAGES};
+if(typeof module!=='undefined'&&module.exports) module.exports={Colony,BUILDINGS,STAGES,layout,mulberry};
+else globalThis.TwitchColony={Colony,BUILDINGS,STAGES,layout,mulberry};

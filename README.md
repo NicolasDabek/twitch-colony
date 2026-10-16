@@ -10,6 +10,15 @@ Jeu de **colonie communautaire** affiché sur un stream Twitch : le chat récolt
 
 C'est une version 100 % navigateur hébergée sur GitHub Pages (dossier `docs/`). Elle utilise la même logique de jeu (`server/game.js`) que le serveur. Après toute modification de `server/game.js` ou `public/overlay.js`, lancez `npm run build:pages` : `npm test` vérifie que `docs/` est à jour.
 
+### 🧊 Village 3D isométrique
+
+- Démo en ligne : **https://nicolasdabek.github.io/twitch-colony/3d/**
+- Source OBS (serveur local, fond transparent) : `http://localhost:3000/3d/?obs`
+- La vue 3D utilise les vraies données du jeu : bâtiments, colons, Phare, ressources, vote, objectif Bits et menaces. En mode serveur, l'état arrive par SSE (`/events`) ; dans la démo, le jeu tourne dans le navigateur.
+- Placement : chaque partie a sa propre seed. Un nouveau bâtiment prend une case libre au hasard, et les bâtiments existants ne bougent jamais (fonction `layout()` dans `server/game.js`, testée). Le centre est réservé au Phare.
+- Caméra : glisser / WASD / flèches pour déplacer, molette ou pincement pour zoomer (×0,5 à ×4), Q/E pour pivoter d'un quart de tour.
+- `three.module.js` (r160) est fourni dans le dépôt (aucun CDN).
+
 ## Lancer
 
 ```bash
