@@ -1,16 +1,21 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Twitch Colony — village 3D</title><link rel="stylesheet" href="style.css"><link rel="icon" href="../favicon.svg"></head><body>
+<title>Twitch Colony — village 3D</title><link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="style.css"><link rel="icon" href="../favicon.svg"></head><body>
 <canvas id="c"></canvas><div id="labels"></div>
 <div class="hud">
  <div class="card res" id="res"></div>
  <div class="card goal" id="goal"></div>
  <div class="card vote" id="vote"></div>
+ <div class="card info" id="info"></div>
+ <div class="card boards3" id="boards"></div>
+ <div class="card big3" id="big" hidden></div>
+ <div class="card tip" id="tip" hidden></div>
+ <div class="card sheet" id="sheet" hidden><button class="x" id="sheetx" aria-label="Fermer">✕</button><div id="sheetc"></div></div>
  <div class="card alert" id="alert"></div>
  <div class="card ctl" id="ctl"><button id="fold" class="fold" aria-expanded="true" title="Masquer / afficher les commandes">▾ Masquer</button>
   <div class="row">
    <button data-c="!bois" title="!bois">🪵<span> Bois</span></button><button data-c="!pierre" title="!pierre">🪨<span> Pierre</span></button><button data-c="!chasse" title="!chasse">🍖<span> Chasse</span></button>
    <button data-b="hutte" title="Construire une hutte">🛖<span> Hutte</span></button><button data-b="ferme" title="Construire une ferme">🌾<span> Ferme</span></button><button data-b="carriere" title="Construire une carrière">⛏️<span> Carrière</span></button><button data-b="tour" title="Construire une tour">🏰<span> Tour</span></button>
-   <button data-bits="500" class="gold" title="500 Bits : Phare">💎<span> 500 Bits</span></button><button data-t="sub" class="gold" title="Sub : +1 villageois">⭐<span> Sub</span></button>
+   <button data-c="!defendre" class="blue" title="!defendre : protéger le Foyer"><i data-i="bouclier"></i><span> Défendre</span></button><button data-c="!reparer" class="blue" title="!reparer : 10 bois + 5 pierre = +5 PV"><i data-i="reparer"></i><span> Réparer</span></button><button data-c="!rallumer" class="blue" title="!rallumer : quand le Foyer est détruit"><i data-i="foyer"></i><span> Rallumer</span></button><button data-c="!rejoindre garde" class="blue" title="!rejoindre garde : !defendre compte double"><i data-i="bouclier"></i><span> Garde</span></button><button data-t="raid" title="Démo : déclencher le raid maintenant"><i data-i="raid"></i><span> Attaque</span></button><button data-w="1" title="Construire la phase suivante de la Merveille"><i data-i="merveille"></i><span> Merveille</span></button><button data-bits="100" class="gold" title="100 Bits : +10 bois (plafonné)"><i data-i="bits"></i><span> 100</span></button><button data-bits="300" class="gold" title="300 Bits : remparts +15 défense 10 min"><i data-i="palissade"></i><span> 300</span></button><button data-bits="500" class="gold" title="500 Bits : Phare, gains ×1,5 10 min">💎<span> 500</span></button><button data-bits="1500" class="gold" title="1500 Bits : Bénédiction, production ×2 5 min"><i data-i="ferme"></i><span> 1500</span></button><button data-bits="5000" class="gold" title="5000 Bits : orage magique"><i data-i="orage"></i><span> 5000</span></button><button data-t="sub" class="gold" title="Sub : un villageois nommé">⭐<span> Sub</span></button><button data-t="gift" class="gold" title="5 subs offerts : fête au village"><i data-i="fete"></i><span> 5 subs</span></button><button id="infos" title="Comment participer, classements, ma contribution"><i data-i="aide"></i><span> Infos</span></button>
    <button id="home" title="Recentrer sur le village"><i data-i="maison"></i><span> Centrer</span></button><button id="overview" title="Vue d'ensemble de la carte"><i data-i="cube"></i><span> Carte</span></button><button id="rl" aria-label="Pivoter à gauche" title="Pivoter à gauche"><i data-i="left"></i><span> Pivoter</span></button><button id="rr" aria-label="Pivoter à droite" title="Pivoter à droite"><i data-i="right"></i><span> Pivoter</span></button><button data-t="reset" title="Nouvelle partie (nouvelle seed)"><i data-i="reset"></i><span> Nouvelle</span></button>
   </div>
   <small class="help">Partie <b id="seed"></b> · glisser / WASD / flèches : déplacer · molette / pincer : zoom · Q/E : pivoter · <span id="msg"></span></small>
@@ -26,5 +31,5 @@ window.addEventListener('unhandledrejection',function(e){ window.showFatal(e.rea
 setTimeout(function(){ if(!window.__state) window.showFatal('Le jeu ne s\'est pas initialisé (WebGL ou modules JavaScript non pris en charge par ce navigateur ?). Essayez Chrome ou Firefox.'); },8000);
 </script>
 <script nomodule>window.showFatal('Ce navigateur ne prend pas en charge les modules JavaScript. Ouvrez la page dans Chrome, Firefox ou Safari récents.');</script>
-<script src="../icons.js"></script><script src="../game.js"></script><script src="../driver-server.js"></script>
+<script src="../icons.js"></script><script src="../panels.js"></script><script src="../game.js"></script><script src="../driver-server.js"></script>
 <script type="module" src="main.js"></script></body></html>

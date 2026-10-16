@@ -84,3 +84,25 @@ button{touch-action:manipulation}
 @media (max-width:700px),(pointer:coarse) and (max-width:1100px){
  .goal{bottom:calc(var(--ctlh,120px) + var(--legh,30px) + 46px)}
 }
+
+/* Panneaux : Foyer + objectifs, classements, rallumage, infobulle, fiche d'infos */
+.info{left:16px;top:150px;width:440px;max-width:calc(100% - 360px);padding:8px 14px}
+.info h3{margin:6px 0 2px}
+.boards3{right:16px;top:calc(var(--voteh,160px) + 26px);width:310px;padding:8px 12px}
+.big3{left:50%;top:50%;transform:translate(-50%,-50%);width:min(620px,94vw);text-align:center;border:3px solid #ff6b3d;background:rgba(30,8,8,.95);z-index:6}
+.big3 .howto{text-align:left;font-size:15px}
+.tip{position:fixed;max-width:280px;font-size:14px;line-height:1.35;z-index:7;pointer-events:none;border-color:#ffd23f}.tip b{font-size:16px}.tip .ico{width:20px;height:20px}
+.sheet{left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:80vh;overflow:auto;z-index:8}.sheet .x{position:absolute;right:8px;top:8px}
+.lbl.hpl{background:rgba(0,0,0,.72);padding:3px 8px;text-align:center}.hpb{display:block;width:120px;height:9px;background:rgba(255,255,255,.2);border-radius:5px;overflow:hidden;margin:2px auto 0}.hpb b{display:block;height:100%}
+.lbl.named{font-size:11px;background:rgba(80,40,140,.75);padding:0 5px;line-height:15px}
+button.blue{background:#1d2c4a;color:#bcd4ff}
+body.obs .boards3{top:calc(var(--voteh,160px) + 26px)}
+@media (max-width:700px),(pointer:coarse) and (max-width:1100px){
+ .info{left:8px;right:8px;top:var(--resh,80px);width:auto;max-width:none;padding:5px 10px}
+ .info .fy{font-size:13px}.info .sub{display:none}.info h3{display:none}.info .obj{margin:2px 0}.info .ol{font-size:12px}.info .ol b{min-width:42px;font-size:10px}.info .pbar{height:6px;margin-top:1px}.info .pbar.hp{height:10px}
+ .vote{top:calc(var(--resh,80px) + var(--infoh,90px) + 6px)}
+ .boards3{display:none}
+ .big3{font-size:14px}.big3 .big-title{font-size:22px}
+}
+@media (max-width:700px),(pointer:coarse) and (max-width:1100px){ .vote .threat{font-size:14px}.vote h3{font-size:12px;margin-bottom:2px}.vote .pbar{height:5px}.vote .vlaunch{min-height:40px;margin-top:4px} }
+@media (min-width:701px) and (pointer:fine),(min-width:1101px){ .ctl .row{gap:4px}.ctl .row button{min-height:34px;padding:0 8px;font-size:13px;border-radius:8px} }

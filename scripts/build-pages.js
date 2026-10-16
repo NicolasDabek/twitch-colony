@@ -1,7 +1,7 @@
 // Génère docs/ (GitHub Pages, statique, sans serveur) à partir de public/ et server/game.js.
 const fs=require('fs'),path=require('path'),r=p=>path.join(__dirname,'..',p);
 const copies=[['server/game.js','docs/game.js'],['public/confidentialite.html','docs/confidentialite.html']];
-for(const f of ['overlay.js','style.css','demo.css','controls.js','driver-local.js','icons.js','favicon.svg']) copies.push(['public/'+f,'docs/'+f]);
+for(const f of ['overlay.js','style.css','demo.css','controls.js','driver-local.js','icons.js','panels.js','favicon.svg']) copies.push(['public/'+f,'docs/'+f]);
 fs.mkdirSync(r('docs/3d'),{recursive:true});
 for(const f of ['main.js','style.css','three.module.js']) copies.push(['public/3d/'+f,'docs/3d/'+f]);
 for(const [a,b] of copies) fs.copyFileSync(r(a),r(b));

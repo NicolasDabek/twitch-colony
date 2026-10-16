@@ -32,7 +32,7 @@ c=mk(); c.res.bois=0; assert.equal(c.autoVote(),false); assert.ok(!c.vote);
 // QW2 Bits → round(bits/10) bois
 c=mk(); c.cheer('A',99); assert.equal(c.res.bois,10+10); c.cheer('A',14); assert.equal(c.res.bois,21);
 // QW3 Phare ×2 et prolongation
-c=mk(); c.cheer('A',500); c.chat('U','!bois'); assert.equal(c.res.bois,10+50+3); // Phare ×1,5
+c=mk(); c.cheer('A',500); c.chat('U','!bois'); assert.equal(c.res.bois,10+30+3); // Phare ×1,5 (ressources Bits plafonnées à 30 / 10 min)
 const u0=c.special.until; c.cheer('B',500); assert.equal(c.special.until,u0+10*60000);
 // QW4 égalité au hasard annoncée
 c=mk({rng:()=>0.99}); c.res.bois=100; c.res.pierre=50; c.startVote(['hutte','ferme']); c.chat('X','!vote hutte'); c.chat('Y','!vote ferme');
@@ -43,9 +43,9 @@ c=mk(); c.pop=5; c.res.nourriture=100; for(let i=0;i<10;i++) c.tick(); assert.eq
 c=mk(); c.cheer('A',100); assert.equal(c.leaders.A,4);
 // Orage : !bois donne +1 pierre
 c=mk(); c.cheer('A',5000); const p0=c.res.pierre; c.chat('U','!bois'); assert.equal(c.res.pierre,p0+1);
-// Tour : protège du raid ; sans tour, perte
-c=mk(); c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.res.bois,70); T=1e9;
-c=mk(); c.buildings=['tour']; c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.res.bois,100); assert.equal(c.threat?.type,undefined); assert.equal(c.nextThreat.type,'hiver'); T=1e9;
+// Raid sur le Foyer : sans défense, dégâts + pertes ; une tour réduit les dégâts de 10
+c=mk(); c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.foyer.hp,78); assert.equal(c.res.bois,78); T=1e9;
+c=mk(); c.buildings=['tour']; c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.foyer.hp,88); assert.equal(c.res.bois,88); assert.equal(c.threat?.type,undefined); assert.equal(c.nextThreat.type,'hiver'); T=1e9;
 // Hiver sans nourriture : départs
 c=mk(); c.buildings=['tour']; T+=15*60000; c.tick(); c.res.nourriture=0; c.pop=4; T+=15*60000; c.tick(); assert.ok(c.pop<4); T=1e9;
 // Famine : -1 villageois par minute
@@ -53,13 +53,13 @@ c=mk(); c.res.nourriture=0; c.pop=3; c.tick(); T+=60000; c.tick(); assert.equal(
 // Paliers
 c=mk(); c.res.bois=1e4; c.res.pierre=1e4; ['hutte','ferme','carriere'].forEach(b=>c.build(b)); assert.equal(c.state().stage,'Hameau');
 // Coûts : croissance par exemplaire et selon viewers actifs
-c=mk(); assert.equal(c.cost('hutte').bois,20); c.res.bois=1e4; c.build('hutte'); assert.equal(c.cost('hutte').bois,Math.ceil(20*1.25*1.18));
+c=mk(); assert.equal(c.cost('hutte').bois,20); c.res.bois=1e4; c.build('hutte'); assert.equal(c.cost('hutte').bois,Math.ceil(20*1.25*1.19));
 // Adaptation à l'audience : coûts fixes, rendement par commande dégressif, actifs lissés sur 10 min
 c=mk(); for(let i=0;i<20;i++) c.chat('v'+i,'!bois'); assert.equal(c.activeViewers(),20); assert.equal(c.cost('hutte').bois,20);
 assert.ok(Math.abs(c.yieldFactor()-Math.pow(5/20,0.92))<1e-9); T+=6*60000; assert.equal(c.activeViewers(),20); T+=5*60000; assert.equal(c.activeViewers(),0); T=1e9;
 { const rate=a=>a*(a<=5?1:Math.pow(5/a,0.92)); const r=rate(100)/rate(5); assert.ok(r>1.1&&r<1.35,'progression sous-linéaire 5→100 : '+r); }
 // Plafond Bits : 60 ressources max par 10 min ; logement limite les villageois des subs
-c=mk(); c.cheer('A',1000); assert.equal(c.res.bois,10+60); c.cheer('A',1000); assert.equal(c.res.bois,70); T+=11*60000; c.cheer('A',100); assert.equal(c.res.bois,80); T=1e9;
+c=mk(); c.cheer('A',1000); assert.equal(c.res.bois,10+30); c.cheer('A',1000); assert.equal(c.res.bois,40); T+=11*60000; c.cheer('A',100); assert.equal(c.res.bois,50); T=1e9;
 c=mk(); for(let i=0;i<10;i++) c.sub('s'+i); assert.equal(c.pop,c.housing());
 // Les viewers gratuits progressent sans Bits
 c=mk({cooldownMs:5000}); for(let s=0;s<60;s++){ T+=5000; ['a','b','c'].forEach(u=>c.chat(u,'!bois')); } assert.ok(c.affordable('hutte')); T=1e9;
@@ -95,12 +95,15 @@ console.log('objectif OK');
   assert.ok(L.items.some(b=>b.x<0||b.x>=24||b.z<0||b.z>=24),'expansion hors zone centrale');
   for(let k=1;k<120;k+=17) assert.deepEqual(layout(9,many.slice(0,k)).items,L.items.slice(0,k)); assert.equal(L.at(11,11),1); }
 console.log('carte 72 OK');
-// Équilibrage : simulation accélérée (server/simulate.js)
-{ const sim=require('./simulate'), H=3600; const S=Object.fromEntries(sim.SCENARIOS.map(s=>[s.name,s]));
-  const typ=sim.run(S['20 viewers (typique)']), heavy=sim.run(S['20 viewers, Bits massifs']), few=sim.run(S['5 viewers']), many=sim.run(S['50 viewers']);
-  for(const r of [typ,heavy,few,many]){ assert.ok(r.reached['Cité']>=3*H,`${r.name} : Cité en ${r.reached['Cité']/H} h (< 3 h)`); assert.ok(r.firstBuild<=6*60,`${r.name} : 1er bâtiment trop lent`); }
-  const band=Math.max(typ.reached['Cité'],few.reached['Cité'],many.reached['Cité'])/Math.min(typ.reached['Cité'],few.reached['Cité'],many.reached['Cité']);
-  assert.ok(band<1.3,'durée trop sensible au nombre de viewers : ×'+band.toFixed(2)); }
+// Équilibrage : partie complète (Cité + Merveille) ≥ 3 h 20 dans tous les scénarios, sur plusieurs seeds
+{ const sim=require('./simulate'), H=3600;
+  for(const seed of [1,2]) for(const sc of sim.SCENARIOS){ const r=sim.run(sc,{seed});
+    if(sc.neglect){ assert.ok(r.minHp===0&&(r.revivals>0||r.over!=null),'négliger le Foyer doit avoir des conséquences'); continue; }
+    assert.ok(r.end!=null,`${sc.name} (seed ${seed}) : partie non terminée`); assert.ok(r.over==null,`${sc.name} : partie perdue`);
+    assert.ok(r.end>=3*H+20*60,`${sc.name} (seed ${seed}) : fin en ${(r.end/H).toFixed(2)} h (< 3 h 20)`); assert.ok(r.end<=6.5*H,`${sc.name} : trop long`);
+    assert.ok(r.firstBuild<=6*60,`${sc.name} : 1er bâtiment trop lent`); }
+  const ends=['5 viewers','20 viewers (typique)','50 viewers','200 viewers'].map(n=>sim.run(sim.SCENARIOS.find(s=>s.name===n)).end);
+  assert.ok(Math.max(...ends)/Math.min(...ends)<1.3,'durée trop sensible au nombre de viewers'); }
 console.log('équilibrage OK');
 {const {Colony}=require('./game.js');const g=new Colony();
 g.chat('a','!aide');g.chat('a','!rejoindre bûcheron');const s=g.state();
@@ -108,3 +111,42 @@ if(!s.objectives||!s.objectives.short||!s.objectives.mid||!s.objectives.long) th
 if(!Array.isArray(s.patronsBoard)) throw new Error('mécènes manquant');
 g.pop=0;g.sub('c');g.giftSubs('b',5);if(!g.state().named||!g.state().named.length) throw new Error('villageois nommé');
 console.log('mécaniques OK');}
+
+// ─── Nouvelles mécaniques ───
+{ const {Colony,BUILDINGS,WONDER,FOYER}=require('./game.js'); let T=1e12; const mk=()=>{ T=1e12; return new Colony({now:()=>T,rng:()=>0.5,seed:1,cooldownMs:0}); };
+  // Rôles : +50 % sur la commande du métier
+  let g=mk(); g.chat('a','!bois'); const base=g.res.bois; g.chat('b','!rejoindre bûcheron'); g.chat('b','!bois'); assert.strictEqual(g.res.bois-base,3,'rôle bûcheron ×1,5');
+  g.chat('c','!rejoindre garde'); assert.strictEqual(g.roles.c,'garde');
+  // Série : 3 fenêtres de 10 min consécutives → ×1,25
+  g=mk(); for(let i=0;i<3;i++){ g.chat('s','!pierre'); T+=10*60000; } T-=10*60000; assert.strictEqual(g.streak('s'),3); const p0=g.res.pierre; g.chat('s','!pierre'); assert.ok(Math.abs(g.res.pierre-p0-1.25)<1e-9,'bonus de série');
+  // Défis : un défi de récolte réussi donne un bonus et des points
+  g=mk(); T+=60000; g.tick(); assert.ok(g.defi&&g.defi.type==='gather','défi lancé'); const tgt=g.defi.target, cmd=g.defi.cmd; for(let i=0;i<tgt;i++) g.chat('u'+i,cmd); assert.strictEqual(g.defisWon,1); assert.ok(g.builders.u0>=4,'points de défi');
+  // Déblocages par palier
+  g=mk(); assert.ok(!g.unlocked('grenier')&&g.unlocked('hutte')); g.stage=1; assert.ok(g.unlocked('grenier')&&!g.unlocked('atelier')); g.stage=4; assert.ok(g.unlocked('atelier'));
+  g=mk(); g.res.bois=1e4; g.res.pierre=1e4; g.chat('x','!construire atelier'); assert.ok(!g.vote,'atelier verrouillé au Campement');
+  // Merveille : 3 phases, débloquée à la Ville ; fin = Cité + Merveille
+  g=mk(); g.res.bois=1e5; g.res.pierre=1e5; assert.ok(!g.buildWonder(),'Merveille verrouillée'); g.stage=4; for(let i=0;i<3;i++) assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,WONDER.phases.length); assert.ok(!g.completedAt,'pas fini sans Cité');
+  g.stage=5; g._checkEnd(); assert.ok(g.completedAt,'Cité + Merveille = fin'); assert.ok(g.badges.includes('wonder'));
+  // Badges
+  g=mk(); g.res.bois=100; g.build('hutte'); assert.ok(g.badges.includes('first')); g.giftSubs('z',3); assert.ok(g.badges.includes('fete'));
+  // Vote : +2 aux votants de l'option gagnante, classements séparés
+  g=mk(); g.res.bois=100; g.startVote(['hutte','attendre']); g.chat('v1','!vote hutte'); g.chat('v2','!vote attendre'); g.chat('v3','!vote hutte'); T+=31000; g.tick(); assert.strictEqual(g.builders.v1,3); assert.strictEqual(g.builders.v2,1);
+  g.cheer('m',100); assert.ok(g.patrons.m>0&&!g.builders.m,'Mécènes séparés des Bâtisseurs');
+  // Plafond Bits visible
+  g=mk(); g.cheer('m',1000); assert.ok(g.feed.some(f=>/Plafond/.test(f.m)),'message de plafond');
+  // Foyer : raid non défendu → dégâts ; défendu → repoussé ; réparation
+  g=mk(); g.forceRaid(); g.tick(); assert.strictEqual(g.foyer.hp,FOYER.max-g.raidPower(),'dégâts = force − défense');
+  g=mk(); for(let i=0;i<8;i++) g.chat('d'+i,'!defendre'); g.cheer('w',300); g.strategy='murs'; assert.ok(g.defense().total>=g.raidPower()); g.forceRaid(); g.tick(); assert.strictEqual(g.foyer.hp,FOYER.max);
+  g=mk(); g.foyer.hp=50; g.res.bois=20; g.res.pierre=10; g.chat('r','!reparer'); assert.strictEqual(g.foyer.hp,55); assert.strictEqual(g.res.bois,10);
+  g=mk(); g.chat('g','!rejoindre garde'); g.chat('g','!defendre'); assert.strictEqual(g.defense().defenseurs,4,'garde compte double');
+  // Remparts plafonnés à 20 min
+  g=mk(); for(let i=0;i<5;i++) g.cheer('w',300); assert.strictEqual(g.wallsUntil-T,FOYER.wallsMaxMs);
+  // Foyer détruit → rallumage (objectif fixe, sans hasard), puis fin de partie au 3e
+  g=mk(); g.foyer.hp=1; g._raid(); assert.ok(g.revival); const need=g.reviveNeed(0); for(let i=0;i<need.viewers;i++) g.chat('f'+i,'!rallumer'); assert.ok(!g.revival&&g.foyer.hp===FOYER.revive.hp&&g.revivals===1);
+  g.foyer.hp=1; g._raid(); g.cheer('b',FOYER.revive.bits[1]-1); assert.ok(g.revival,'Bits insuffisants'); g.cheer('b',1); assert.ok(!g.revival&&g.revivals===2,'rallumage Bits');
+  assert.ok(FOYER.revive.bits[1]>FOYER.revive.bits[0],'exigence croissante');
+  g.foyer.hp=1; g._raid(); assert.ok(g.gameOver&&g.gameOver.summary,'plus de rallumage : fin de partie'); T+=31000; g.tick(); assert.ok(!g.gameOver&&g.foyer.hp===FOYER.max,'nouvelle session automatique');
+  g=mk(); g.foyer.hp=1; g._raid(); T+=FOYER.revive.ms+1000; g.tick(); assert.ok(g.gameOver,'délai de rallumage dépassé');
+  // Vote de stratégie avant le raid
+  g=mk(); T=g.nextThreat.at-FOYER.warnMs+1; g.tick(); assert.deepStrictEqual(g.vote.options,['murs','reserves']);
+  console.log('mécaniques (rôles, séries, défis, merveille, badges, déblocages, Foyer) OK'); }

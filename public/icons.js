@@ -1,6 +1,18 @@
 // Icônes SVG intégrées (aucune police emoji ni CDN requis). Utilisées par l'overlay, la démo et la vue 3D.
 (function(){
 const P={
+ grenier:'<path d="M4 11h16v10H4z" fill="#c9925a"/><path d="M2 11.5L12 4l10 7.5z" fill="#7a4a22"/><path d="M9 14h6v7H9z" fill="#5a3818"/><path d="M9 14l6 7M15 14l-6 7" stroke="#c9925a" stroke-width="1"/>',
+ palissade:'<g fill="#a0652d"><path d="M3 9l1.5-3L6 9v12H3zM7.5 9L9 6l1.5 3v12h-3zM12 9l1.5-3L15 9v12h-3zM16.5 9L18 6l1.5 3v12h-3z"/></g><path d="M2 13h20M2 17h20" stroke="#6b4a2b" stroke-width="1.6"/>',
+ marche:'<path d="M3 10h18v11H3z" fill="#e8d9a8"/><path d="M2 10l2-6h16l2 6z" fill="#d04040"/><path d="M5 4l-1 6M9 4v6M15 4v6M19 4l1 6" stroke="#fff" stroke-width="1.4"/><circle cx="8" cy="15" r="2" fill="#ffb020"/><circle cx="14" cy="15" r="2" fill="#7fae3e"/>',
+ atelier:'<path d="M3 10h18v11H3z" fill="#9aa3ad"/><path d="M2 10.5L12 4l10 6.5z" fill="#4a5d8a"/><circle cx="12" cy="15.5" r="3.2" fill="none" stroke="#ffd23f" stroke-width="2"/><circle cx="12" cy="15.5" r="1" fill="#ffd23f"/>',
+ merveille:'<path d="M3 20h18v2H3zM5 10h14v2H5z" fill="#e8dcc0"/><path d="M6 12h2v8H6zM11 12h2v8h-2zM16 12h2v8h-2z" fill="#f2efe6"/><path d="M4 10l8-7 8 7z" fill="#ffd23f"/>',
+ foyer:'<path d="M5 20h14l-1.5-4h-11z" fill="#8d8d8d"/><path d="M12 3c3 4 5 6 5 9a5 5 0 01-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3-1-3 0-5.5 1-7.5z" fill="#ff8a1f"/><path d="M12 9c1.5 2 2.5 3 2.5 4.5a2.5 2.5 0 01-5 0c0-1.5 1.2-2.6 2.5-4.5z" fill="#ffd23f"/>',
+ bouclier:'<path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" fill="#4a7bd1"/><path d="M12 5l5 2v4c0 3.5-2.2 6.3-5 7.7z" fill="#7fa6ff"/>',
+ reparer:'<path d="M14.5 3a5 5 0 00-4.7 6.7L3 16.5 5.5 19l6.8-6.8A5 5 0 0019 7.5l-3 3-2.5-2.5 3-3A5 5 0 0014.5 3z" fill="#c9ced6"/>',
+ defi:'<circle cx="12" cy="12" r="9" fill="#d04040"/><circle cx="12" cy="12" r="6" fill="#fff"/><circle cx="12" cy="12" r="3" fill="#d04040"/>',
+ badge:'<path d="M8 2h8l-2 7h-4z" fill="#4a7bd1"/><circle cx="12" cy="15" r="6" fill="#ffd23f"/><path d="M12 11.5l1.1 2.3 2.4.3-1.8 1.6.5 2.4L12 17l-2.2 1.1.5-2.4-1.8-1.6 2.4-.3z" fill="#c27c00"/>',
+ aide:'<circle cx="12" cy="12" r="10" fill="#7c6bd6"/><path d="M9.5 9.5a2.5 2.5 0 115 0c0 1.8-2.5 2-2.5 4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="12" cy="17.5" r="1.3" fill="#fff"/>',
+ crane:'<path d="M12 3a8 8 0 00-8 8c0 3 1.5 5 3.5 6v3h9v-3c2-1 3.5-3 3.5-6a8 8 0 00-8-8z" fill="#e6e6e6"/><circle cx="9" cy="11" r="2" fill="#222"/><circle cx="15" cy="11" r="2" fill="#222"/>',
  bois:'<rect x="3" y="9" width="18" height="7" rx="3.5" fill="#a0652d"/><ellipse cx="19" cy="12.5" rx="2.4" ry="3.5" fill="#e3b778"/><ellipse cx="19" cy="12.5" rx="1.1" ry="1.7" fill="#a0652d"/>',
  pierre:'<path d="M4 17l2.5-7L11 6l6 2 3 6-2 4H6z" fill="#9aa3ad"/><path d="M11 6l1 6-6 5" stroke="#6b737c" stroke-width="1.4" fill="none"/>',
  nourriture:'<path d="M14 4c4 0 6 3 6 6 0 4-4 6-7 6l-4 4-2-2 4-4c0-3 0-10 3-10z" fill="#c8553d"/><path d="M7 18l-2 2M5.5 15.5l3 3" stroke="#f2e6d0" stroke-width="2.2" stroke-linecap="round"/>',
@@ -42,7 +54,7 @@ const P={
 };
 const I=(n,cls='')=>P[n]?`<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${P[n]}</svg>`:'';
 // Emoji → icône (pour les messages du jeu : alertes, fil d'actions)
-const MAP=[['🧑‍🌾','colons'],['🪵','bois'],['🪨','pierre'],['🍖','nourriture'],['👥','colons'],['☀️','soleil'],['⛈️','orage'],['☁️','nuage'],['🏘️','palier'],['⚔️','raid'],['❄️','hiver'],['🗼','phare'],['💎','bits'],['⭐','sub'],['🗳️','vote'],['🏆','trophee'],['⏱','timer'],['⚡','eclair'],['✅','ok'],['⚠️','warn'],['🛖','hutte'],['🌾','ferme'],['⛏️','carriere'],['🏰','tour'],['🏠','maison'],['💬','chat'],['⏳','sablier'],['🔄','reset'],['👤','user'],['🧊','cube'],['🏕️','camp'],['⚙️','outils'],['🏗️','build'],['🎉','fete'],['✨','bits']];
+const MAP=[['🧑‍🌾','colons'],['🪵','bois'],['🪨','pierre'],['🍖','nourriture'],['👥','colons'],['☀️','soleil'],['⛈️','orage'],['☁️','nuage'],['🏘️','palier'],['⚔️','raid'],['❄️','hiver'],['🗼','phare'],['💎','bits'],['⭐','sub'],['🗳️','vote'],['🏆','trophee'],['⏱','timer'],['⚡','eclair'],['✅','ok'],['⚠️','warn'],['🛖','hutte'],['🌾','ferme'],['⛏️','carriere'],['🏰','tour'],['🏠','maison'],['💬','chat'],['⏳','sablier'],['🔄','reset'],['👤','user'],['🧊','cube'],['🏕️','camp'],['⚙️','outils'],['🏗️','build'],['🎉','fete'],['✨','bits'],['🎯','defi'],['🏛️','merveille'],['🏅','badge'],['🔥','foyer'],['🛡️','bouclier'],['🔧','reparer'],['🧱','palissade'],['❔','aide'],['💀','crane'],['🧭','user'],['🌽','grenier']];
 function iconify(html){ let s=String(html); for(const [e,n] of MAP) s=s.split(e).join(I(n)); return s.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]\uFE0F?/gu,''); }
 const EMO=/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\u{2B00}-\u{2BFF}]/u;
 const escH=t=>t.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

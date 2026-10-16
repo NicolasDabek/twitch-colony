@@ -12,7 +12,7 @@
   }
   function act(e){ Driver.send({...e,user:user()}); }
   document.addEventListener('click',ev=>{ const b=ev.target.closest('button'); if(!b) return;
-    if(b.dataset.c) chat(b.dataset.c); else if(b.dataset.bits) act({type:'cheer',bits:+b.dataset.bits}); else if(b.dataset.t) act({type:b.dataset.t}); });
+    if(b.dataset.c) chat(b.dataset.c); else if(b.dataset.bits) act({type:'cheer',bits:+b.dataset.bits}); else if(b.dataset.t==='gift') act({type:'gift',n:5}); else if(b.dataset.w) act({type:'wonder'}); else if(b.dataset.t) act({type:b.dataset.t}); });
   const K={b:()=>chat('!bois'),p:()=>chat('!pierre'),c:()=>chat('!chasse'),v:()=>act({type:'vote'}),1:()=>act({type:'cheer',bits:100}),5:()=>act({type:'cheer',bits:500}),s:()=>act({type:'sub'})};
   addEventListener('keydown',e=>{ if(e.target.tagName!=='INPUT'&&!e.ctrlKey&&!e.metaKey&&K[e.key]) K[e.key](); });
   function paintCooldowns(){
@@ -22,7 +22,7 @@
     if(S&&S.vote){ const tm=$('vote').querySelector('.timer'); if(tm) tm.innerHTML=I('timer')+' '+Math.max(0,Math.ceil((S.vote.ends-S.now)/1000-(Date.now()-S._rx)/1000))+' s'; }
   }
   setInterval(paintCooldowns,250);
-  const ICON={hutte:'🛖',ferme:'🌾',carriere:'⛏️',tour:'🏰'}, NAME={hutte:'Hutte',ferme:'Ferme',carriere:'Carrière',tour:'Tour'};
+  const ICON={hutte:'🛖',ferme:'🌾',carriere:'⛏️',tour:'🏰'}, NAME=Panels.NAME, BI=b=>I(b);
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   let lastAlert=0;
   function onState(s){
@@ -30,16 +30,23 @@
     render(s);
     // Vote
     if(s.vote){ const tot=Object.values(s.vote.tally).reduce((a,b)=>a+b,0), max=Math.max(0,...Object.values(s.vote.tally));
-      put('vote',`<h4><span>🗳️ ${esc(s.vote.title)}</span> <span class="timer"></span></h4>`+Object.entries(s.vote.tally).map(([o,n])=>`<button data-c="!vote ${esc(o)}" class="${max&&n===max?'lead':''}" style="--p:${tot?n/tot*100:0}%"><span>${ICON[o]||''} ${NAME[o]||esc(o)}<small>!vote ${esc(o)}</small></span><span>${n}</span></button>`).join(''));
+      put('vote',`<h4><span>🗳️ ${esc(s.vote.title)}</span> <span class="timer"></span></h4>`+Object.entries(s.vote.tally).map(([o,n])=>`<button data-c="!vote ${esc(o)}" class="${max&&n===max?'lead':''}" style="--p:${tot?n/tot*100:0}%"><span>${I(o)} ${NAME[o]||esc(o)}<small>!vote ${esc(o)}</small></span><span>${n}</span></button>`).join(''));
     } else put('vote',`<h4><span>🗳️ Vote</span> <span style="color:#aaa;text-transform:none;letter-spacing:0">aucun en cours</span></h4><button data-t="vote" style="width:100%">Lancer un vote (bâtiments abordables)<small>V</small></button>`);
     // Construire
-    put('build',Object.entries(s.costs||{}).map(([b,c])=>`<button data-c="!construire ${b}">${ICON[b]} ${NAME[b]}<small>${c.bois}🪵${c.pierre?' '+c.pierre+'🪨':''}</small></button>`).join(''));
+    const unl=s.unlockedBuildings||Object.keys(s.costs||{});
+    put('build',Object.entries(s.costs||{}).map(([b,c])=>unl.includes(b)?`<button data-c="!construire ${b}" title="${esc(Panels.DESC[b]||'')}" class="${s.res.bois>=c.bois&&s.res.pierre>=c.pierre?'ok':''}">${BI(b)} ${NAME[b]}<small>${c.bois}🪵${c.pierre?' '+c.pierre+'🪨':''}</small></button>`:`<button class="locked" disabled title="${esc(Panels.DESC[b]||'')}">${BI(b)} ${NAME[b]}<small>🔒 palier suivant</small></button>`).join('')+
+      (s.wonder?`<button data-w="1" class="${s.wonder.unlocked?'':'locked'}" ${s.wonder.unlocked&&s.wonder.cost?'':'disabled'}>${I('merveille')} Merveille ${s.wonder.phase}/3<small>${s.wonder.cost?(s.wonder.unlocked?s.wonder.cost.bois+'🪵 '+s.wonder.cost.pierre+'🪨':'🔒 Ville'):'achevée'}</small></button>`:''));
+    put('me',Panels.me(s,$('u').value.trim()||'Viewer'));
+    put('miniobj',Panels.objectives(s,innerWidth<900)+Panels.foyer(s)+(s.revival?`<div class="rvmini">${Panels.revival(s)}</div>`:'')+(s.gameOver?`<div class="rvmini">${Panels.gameOver(s)}</div>`:''));
+    put('howto',Panels.howto());
+    $('hpinfo').textContent=s.foyer?s.foyer.hp+'/'+s.foyer.max+' PV':'';
+    $('capinfo').innerHTML=s.bitsCapLeft!=null?(s.bitsCapLeft>0?`Ressources Bits encore possibles sur 10 min : ${s.bitsCapLeft}`:`<b style="color:#ffb020">Plafond de ressources Bits atteint pour 10 min</b> : les effets spéciaux restent actifs`):'';
     const g=s.goal||{bits:5000}; $('goalinfo').textContent=`${Math.min(g.cur??s.bitsTotal,g.bits).toLocaleString('fr-FR')} / ${g.bits.toLocaleString('fr-FR')} Bits`;
     // Vue mobile
     $('mini').className='mini'+(s.weather==='clair'?'':' storm');
     const ch=(ic,v,lab,tip)=>`<span title="${esc(tip)}">${I(ic)} ${v} <em>${lab}</em></span>`;
-    const mh=`<div class="r">${ch('bois',s.res.bois,'bois','Bois')}${ch('pierre',s.res.pierre,'pierre','Pierre')}${ch('nourriture',s.res.nourriture,'nourr.','Nourriture')}${ch('colons',s.pop,'villag.','Villageois')}${ch('palier',esc(s.stage),'','Palier de la colonie')}${s.threat?`<span>${s.threat.type==='raid'?'⚔️':'❄️'} ${Math.max(0,Math.ceil((s.threat.at-s.now)/60000))} min</span>`:''}${s.special?'<span>✨ ×1,5</span>':''}${s.weather==='orage magique'?`<span title="Orage magique">⛈️ ${Math.max(0,Math.ceil((s.weatherUntil-s.now)/1000))} s</span>`:''}</div>`+
-      `<div class="bl">${s.buildings.map(b=>`<div>${ICON[b]}<small>${NAME[b]}</small></div>`).join('')}${s.special?'<div>🗼<small>Phare</small></div>':''}<div class="ppl">${'🧑‍🌾'.repeat(Math.min(s.pop,8))}</div></div>`; if($('mini').dataset.k!==mh){ $('mini').dataset.k=mh; $('mini').innerHTML=mh; }
+    const mh=`<div class="r">${ch('bois',s.res.bois,'bois','Bois')}${ch('pierre',s.res.pierre,'pierre','Pierre')}${ch('nourriture',s.res.nourriture,'nourr.','Nourriture')}${ch('colons',s.pop,'villag.','Villageois')}${ch('palier',esc(s.stage),'','Palier de la colonie')}${s.foyer?ch('foyer',s.foyer.hp,'PV','Grand Foyer'):''}${s.threat?`<span>${s.threat.type==='raid'?'⚔️':'❄️'} ${Math.max(0,Math.ceil((s.threat.at-s.now)/60000))} min</span>`:''}${s.special?'<span>✨ ×1,5</span>':''}${s.weather==='orage magique'?`<span title="Orage magique">⛈️ ${Math.max(0,Math.ceil((s.weatherUntil-s.now)/1000))} s</span>`:''}</div>`+
+      `<div class="bl">${s.buildings.map(b=>`<div>${BI(b)}<small>${NAME[b]}</small></div>`).join('')}${s.special?'<div>🗼<small>Phare</small></div>':''}<div class="ppl">${'🧑‍🌾'.repeat(Math.min(s.pop,8))}</div></div>`; if($('mini').dataset.k!==mh){ $('mini').dataset.k=mh; $('mini').innerHTML=mh; }
     const a=s.alert||(s.feed&&s.feed[0]); if(a&&a.t!==lastAlert){ lastAlert=a.t; $('toast').innerHTML=iconify(esc(a.m)); }
     iconifyDom(document.querySelector('.side'));
     paintCooldowns();

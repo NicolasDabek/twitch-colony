@@ -1,11 +1,12 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Twitch Colony — démo simulation</title><link rel="stylesheet" href="style.css?v=f2688b91"><link rel="stylesheet" href="demo.css?v=ad92c0b5"><link rel="icon" href="favicon.svg"></head>
+<title>Twitch Colony — démo simulation</title><link rel="stylesheet" href="style.css?v=377ea0ca"><link rel="stylesheet" href="demo.css?v=02f495f6"><link rel="icon" href="favicon.svg"></head>
 <body class="demo">
 <header><b>🏕️ Twitch Colony</b><a href="3d/" style="margin-left:auto;margin-right:8px;min-height:44px;line-height:44px">🧊 Vue 3D</a><label class="pseudo">👤 <input id="u" value="Viewer1" aria-label="Pseudo simulé"></label></header>
 <div class="layout">
  <div class="side">
   <div class="mini" id="mini"></div>
   <div class="toast" id="toast">Tapez une commande pour commencer.</div>
+  <section class="sec"><div id="me"></div><div id="miniobj"></div></section>
   <section class="sec v" id="vote"></section>
   <section class="sec"><h4>Récolter <span id="cdinfo" style="color:#aaa;text-transform:none;letter-spacing:0">cooldown 5 s</span></h4>
    <div class="grid3">
@@ -13,12 +14,18 @@
     <button data-c="!pierre">🪨 Pierre<small>+1 · P</small></button>
     <button data-c="!chasse">🍖 Chasse<small>+2 · C</small></button>
    </div><div class="msg" id="msg" role="status"></div></section>
+  <section class="sec def"><h4>Défendre le Foyer <span id="hpinfo"></span></h4>
+   <div class="grid3"><button data-c="!defendre">🛡️ Défendre<small>!defendre</small></button><button data-c="!reparer">🔧 Réparer<small>10 bois + 5 pierre</small></button><button data-c="!rallumer">🔥 Rallumer<small>si détruit</small></button></div></section>
+  <section class="sec"><h4>Métier <small style="text-transform:none;letter-spacing:0;color:#aaa">+50 % sur sa commande</small></h4>
+   <div class="grid4"><button data-c="!rejoindre bûcheron">🪵<small>Bûcheron</small></button><button data-c="!rejoindre mineur">🪨<small>Mineur</small></button><button data-c="!rejoindre chasseur">🍖<small>Chasseur</small></button><button data-c="!rejoindre garde">🛡️<small>Garde</small></button></div></section>
   <section class="sec"><h4>Construire</h4><div class="grid3" id="build"></div></section>
   <section class="sec bits"><h4>Simuler un soutien <span id="goalinfo"></span></h4>
-   <div class="grid3"><button data-bits="100">100 Bits<small>1</small></button><button data-bits="500">500 Bits<small>Phare · 5</small></button><button data-t="sub">⭐ Sub<small>S</small></button></div></section>
+   <div class="grid3" id="bitsbtns"><button data-bits="100">100 Bits<small>+10 bois</small></button><button data-bits="300">300 Bits<small>Remparts +15 déf.</small></button><button data-bits="500">500 Bits<small>Phare ×1,5</small></button><button data-bits="1500">1 500 Bits<small>Bénédiction ×2</small></button><button data-bits="5000">5 000 Bits<small>Orage magique</small></button><button data-t="sub">⭐ Sub<small>villageois nommé</small></button><button data-t="gift">🎉 5 subs offerts<small>fête au village</small></button></div>
+   <div class="msg" id="capinfo" style="color:#ddd"></div></section>
+  <details open><summary>❔ Comment participer</summary><div id="howto"></div></details>
   <details><summary>⚙️ Outils de démo (vote, reset, pseudo aléatoire, !optout)</summary>
    <div class="grid2">
-    <button data-t="vote">🗳️ Lancer un vote<small>V</small></button><button data-bits="5000">5 000 Bits<small>objectif</small></button>
+    <button data-t="vote">🗳️ Lancer un vote<small>V</small></button><button data-t="raid">⚔️ Simuler une attaque<small>raid immédiat</small></button>
     <button data-c="!optout">!optout</button><button data-t="reset">🔄 Nouvelle session</button>
     <label><input type="checkbox" id="rnd"> pseudo aléatoire à chaque action</label>
    </div></details>
@@ -26,5 +33,5 @@
  </div>
  <div class="stagewrap" id="stagewrap"><div id="ov"></div></div>
 </div>
-<script src="icons.js?v=a3517017"></script><script src="overlay.js?v=40bb3eba"></script><script src="game.js?v=35dde2bc"></script><script src="driver-local.js?v=38a46757"></script><script src="controls.js?v=540715be"></script>
+<script src="icons.js?v=69f9cdea"></script><script src="panels.js?v=46d3f942"></script><script src="overlay.js?v=f61ab6da"></script><script src="game.js?v=9c06eb66"></script><script src="driver-local.js?v=477131a3"></script><script src="controls.js?v=6f476f5b"></script>
 </body></html>

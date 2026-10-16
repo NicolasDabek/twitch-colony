@@ -21,7 +21,7 @@ http.createServer((req,res)=>{
     if(twitchOn){ res.writeHead(403); return res.end('simulation désactivée en mode twitch'); }
     let b=''; req.on('data',c=>b+=c); req.on('end',()=>{ try{ const e=JSON.parse(b||'{}');
       if(e.type==='chat') game.chat(e.user||'Viewer',e.text||''); else if(e.type==='cheer') game.cheer(e.user||'Viewer',e.bits||100);
-      else if(e.type==='sub') game.sub(e.user||'Viewer'); else if(e.type==='vote') game.autoVote(); else if(e.type==='reset') game.reset(); else if(e.type==='build') game.build(e.name); else if(e.type==='gift') game.giftSubs(e.user||'Viewer',e.n||5); else if(e.type==='wonder') game.buildWonder();
+      else if(e.type==='sub') game.sub(e.user||'Viewer'); else if(e.type==='vote') game.autoVote(); else if(e.type==='reset') game.reset(); else if(e.type==='build') game.build(e.name); else if(e.type==='gift') game.giftSubs(e.user||'Viewer',e.n||5); else if(e.type==='wonder') game.buildWonder(); else if(e.type==='raid') game.forceRaid();
       push(); res.end('ok'); }catch{ res.writeHead(400); res.end('bad'); } }); return;
   }
   if(u.pathname==='/game.js'){ res.writeHead(200,{'Content-Type':'text/javascript'}); return fs.createReadStream(path.join(__dirname,'game.js')).pipe(res); }
