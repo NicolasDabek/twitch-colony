@@ -59,4 +59,5 @@ class Colony {
       vote:this.vote&&{title:this.vote.title,tally,ends:this.vote.ends},leaderboard:top,log:this.log};
   }
 }
-module.exports={Colony,BUILDINGS};
+if(typeof module!=='undefined'&&module.exports) module.exports={Colony,BUILDINGS};
+else globalThis.TwitchColony={Colony,BUILDINGS};

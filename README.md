@@ -4,6 +4,12 @@ Jeu de **colonie communautaire** affiché sur un stream Twitch : le chat récolt
 
 > « Les Bits permettent à la communauté d'influencer la partie en direct. Ils ne donnent accès à aucun objet, compte, service ou avantage en dehors de ce stream. »
 
+## ▶️ Jouer en ligne (simulation, sans OBS ni serveur)
+
+**https://nicolasdabek.github.io/twitch-colony/**
+
+C'est une version 100 % navigateur hébergée sur GitHub Pages (dossier `docs/`). Elle utilise la même logique de jeu (`server/game.js`) que le serveur. Après toute modification de `server/game.js` ou `public/overlay.js`, lancez `npm run build:pages` : `npm test` vérifie que `docs/` est à jour.
+
 ## Lancer
 
 ```bash
