@@ -34,12 +34,26 @@ Raccourcis du simulateur : **B** !bois · **P** !pierre · **C** !chasse · **V*
 
 Les viewers gratuits peuvent faire progresser toute la colonie : les Bits accélèrent, ils ne sont jamais indispensables.
 
+## Enjeux de la partie
+
+- **Paliers** : Campement → Village (3 bâtiments) → Bourg (7) → Ville (12), avec une annonce à l'écran.
+- **Menace toutes les 15 min**, en alternance :
+  - ⚔️ **Raid** : sans assez de tours (une par niveau de palier), la colonie perd 30 % de son bois et de sa pierre.
+  - ❄️ **Hiver** : consomme 3 nourriture par colon ; si la nourriture manque, des colons partent.
+- **Famine** : à 0 nourriture, un colon part chaque minute.
+- **Colons** : chaque colon récolte du bois (floor(pop/2) toutes les 10 s).
+- **Coûts adaptés à l'audience** : coût de base × max(1, viewers actifs sur 5 min / 5) × 1,25 par exemplaire déjà construit.
+- **Votes** : le vote automatique ne propose que les bâtiments abordables. `!construire` affiche ce qui manque. En cas d'égalité, le vote est départagé au hasard et c'est annoncé (votes gratuits uniquement).
+
 ## Bits et subs : effets de session uniquement
 
-- **100 Bits** = +10 bois pour la colonie
-- **500 Bits** = « Phare de la session », bâtiment spécial pendant 10 min
-- **Objectif communautaire 5000 Bits** = événement météo « orage magique »
+- **Bits** = +1 bois pour 10 Bits (arrondi), pour la colonie
+- **500 Bits** = **Phare de la session** : gains du chat ×2 pendant 10 min. Un nouveau cheer de 500 Bits le prolonge de 10 min.
+- **Objectif communautaire 5000 Bits** = **orage magique** : chaque `!bois` donne aussi 1 pierre pendant 2 min
 - **Sub** = un nouveau colon + 10 nourriture
+- **Classement** : 1 point par commande ou vote, 1 point pour 25 Bits, 20 points par sub
+
+Aucun effet payant n'est aléatoire. Les viewers gratuits peuvent tout construire et défendre la colonie sans Bits.
 
 ## Règles de conception (politique Twitch)
 

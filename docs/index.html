@@ -15,12 +15,12 @@ const game=new TwitchColony.Colony(); window.game=game;
 const draw=()=>render(game.state());
 const send=e=>{ const u=document.getElementById('u'); if(document.getElementById('rnd').checked) u.value='Viewer'+Math.floor(Math.random()*50);
   if(e.type==='chat') game.chat(u.value,e.text); else if(e.type==='cheer') game.cheer(u.value,e.bits); else if(e.type==='sub') game.sub(u.value);
-  else if(e.type==='vote') game.startVote(['hutte','ferme','carriere','tour']); else if(e.type==='reset') game.reset(); draw(); };
+  else if(e.type==='vote') game.autoVote(); else if(e.type==='reset') game.reset(); draw(); };
 document.querySelectorAll('button').forEach(b=>b.onclick=()=>b.dataset.c?send({type:'chat',text:b.dataset.c}):b.dataset.bits?send({type:'cheer',bits:+b.dataset.bits}):send({type:b.dataset.t}));
 const K={b:{type:'chat',text:'!bois'},p:{type:'chat',text:'!pierre'},c:{type:'chat',text:'!chasse'},v:{type:'vote'},1:{type:'cheer',bits:100},5:{type:'cheer',bits:500},s:{type:'sub'}};
 addEventListener('keydown',e=>{ if(e.target.tagName!=='INPUT'&&K[e.key]) send(K[e.key]); });
 setInterval(()=>{ game.tick(); draw(); },1000);
-setInterval(()=>game.startVote(['hutte','ferme','carriere','tour']),180000);
+setInterval(()=>game.autoVote(),180000);
 const fit=()=>{ const k=Math.min(1,(innerWidth-10)/1280); document.getElementById('ov').style.transform='scale('+k+')'; }; addEventListener('resize',fit); fit(); draw();
 if(location.hash==='#autotest'){ send({type:'chat',text:'!bois'}); send({type:'cheer',bits:500}); send({type:'sub'}); }
 </script></body></html>

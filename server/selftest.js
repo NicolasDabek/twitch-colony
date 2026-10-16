@@ -23,3 +23,39 @@ const fs=require('fs'),path=require('path');
 for(const [a,b] of [['server/game.js','docs/game.js'],['public/overlay.js','docs/overlay.js']])
   assert.equal(fs.readFileSync(path.join(__dirname,'..',a),'utf8'),fs.readFileSync(path.join(__dirname,'..',b),'utf8'),`${b} périmé : lancez npm run build:pages`);
 console.log('docs OK');
+// ─── Analyse game design ───
+const {BUILDINGS:B}=require('./game');
+let T=1e9; const clock=()=>T; const mk=(o={})=>new Colony({cooldownMs:0,now:clock,...o});
+// QW1 vote auto : seulement abordables
+let c=mk(); c.res.bois=25; c.autoVote(); assert.deepEqual(c.vote.options,['hutte']);
+c=mk(); c.res.bois=0; assert.equal(c.autoVote(),false); assert.ok(!c.vote);
+// QW2 Bits → round(bits/10) bois
+c=mk(); c.cheer('A',99); assert.equal(c.res.bois,10+10); c.cheer('A',14); assert.equal(c.res.bois,21);
+// QW3 Phare ×2 et prolongation
+c=mk(); c.cheer('A',500); c.chat('U','!bois'); assert.equal(c.res.bois,10+50+4);
+const u0=c.special.until; c.cheer('B',500); assert.equal(c.special.until,u0+10*60000);
+// QW4 égalité au hasard annoncée
+c=mk({rng:()=>0.99}); c.res.bois=100; c.res.pierre=50; c.startVote(['hutte','ferme']); c.chat('X','!vote hutte'); c.chat('Y','!vote ferme');
+c.vote.ends=0; c.tick(); assert.ok(c.log.some(l=>/Égalité.*hasard/.test(l.m))); assert.deepEqual(c.buildings,['ferme']);
+// QW5 colons produisent floor(pop/2) bois / 10 s
+c=mk(); c.pop=5; c.res.nourriture=100; for(let i=0;i<10;i++) c.tick(); assert.equal(c.res.bois,12);
+// QW6 1 pt / 25 Bits
+c=mk(); c.cheer('A',100); assert.equal(c.leaders.A,4);
+// Orage : !bois donne +1 pierre
+c=mk(); c.cheer('A',5000); const p0=c.res.pierre; c.chat('U','!bois'); assert.equal(c.res.pierre,p0+1);
+// Tour : protège du raid ; sans tour, perte
+c=mk(); c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.res.bois,70); T=1e9;
+c=mk(); c.buildings=['tour']; c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.res.bois,100); assert.equal(c.threat?.type,undefined); assert.equal(c.nextThreat.type,'hiver'); T=1e9;
+// Hiver sans nourriture : départs
+c=mk(); c.buildings=['tour']; T+=15*60000; c.tick(); c.res.nourriture=0; c.pop=4; T+=15*60000; c.tick(); assert.ok(c.pop<4); T=1e9;
+// Famine : -1 colon par minute
+c=mk(); c.res.nourriture=0; c.pop=3; c.tick(); T+=60000; c.tick(); assert.equal(c.pop,2); T=1e9;
+// Paliers
+c=mk(); c.res.bois=1e4; c.res.pierre=1e4; ['hutte','ferme','carriere'].forEach(b=>c.build(b)); assert.equal(c.state().stage,'Village');
+// Coûts : croissance par exemplaire et selon viewers actifs
+c=mk(); assert.equal(c.cost('hutte').bois,20); c.res.bois=1e4; c.build('hutte'); assert.equal(c.cost('hutte').bois,25);
+c=mk(); for(let i=0;i<20;i++) c.chat('v'+i,'!bois'); assert.equal(c.activeViewers(),20); assert.equal(c.cost('hutte').bois,80);
+T+=6*60000; assert.equal(c.activeViewers(),0); T=1e9;
+// Les viewers gratuits progressent sans Bits
+c=mk({cooldownMs:5000}); for(let s=0;s<60;s++){ T+=5000; ['a','b','c'].forEach(u=>c.chat(u,'!bois')); } assert.ok(c.affordable('hutte')); T=1e9;
+console.log('game design OK');
