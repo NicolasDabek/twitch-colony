@@ -106,5 +106,5 @@ console.log('équilibrage OK');
 g.chat('a','!aide');g.chat('a','!rejoindre bûcheron');const s=g.state();
 if(!s.objectives||!s.objectives.short||!s.objectives.mid||!s.objectives.long) throw new Error('objectifs manquants');
 if(!Array.isArray(s.patronsBoard)) throw new Error('mécènes manquant');
-g.giftSubs('b',5);g.sub('c');if(!g.state().named||!g.state().named.length) throw new Error('villageois nommé');
+g.pop=0;g.sub('c');g.giftSubs('b',5);if(!g.state().named||!g.state().named.length) throw new Error('villageois nommé');
 console.log('mécaniques OK');}
