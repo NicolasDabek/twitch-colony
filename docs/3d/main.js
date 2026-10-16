@@ -135,6 +135,17 @@ $('vote').addEventListener('click',e=>{ if(OBS) return; const b=e.target.closest
   if(l>0){ say(`⏳ ${u} doit attendre ${l} s avant de revoter`); return; }
   lastVote[u]=Date.now(); Driver.send({type:'chat',user:u,text:'!vote '+o}); say(`🗳️ ${u} vote ${o}`);
   b.classList.add('tap'); setTimeout(()=>b.classList.remove('tap'),250); });
+// ─── Gestes tactiles : empêcher le zoom de la page (iOS/Android), pincer = zoom de la carte ───
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{ if(e.touches.length>1||e.target===canvas) e.preventDefault(); },{passive:false});
+let lastTouchEnd=0; document.addEventListener('touchend',e=>{ const t=Date.now(); if(t-lastTouchEnd<350&&!e.target.closest('button')) e.preventDefault(); lastTouchEnd=t; },{passive:false});
+document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+// Recentrer / vue d'ensemble
+const fitAll=()=>{ const v=(innerWidth<700?11:9), a=innerWidth/innerHeight, need=OUT*0.75; return Math.max(ZMIN,Math.min(1,v*Math.min(a,1)/need*1.0)); };
+$('home').onclick=()=>{ target.set(0,0,0); rot=0; setZoom(1); };
+$('overview').onclick=()=>{ target.set(0,0,0); setZoom(fitAll()); };
+$('fold').onclick=()=>{ const f=$('ctl').classList.toggle('folded'); $('fold').textContent=f?'▴ Commandes':'▾ Masquer'; $('fold').setAttribute('aria-expanded',!f); layoutHud(); };
+window.__cam=()=>({zoom,target:target.toArray()});
 $('rl').onclick=()=>rot--; $('rr').onclick=()=>rot++;
 // ─── Caméra ───
 function resize(){ const w=innerWidth,h=innerHeight; R.setSize(w,h,false); const a=w/h, v=(w<700?11:9)/zoom; cam.left=-v*a; cam.right=v*a; cam.top=v; cam.bottom=-v; cam.updateProjectionMatrix(); layoutHud(); }

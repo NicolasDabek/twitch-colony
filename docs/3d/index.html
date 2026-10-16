@@ -1,17 +1,17 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Twitch Colony — village 3D</title><link rel="stylesheet" href="style.css?v=c7feae06"><link rel="icon" href="../favicon.svg"></head><body>
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Twitch Colony — village 3D</title><link rel="stylesheet" href="style.css?v=dc2c872e"><link rel="icon" href="../favicon.svg"></head><body>
 <canvas id="c"></canvas><div id="labels"></div>
 <div class="hud">
  <div class="card res" id="res"></div>
  <div class="card goal" id="goal"></div>
  <div class="card vote" id="vote"></div>
  <div class="card alert" id="alert"></div>
- <div class="card ctl" id="ctl">
+ <div class="card ctl" id="ctl"><button id="fold" class="fold" aria-expanded="true" title="Masquer / afficher les commandes">▾ Masquer</button>
   <div class="row">
    <button data-c="!bois" title="!bois">🪵<span> Bois</span></button><button data-c="!pierre" title="!pierre">🪨<span> Pierre</span></button><button data-c="!chasse" title="!chasse">🍖<span> Chasse</span></button>
    <button data-b="hutte" title="Construire une hutte">🛖<span> Hutte</span></button><button data-b="ferme" title="Construire une ferme">🌾<span> Ferme</span></button><button data-b="carriere" title="Construire une carrière">⛏️<span> Carrière</span></button><button data-b="tour" title="Construire une tour">🏰<span> Tour</span></button>
    <button data-bits="500" class="gold" title="500 Bits : Phare">💎<span> 500 Bits</span></button><button data-t="sub" class="gold" title="Sub : +1 villageois">⭐<span> Sub</span></button>
-   <button id="rl" aria-label="Pivoter à gauche">⟲</button><button id="rr" aria-label="Pivoter à droite">⟳</button><button data-t="reset" title="Nouvelle partie (nouvelle seed)">🔄</button>
+   <button id="home" title="Recentrer sur le village"><i data-i="maison"></i><span> Centrer</span></button><button id="overview" title="Vue d'ensemble de la carte"><i data-i="cube"></i><span> Carte</span></button><button id="rl" aria-label="Pivoter à gauche" title="Pivoter à gauche"><i data-i="left"></i><span> Pivoter</span></button><button id="rr" aria-label="Pivoter à droite" title="Pivoter à droite"><i data-i="right"></i><span> Pivoter</span></button><button data-t="reset" title="Nouvelle partie (nouvelle seed)"><i data-i="reset"></i><span> Nouvelle</span></button>
   </div>
   <small class="help">Partie <b id="seed"></b> · glisser / WASD / flèches : déplacer · molette / pincer : zoom · Q/E : pivoter · <span id="msg"></span></small>
  </div>
@@ -27,4 +27,4 @@ setTimeout(function(){ if(!window.__state) window.showFatal('Le jeu ne s\'est pa
 </script>
 <script nomodule>window.showFatal('Ce navigateur ne prend pas en charge les modules JavaScript. Ouvrez la page dans Chrome, Firefox ou Safari récents.');</script>
 <script src="../icons.js?v=a3517017"></script><script src="../game.js?v=52c927ee"></script><script src="../driver-local.js?v=add93da3"></script>
-<script type="module" src="main.js?v=5a59f98c"></script></body></html>
+<script type="module" src="main.js?v=c7e8cd44"></script></body></html>

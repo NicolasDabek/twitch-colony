@@ -65,3 +65,22 @@ body.obs .ctl{display:none}
 @media (max-width:700px),(pointer:coarse) and (max-width:1100px){
  .alert{left:8px;right:8px;transform:none;max-width:none;z-index:4;font-size:15px}.alert.goal{font-size:16px;padding:12px 14px}
 }
+
+/* Gestes : la page ne zoome jamais, seul le village zoome (pincer) */
+html,body,#c,.hud,#labels{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button{touch-action:manipulation}
+.fold{display:none}
+@media (max-width:700px),(pointer:coarse) and (max-width:1100px){
+ .ctl{padding:6px 8px 6px}
+ .ctl .row{gap:8px;padding-bottom:2px}
+ .ctl .row button{flex:0 0 auto;min-width:60px;min-height:60px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;line-height:1.1}
+ .ctl .row button .ico{width:28px;height:28px}
+ .ctl .row button span{display:block!important;font-size:11px;font-weight:700;white-space:nowrap}
+ .ctl .help{font-size:10px;margin-top:4px}
+ .fold{display:block;position:absolute;right:8px;top:-34px;min-height:30px;min-width:0;padding:0 10px;font-size:12px;background:rgba(14,12,24,.84);border:1px solid rgba(255,255,255,.15)}
+ .ctl.folded .row,.ctl.folded .help{display:none}.ctl.folded{padding:0;border:0;background:none}
+ .vopt{min-height:56px}
+}
+@media (max-width:700px),(pointer:coarse) and (max-width:1100px){
+ .goal{bottom:calc(var(--ctlh,120px) + var(--legh,30px) + 46px)}
+}
