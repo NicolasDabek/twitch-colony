@@ -34,11 +34,11 @@
     } else put('vote',`<h4><span>🗳️ Vote</span> <span style="color:#aaa;text-transform:none;letter-spacing:0">aucun en cours</span></h4><button data-t="vote" style="width:100%">Lancer un vote (bâtiments abordables)<small>V</small></button>`);
     // Construire
     put('build',Object.entries(s.costs||{}).map(([b,c])=>`<button data-c="!construire ${b}">${ICON[b]} ${NAME[b]}<small>${c.bois}🪵${c.pierre?' '+c.pierre+'🪨':''}</small></button>`).join(''));
-    const g=s.goal||{bits:5000}; $('goalinfo').textContent=`${Math.min(s.bitsTotal,g.bits).toLocaleString('fr-FR')} / ${g.bits.toLocaleString('fr-FR')} Bits`;
+    const g=s.goal||{bits:5000}; $('goalinfo').textContent=`${Math.min(g.cur??s.bitsTotal,g.bits).toLocaleString('fr-FR')} / ${g.bits.toLocaleString('fr-FR')} Bits`;
     // Vue mobile
     $('mini').className='mini'+(s.weather==='clair'?'':' storm');
     const ch=(ic,v,lab,tip)=>`<span title="${esc(tip)}">${I(ic)} ${v} <em>${lab}</em></span>`;
-    const mh=`<div class="r">${ch('bois',s.res.bois,'bois','Bois')}${ch('pierre',s.res.pierre,'pierre','Pierre')}${ch('nourriture',s.res.nourriture,'nourr.','Nourriture')}${ch('colons',s.pop,'colons','Colons')}${ch('palier',esc(s.stage),'','Palier de la colonie')}${s.threat?`<span>${s.threat.type==='raid'?'⚔️':'❄️'} ${Math.max(0,Math.ceil((s.threat.at-s.now)/60000))} min</span>`:''}${s.special?'<span>✨ ×2</span>':''}</div>`+
+    const mh=`<div class="r">${ch('bois',s.res.bois,'bois','Bois')}${ch('pierre',s.res.pierre,'pierre','Pierre')}${ch('nourriture',s.res.nourriture,'nourr.','Nourriture')}${ch('colons',s.pop,'villag.','Villageois')}${ch('palier',esc(s.stage),'','Palier de la colonie')}${s.threat?`<span>${s.threat.type==='raid'?'⚔️':'❄️'} ${Math.max(0,Math.ceil((s.threat.at-s.now)/60000))} min</span>`:''}${s.special?'<span>✨ ×1,5</span>':''}${s.weather==='orage magique'?`<span title="Orage magique">⛈️ ${Math.max(0,Math.ceil((s.weatherUntil-s.now)/1000))} s</span>`:''}</div>`+
       `<div class="bl">${s.buildings.map(b=>`<div>${ICON[b]}<small>${NAME[b]}</small></div>`).join('')}${s.special?'<div>🗼<small>Phare</small></div>':''}<div class="ppl">${'🧑‍🌾'.repeat(Math.min(s.pop,8))}</div></div>`; if($('mini').dataset.k!==mh){ $('mini').dataset.k=mh; $('mini').innerHTML=mh; }
     const a=s.alert||(s.feed&&s.feed[0]); if(a&&a.t!==lastAlert){ lastAlert=a.t; $('toast').innerHTML=iconify(esc(a.m)); }
     iconifyDom(document.querySelector('.side'));

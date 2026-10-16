@@ -14,9 +14,10 @@ C'est une version 100 % navigateur hébergée sur GitHub Pages (dossier `docs/`)
 
 - Démo en ligne : **https://nicolasdabek.github.io/twitch-colony/3d/**
 - Source OBS (serveur local, fond transparent) : `http://localhost:3000/3d/?obs`
-- La vue 3D utilise les vraies données du jeu : bâtiments, colons, Phare, ressources, vote, objectif Bits et menaces. En mode serveur, l'état arrive par SSE (`/events`) ; dans la démo, le jeu tourne dans le navigateur.
+- La vue 3D utilise les vraies données du jeu : bâtiments, villageois, Phare, ressources, vote, objectif Bits et menaces. En mode serveur, l'état arrive par SSE (`/events`) ; dans la démo, le jeu tourne dans le navigateur.
 - Placement : chaque partie a sa propre seed. Un nouveau bâtiment prend une case libre au hasard, et les bâtiments existants ne bougent jamais (fonction `layout()` dans `server/game.js`, testée). Le centre est réservé au Phare.
-- Caméra : glisser / WASD / flèches pour déplacer, molette ou pincement pour zoomer (×0,5 à ×4), Q/E pour pivoter d'un quart de tour.
+- Carte de 72×72 cases (la zone d'origine de 24×24 est au centre). Les nouveaux bâtiments remplissent d'abord le centre, puis s'étendent vers l'extérieur.
+- Caméra : glisser / WASD / flèches pour déplacer, molette ou pincement pour zoomer (×0,1, carte entière, à ×4), Q/E pour pivoter d'un quart de tour.
 - `three.module.js` (r160) est fourni dans le dépôt (aucun CDN).
 
 ## Lancer
@@ -47,21 +48,37 @@ Les viewers gratuits peuvent faire progresser toute la colonie : les Bits accél
 
 ## Enjeux de la partie
 
-- **Paliers** : Campement → Village (3 bâtiments) → Bourg (7) → Ville (12), avec une annonce à l'écran.
-- **Menace toutes les 15 min**, en alternance :
-  - ⚔️ **Raid** : sans assez de tours (une par niveau de palier), la colonie perd 30 % de son bois et de sa pierre.
-  - ❄️ **Hiver** : consomme 3 nourriture par colon ; si la nourriture manque, des colons partent.
-- **Famine** : à 0 nourriture, un colon part chaque minute.
-- **Colons** : chaque colon récolte du bois (floor(pop/2) toutes les 10 s).
-- **Coûts adaptés à l'audience** : coût de base × max(1, viewers actifs sur 5 min / 5) × 1,25 par exemplaire déjà construit.
+- **Paliers** : Campement → Hameau (3 bâtiments) → Village (6) → Bourg (10) → Ville (15) → **Cité (21) = fin de la partie**, avec une annonce de victoire et la durée.
+- **Coûts** : coût de base × 1,25 par exemplaire déjà construit × 1,18 par bâtiment déjà construit. Les coûts ne dépendent pas du nombre de viewers.
+- **Adaptation à l'audience** : on compte les viewers actifs A, lissés sur 10 min. Au-delà de 5, chaque commande rapporte (5/A)^0,92 de sa valeur de base. La progression totale n'augmente donc que d'environ 25 % entre 5 et 100 viewers, et chaque commande compte toujours (le gain s'affiche dans le fil, par ex. « +0,4 »).
+- **Logement** : villageois max = 3 + 2 par hutte + 1 pour 3 autres bâtiments. Un sub sans place libre donne de la nourriture.
 - **Votes** : le vote automatique ne propose que les bâtiments abordables. `!construire` affiche ce qui manque. En cas d'égalité, le vote est départagé au hasard et c'est annoncé (votes gratuits uniquement).
+
+## Équilibrage : une partie dure au moins 3 h
+
+`node server/simulate.js` lance une simulation accélérée sans dépendance (7 h de jeu en quelques secondes). Hypothèses :
+- chaque viewer actif envoie une commande toutes les 30 s en moyenne ;
+- un vote automatique toutes les 3 min ;
+- Bits modérés : 100 Bits toutes les 10 min, 500 Bits par heure, 1 sub toutes les 15 min ;
+- Bits massifs : 500 Bits toutes les 2 min, 1 sub toutes les 5 min.
+
+| Scénario | 1er bâtiment | Hameau | Village | Bourg | Ville | Cité |
+|---|---|---|---|---|---|---|
+| 5 viewers | 4 min | 10 min | 19 min | 34 min | 1 h 19 | 3 h 55 |
+| 20 viewers (typique) | 4 min | 10 min | 19 min | 34 min | 1 h 22 | 4 h 07 |
+| 50 viewers | 4 min | 10 min | 19 min | 34 min | 1 h 22 | 3 h 58 |
+| 200 viewers | 4 min | 10 min | 19 min | 34 min | 1 h 13 | 3 h 37 |
+| 20 viewers, sans Bits | 4 min | 10 min | 19 min | 37 min | 1 h 28 | 5 h 01 |
+| 20 viewers, Bits massifs | 4 min | 10 min | 19 min | 31 min | 1 h 04 | 3 h 10 |
+
+`npm test` vérifie que la Cité demande au moins 3 h (y compris avec des Bits massifs), que le premier bâtiment arrive en moins de 6 min, et que la durée varie de moins de 30 % entre 5 et 50 viewers.
 
 ## Bits et subs : effets de session uniquement
 
-- **Bits** = +1 bois pour 10 Bits (arrondi), pour la colonie
-- **500 Bits** = **Phare de la session** : gains du chat ×2 pendant 10 min. Un nouveau cheer de 500 Bits le prolonge de 10 min.
-- **Objectif communautaire 5000 Bits** = **orage magique** : chaque `!bois` donne aussi 1 pierre pendant 2 min
-- **Sub** = un nouveau colon + 10 nourriture
+- **Bits** = +1 bois pour 10 Bits (arrondi), pour la colonie, **plafonné à 60 ressources par tranche de 10 min**
+- **500 Bits** = **Phare de la session** : gains du chat ×1,5 pendant 10 min. Un nouveau cheer de 500 Bits le prolonge de 10 min (20 min restantes au maximum).
+- **Objectif communautaire par paliers de 5 000 Bits** (5 000, 10 000, 15 000…) = **orage magique** visible (ciel sombre, pluie, éclairs) pendant 2 min, avec un cadeau immédiat au village (+60 bois, +30 pierre, +30 nourriture). Pendant l'orage, chaque `!bois` donne aussi 1 pierre. Ensuite, la barre repart vers le palier suivant.
+- **Sub** = un nouveau villageois + 10 nourriture
 - **Classement** : 1 point par commande ou vote, 1 point pour 25 Bits, 20 points par sub
 
 Aucun effet payant n'est aléatoire. Les viewers gratuits peuvent tout construire et défendre la colonie sans Bits.

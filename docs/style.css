@@ -46,3 +46,11 @@ body{margin:0;font-family:system-ui,sans-serif;color:#fff;background:transparent
 #ov .stat b{font-size:24px;font-weight:800;color:#fff}
 #ov .stat em{font-style:normal;font-size:14px;font-weight:700;color:#e4dcff;letter-spacing:.02em}
 #ov .stat.bad b,#ov .stat.bad em{color:#ff8a8a}
+
+/* Orage magique */
+#ov .scene.storm{filter:brightness(.55) saturate(.8) hue-rotate(200deg)}
+#ov .scene.storm::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(105deg,rgba(190,210,255,.0) 0 14px,rgba(190,210,255,.35) 14px 15px);background-size:60px 60px;animation:rain .4s linear infinite}
+#ov .scene.storm::before{content:"";position:absolute;inset:0;background:#fff;opacity:0;animation:flash 3.7s infinite;z-index:1}
+@keyframes rain{to{background-position:-20px 60px}}
+@keyframes flash{0%,100%{opacity:0}1%{opacity:.6}2%{opacity:0}4%{opacity:.4}5%{opacity:0}}
+#ov .alert.goal{font-size:30px;padding:20px 34px;border:3px solid #fff}

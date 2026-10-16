@@ -20,17 +20,17 @@ function render(s){
   const W={'clair':'soleil','orage magique':'orage'}[s.weather]||'nuage';
   const st=(ic,v,lab,tip,bad)=>`<span class="stat${bad?' bad':''}" title="${esc(tip)}">${I(ic)}<span class="sv"><b>${v}</b><em>${lab}</em></span></span>`;
   $('res').innerHTML=st('bois',s.res.bois,'Bois','Bois : sert à construire (!bois)')+st('pierre',s.res.pierre,'Pierre','Pierre : sert aux fermes et aux tours (!pierre)')+
-    st('nourriture',s.res.nourriture,s.res.nourriture===0?'Famine !':'Nourriture','Nourriture : nourrit les colons (!chasse, fermes)',s.res.nourriture===0)+st('colons',s.pop,'Colons','Colons : population de la colonie')+
-    st(W,esc(s.weather),'Météo','Météo actuelle')+st('palier',esc(s.stage||''),'Palier','Palier de la colonie')+(s.special?st('phare','×2 '+mmss(s.special.until),'Phare','Phare de la session : gains du chat ×2'):'');
-  const g=s.goal||{bits:5000,label:'Orage magique'}, pct=Math.min(100,s.bitsTotal/g.bits*100);
-  $('goal').innerHTML=`<div class="gl"><span>⚡ Objectif communautaire : ${esc(g.label)}${g.done?' ✅':''}</span><span>${fmt(Math.min(s.bitsTotal,g.bits))} / ${fmt(g.bits)} Bits</span></div><div class="track"><div class="fill" style="width:${pct}%"></div></div>`;
+    st('nourriture',s.res.nourriture,s.res.nourriture===0?'Famine !':'Nourriture','Nourriture : nourrit les villageois (!chasse, fermes)',s.res.nourriture===0)+st('colons',s.pop,'Villageois','Villageois : population du village')+
+    (s.weather==='orage magique'&&s.weatherUntil?st('orage','Orage '+mmss(s.weatherUntil),'Météo','Orage magique : chaque !bois donne aussi 1 pierre'):st(W,esc(s.weather),'Météo','Météo actuelle'))+st('palier',esc(s.stage||''),'Palier','Palier de la colonie')+(s.special?st('phare','×1,5 '+mmss(s.special.until),'Phare','Phare de la session : gains du chat ×1,5'):'');
+  const g=s.goal||{bits:5000,label:'Orage magique'}, pct=Math.min(100,(g.cur??s.bitsTotal)/g.bits*100);
+  $('goal').innerHTML=`<div class="gl"><span>⚡ Objectif communautaire ${g.tier||1} : ${esc(g.label)}${g.done?' ✅':''}</span><span>${fmt(Math.min(g.cur??s.bitsTotal,g.bits))} / ${fmt(g.bits)} Bits</span></div><div class="track"><div class="fill" style="width:${pct}%"></div></div>`;
   if(s.vote){
     const tot=Object.values(s.vote.tally).reduce((a,b)=>a+b,0), max=Math.max(0,...Object.values(s.vote.tally));
     $('vote').innerHTML=`<h3><span>🗳️ ${esc(s.vote.title)}</span><span class="pill">⏱ ${secLeft(s.vote.ends)} s</span></h3>`+
       Object.entries(s.vote.tally).map(([o,n])=>`<div class="opt ${max&&n===max?'lead':''}"><div class="l"><span><code>!vote ${esc(o)}</code> ${s.costs&&s.costs[o]?`<small>${s.costs[o].bois}🪵${s.costs[o].pierre?' '+s.costs[o].pierre+'🪨':''}</small>`:''}</span><span>${n}</span></div><div class="vb"><i style="width:${tot?n/tot*100:0}%"></i></div></div>`).join('');
   } else {
     $('vote').innerHTML=`<h3><span>💬 Commandes</span></h3><div class="cmds"><code>!bois</code><code>!pierre</code><code>!chasse</code><code>!construire …</code><code>!vote …</code></div>`+
-      (s.costs?`<div class="sub" style="margin-top:8px">`+Object.entries(s.costs).map(([b,c])=>`${ICON[b]} ${c.bois}🪵${c.pierre?' '+c.pierre+'🪨':''}`).join(' · ')+(s.active?` · ${s.active} actifs`:'')+`</div>`:'')+
+      (s.costs?`<div class="sub" style="margin-top:8px">`+Object.entries(s.costs).map(([b,c])=>`${ICON[b]} ${c.bois}🪵${c.pierre?' '+c.pierre+'🪨':''}`).join(' · ')+(s.active?` · ${s.active} actifs · rendement ×${(s.yieldFactor||1).toFixed(2).replace('.',',')}`:'')+`</div>`:'')+
       `<div class="sub">!optout : ne pas apparaître au classement</div>`;
   }
   const t=s.threat; $('threat').innerHTML=t?`<h3><span>${t.type==='raid'?'⚔️ Prochain raid':'❄️ Prochain hiver'}</span><span class="pill calm">${mmss(t.at)}</span></h3><div class="threat">`+

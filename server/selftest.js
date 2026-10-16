@@ -32,12 +32,12 @@ c=mk(); c.res.bois=0; assert.equal(c.autoVote(),false); assert.ok(!c.vote);
 // QW2 Bits → round(bits/10) bois
 c=mk(); c.cheer('A',99); assert.equal(c.res.bois,10+10); c.cheer('A',14); assert.equal(c.res.bois,21);
 // QW3 Phare ×2 et prolongation
-c=mk(); c.cheer('A',500); c.chat('U','!bois'); assert.equal(c.res.bois,10+50+4);
+c=mk(); c.cheer('A',500); c.chat('U','!bois'); assert.equal(c.res.bois,10+50+3); // Phare ×1,5
 const u0=c.special.until; c.cheer('B',500); assert.equal(c.special.until,u0+10*60000);
 // QW4 égalité au hasard annoncée
 c=mk({rng:()=>0.99}); c.res.bois=100; c.res.pierre=50; c.startVote(['hutte','ferme']); c.chat('X','!vote hutte'); c.chat('Y','!vote ferme');
 c.vote.ends=0; c.tick(); assert.ok(c.log.some(l=>/Égalité.*hasard/.test(l.m))); assert.deepEqual(c.buildings,['ferme']);
-// QW5 colons produisent floor(pop/2) bois / 10 s
+// QW5 villageois produisent floor(pop/2) bois / 10 s
 c=mk(); c.pop=5; c.res.nourriture=100; for(let i=0;i<10;i++) c.tick(); assert.equal(c.res.bois,12);
 // QW6 1 pt / 25 Bits
 c=mk(); c.cheer('A',100); assert.equal(c.leaders.A,4);
@@ -48,14 +48,19 @@ c=mk(); c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.res.bois,70); T=1e
 c=mk(); c.buildings=['tour']; c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.res.bois,100); assert.equal(c.threat?.type,undefined); assert.equal(c.nextThreat.type,'hiver'); T=1e9;
 // Hiver sans nourriture : départs
 c=mk(); c.buildings=['tour']; T+=15*60000; c.tick(); c.res.nourriture=0; c.pop=4; T+=15*60000; c.tick(); assert.ok(c.pop<4); T=1e9;
-// Famine : -1 colon par minute
+// Famine : -1 villageois par minute
 c=mk(); c.res.nourriture=0; c.pop=3; c.tick(); T+=60000; c.tick(); assert.equal(c.pop,2); T=1e9;
 // Paliers
-c=mk(); c.res.bois=1e4; c.res.pierre=1e4; ['hutte','ferme','carriere'].forEach(b=>c.build(b)); assert.equal(c.state().stage,'Village');
+c=mk(); c.res.bois=1e4; c.res.pierre=1e4; ['hutte','ferme','carriere'].forEach(b=>c.build(b)); assert.equal(c.state().stage,'Hameau');
 // Coûts : croissance par exemplaire et selon viewers actifs
-c=mk(); assert.equal(c.cost('hutte').bois,20); c.res.bois=1e4; c.build('hutte'); assert.equal(c.cost('hutte').bois,25);
-c=mk(); for(let i=0;i<20;i++) c.chat('v'+i,'!bois'); assert.equal(c.activeViewers(),20); assert.equal(c.cost('hutte').bois,80);
-T+=6*60000; assert.equal(c.activeViewers(),0); T=1e9;
+c=mk(); assert.equal(c.cost('hutte').bois,20); c.res.bois=1e4; c.build('hutte'); assert.equal(c.cost('hutte').bois,Math.ceil(20*1.25*1.18));
+// Adaptation à l'audience : coûts fixes, rendement par commande dégressif, actifs lissés sur 10 min
+c=mk(); for(let i=0;i<20;i++) c.chat('v'+i,'!bois'); assert.equal(c.activeViewers(),20); assert.equal(c.cost('hutte').bois,20);
+assert.ok(Math.abs(c.yieldFactor()-Math.pow(5/20,0.92))<1e-9); T+=6*60000; assert.equal(c.activeViewers(),20); T+=5*60000; assert.equal(c.activeViewers(),0); T=1e9;
+{ const rate=a=>a*(a<=5?1:Math.pow(5/a,0.92)); const r=rate(100)/rate(5); assert.ok(r>1.1&&r<1.35,'progression sous-linéaire 5→100 : '+r); }
+// Plafond Bits : 60 ressources max par 10 min ; logement limite les villageois des subs
+c=mk(); c.cheer('A',1000); assert.equal(c.res.bois,10+60); c.cheer('A',1000); assert.equal(c.res.bois,70); T+=11*60000; c.cheer('A',100); assert.equal(c.res.bois,80); T=1e9;
+c=mk(); for(let i=0;i<10;i++) c.sub('s'+i); assert.equal(c.pop,c.housing());
 // Les viewers gratuits progressent sans Bits
 c=mk({cooldownMs:5000}); for(let s=0;s<60;s++){ T+=5000; ['a','b','c'].forEach(u=>c.chat(u,'!bois')); } assert.ok(c.affordable('hutte')); T=1e9;
 console.log('game design OK');
@@ -74,3 +79,26 @@ console.log('ui OK');
   assert.notDeepEqual(layout(1,L).items,layout(2,L).items);
   const g=new Colony({seed:77}); assert.equal(g.state().seed,77); const g2=new Colony(); assert.ok(Number.isInteger(g2.state().seed)); }
 console.log('3d layout OK');
+// Objectif communautaire : orage visible, cadeau, palier suivant
+{ let T2=5e9; const g=new Colony({cooldownMs:0,now:()=>T2}); const b0={...g.res};
+  g.cheer('A',4900); assert.equal(g.weather,'clair'); assert.equal(g.state().goal.cur,4900);
+  g.cheer('B',100); assert.equal(g.weather,'orage magique'); assert.equal(g.alert.kind,'goal');
+  assert.equal(g.res.pierre,b0.pierre+30); assert.equal(g.state().goal.tier,2); assert.equal(g.state().goal.cur,0); assert.equal(g.state().goal.target,10000);
+  assert.ok(g.state().weatherUntil>T2); const p0=g.res.pierre; g.chat('U','!bois'); assert.equal(g.res.pierre,p0+1);
+  g.cheer('C',12000); assert.equal(g.goalsReached,3); assert.equal(g.state().goal.target,20000); // plusieurs paliers d'un coup
+  T2+=7*60000; g.tick(); assert.equal(g.weather,'clair'); }
+console.log('objectif OK');
+// Carte 72×72 : positions centrales stables, débordement vers l'extérieur sans chevauchement
+{ const {layout}=require('./game'); const many=Array.from({length:120},(_,i)=>['hutte','ferme','carriere','tour'][i%4]);
+  const L=layout(9,many); assert.equal(L.items.length,120); const cells=new Set();
+  for(const b of L.items) for(let i=0;i<b.w;i++) for(let j=0;j<b.h;j++){ const k=(b.x+i)+','+(b.z+j); assert.ok(!cells.has(k)); cells.add(k); assert.ok(b.x>=-24&&b.x+b.w<=48); }
+  assert.ok(L.items.some(b=>b.x<0||b.x>=24||b.z<0||b.z>=24),'expansion hors zone centrale');
+  for(let k=1;k<120;k+=17) assert.deepEqual(layout(9,many.slice(0,k)).items,L.items.slice(0,k)); assert.equal(L.at(11,11),1); }
+console.log('carte 72 OK');
+// Équilibrage : simulation accélérée (server/simulate.js)
+{ const sim=require('./simulate'), H=3600; const S=Object.fromEntries(sim.SCENARIOS.map(s=>[s.name,s]));
+  const typ=sim.run(S['20 viewers (typique)']), heavy=sim.run(S['20 viewers, Bits massifs']), few=sim.run(S['5 viewers']), many=sim.run(S['50 viewers']);
+  for(const r of [typ,heavy,few,many]){ assert.ok(r.reached['Cité']>=3*H,`${r.name} : Cité en ${r.reached['Cité']/H} h (< 3 h)`); assert.ok(r.firstBuild<=6*60,`${r.name} : 1er bâtiment trop lent`); }
+  const band=Math.max(typ.reached['Cité'],few.reached['Cité'],many.reached['Cité'])/Math.min(typ.reached['Cité'],few.reached['Cité'],many.reached['Cité']);
+  assert.ok(band<1.3,'durée trop sensible au nombre de viewers : ×'+band.toFixed(2)); }
+console.log('équilibrage OK');

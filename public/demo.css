@@ -43,3 +43,5 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 .demo .ico{width:1.15em;height:1.15em;vertical-align:-0.22em}
 .demo .mini .r em{font-style:normal;font-weight:600;color:#e4dcff;font-size:12px}
 .demo .mini .r span{color:#fff}
+.demo .mini.storm::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(105deg,transparent 0 12px,rgba(190,210,255,.4) 12px 13px);background-size:50px 50px;animation:rain .4s linear infinite}
+@keyframes rain{to{background-position:-20px 50px}}
