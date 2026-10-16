@@ -19,10 +19,12 @@ class Colony {
     this.res={bois:10,pierre:0,nourriture:20}; this.pop=3; this.buildings=[];
     this.leaders={}; this.optout=new Set(); this.vote=null; this.weather='clair'; this.weatherUntil=0;
     this.special=null; this.bitsTotal=0; this.goals=[{bits:5000,label:'Orage magique',done:false}];
-    this.log=[]; this.last={}; this.seen={}; this.startedAt=this.now(); this.ticks=0; this.stage=0;
+    this.log=[]; this.feed=[]; this.alert=null; this.last={}; this.seen={}; this.startedAt=this.now(); this.ticks=0; this.stage=0;
     this.nextThreat={type:'raid',at:this.now()+this.threatMs}; this.lastFamine=0;
   }
   _log(m){ this.log.unshift({t:this.now(),m}); this.log=this.log.slice(0,12); }
+  _feed(m){ this.feed.unshift({t:this.now(),m}); this.feed=this.feed.slice(0,3); }
+  _alert(kind,m){ this.alert={kind,m,t:this.now()}; this._log(m); }
   _credit(user,pts){ if(!user||!pts||this.optout.has(user.toLowerCase())) return; this.leaders[user]=(this.leaders[user]||0)+pts; }
   _cool(user,cmd){ const k=user+cmd,n=this.now(); if(this.last[k]&&n-this.last[k]<this.cooldownMs) return false; this.last[k]=n; return true; }
   count(name){ return this.buildings.filter(b=>b===name).length; }
@@ -44,10 +46,11 @@ class Colony {
     const gain={'!bois':['bois',2],'!pierre':['pierre',1],'!chasse':['nourriture',2]}[cmd];
     if(gain){
       const mult=this.phareActive()?2:1; this.res[gain[0]]+=gain[1]*mult;
+      this._feed(`${{'!bois':'🪵','!pierre':'🪨','!chasse':'🍖'}[cmd]} ${user} ${{'!bois':'coupe du bois','!pierre':'taille la pierre','!chasse':'chasse'}[cmd]} (+${gain[1]*mult})`);
       if(cmd==='!bois'&&this.weather==='orage magique') this.res.pierre+=1;
       this._credit(user,1); return;
     }
-    if(cmd==='!vote'&&this.vote&&this.vote.options.includes(arg)){ this.vote.voters[user]=arg; this._credit(user,1); return; }
+    if(cmd==='!vote'&&this.vote&&this.vote.options.includes(arg)){ this.vote.voters[user]=arg; this._feed(`🗳️ ${user} vote ${arg}`); this._credit(user,1); return; }
     if(cmd==='!construire'&&BUILDINGS[arg]){
       if(this.vote) return;
       if(!this.affordable(arg)){ this._log(`${arg} : il manque ${this.missing(arg)}`); return; }
@@ -75,12 +78,12 @@ class Colony {
   build(name){
     if(!this.affordable(name)){ this._log(`Pas assez de ressources pour ${name} (il manque ${this.missing(name)})`); return false; }
     const c=this.cost(name); this.res.bois-=c.bois; this.res.pierre-=c.pierre; this.buildings.push(name);
-    if(BUILDINGS[name].pop) this.pop+=BUILDINGS[name].pop; this._log(`Nouvelle construction : ${name}`);
+    if(BUILDINGS[name].pop) this.pop+=BUILDINGS[name].pop; this._alert('build',`🏗️ Nouvelle construction : ${name} !`);
     this._checkStage(); return true;
   }
   _checkStage(){
     let s=0; STAGES.forEach((st,i)=>{ if(this.buildings.length>=st.min) s=i; });
-    if(s>this.stage){ this.stage=s; this._log(`🎉 La colonie devient : ${STAGES[s].name} !`); }
+    if(s>this.stage){ this.stage=s; this._alert('stage',`🎉 La colonie devient : ${STAGES[s].name} !`); }
   }
   // Effets Bits/subs : uniquement des effets temporaires de session, sans hasard.
   cheer(user,bits){
@@ -88,22 +91,22 @@ class Colony {
     const wood=Math.round(bits/10); this.res.bois+=wood;
     if(bits>=500){
       const n=this.now();
-      if(this.phareActive()){ this.special.until+=PHARE_MS; this._log(`${user} prolonge le Phare de la session (+10 min) !`); }
-      else { this.special={name:'Phare de la session',until:n+PHARE_MS}; this._log(`${user} allume le Phare : gains du chat ×2 pendant 10 min !`); }
-    } else this._log(`${user} : ${bits} Bits → +${wood} bois`);
-    for(const g of this.goals) if(!g.done&&this.bitsTotal>=g.bits){ g.done=true; this.weather='orage magique'; this.weatherUntil=this.now()+ORAGE_MS; this._log(`Objectif communautaire atteint : ${g.label} ! Chaque !bois donne aussi 1 pierre pendant 2 min`); }
+      if(this.phareActive()){ this.special.until+=PHARE_MS; this._alert('bits',`💎 ${user} prolonge le Phare de la session (+10 min) !`); }
+      else { this.special={name:'Phare de la session',until:n+PHARE_MS}; this._alert('bits',`💎 ${user} allume le Phare : gains du chat ×2 pendant 10 min !`); }
+    } else this._alert('bits',`💎 ${user} : ${bits} Bits → +${wood} bois`);
+    for(const g of this.goals) if(!g.done&&this.bitsTotal>=g.bits){ g.done=true; this.weather='orage magique'; this.weatherUntil=this.now()+ORAGE_MS; this._alert('goal',`⚡ Objectif communautaire atteint : ${g.label} ! Chaque !bois donne aussi 1 pierre pendant 2 min`); }
   }
-  sub(user){ this.pop+=1; this.res.nourriture+=10; this._credit(user,20); this._log(`${user} s'abonne : un colon rejoint la colonie`); }
+  sub(user){ this.pop+=1; this.res.nourriture+=10; this._credit(user,20); this._alert('sub',`⭐ ${user} s'abonne : un colon rejoint la colonie !`); }
   _threat(){
     const t=this.nextThreat.type, lvl=this.stage+1;
     if(t==='raid'){
       const towers=this.count('tour');
-      if(towers>=lvl) this._log(`⚔️ Raid repoussé grâce aux ${towers} tour(s) !`);
-      else { const lb=Math.floor(this.res.bois*0.3),lp=Math.floor(this.res.pierre*0.3); this.res.bois-=lb; this.res.pierre-=lp; this._log(`⚔️ Raid ! Il fallait ${lvl} tour(s) : -${lb} bois, -${lp} pierre`); }
+      if(towers>=lvl) this._alert('threat',`⚔️ Raid repoussé grâce aux ${towers} tour(s) !`);
+      else { const lb=Math.floor(this.res.bois*0.3),lp=Math.floor(this.res.pierre*0.3); this.res.bois-=lb; this.res.pierre-=lp; this._alert('threat',`⚔️ Raid ! Il fallait ${lvl} tour(s) : -${lb} bois, -${lp} pierre`); }
     } else {
       const need=this.pop*3;
-      if(this.res.nourriture>=need){ this.res.nourriture-=need; this._log(`❄️ L'hiver passe : -${need} nourriture`); }
-      else { const gone=Math.max(0,Math.min(this.pop-1,Math.ceil((need-this.res.nourriture)/3))); this.res.nourriture=0; this.pop-=gone; this._log(`❄️ Hiver rude : ${gone} colon(s) partent faute de nourriture`); }
+      if(this.res.nourriture>=need){ this.res.nourriture-=need; this._alert('threat',`❄️ L'hiver passe : -${need} nourriture`); }
+      else { const gone=Math.max(0,Math.min(this.pop-1,Math.ceil((need-this.res.nourriture)/3))); this.res.nourriture=0; this.pop-=gone; this._alert('threat',`❄️ Hiver rude : ${gone} colon(s) partent faute de nourriture`); }
     }
     this.nextThreat={type:t==='raid'?'hiver':'raid',at:this.now()+this.threatMs};
   }
@@ -127,7 +130,7 @@ class Colony {
     const tally={}; if(this.vote){ this.vote.options.forEach(o=>tally[o]=0); Object.values(this.vote.voters).forEach(o=>tally[o]++); }
     const costs={}; Object.keys(BUILDINGS).forEach(b=>costs[b]=this.cost(b));
     return {res:this.res,pop:this.pop,buildings:this.buildings,weather:this.weather,special:this.special,bitsTotal:this.bitsTotal,goals:this.goals,
-      vote:this.vote&&{title:this.vote.title,tally,ends:this.vote.ends},leaderboard:top,log:this.log,
+      vote:this.vote&&{title:this.vote.title,tally,ends:this.vote.ends},leaderboard:top,log:this.log,feed:this.feed,alert:this.alert,cooldownMs:this.cooldownMs,goal:this.goals[0],
       stage:STAGES[this.stage].name,threat:this.nextThreat,towersNeeded:this.stage+1,towers:this.count('tour'),costs,active:this.activeViewers(),now:this.now()};
   }
 }

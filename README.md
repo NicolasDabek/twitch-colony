@@ -21,6 +21,8 @@ npm test                  # tests de la logique de jeu
 - Simulateur (boutons + clavier, sans Twitch) : http://localhost:3000/sim.html
 - Confidentialité : http://localhost:3000/confidentialite.html
 
+Le simulateur (et la démo en ligne) regroupe les actions par blocs : Vote, Récolter, Construire, Soutiens, et Outils (repliés). Il affiche le cooldown de 5 s sur les boutons et a une mise en page mobile. L'overlay montre des alertes centrales (subs, Bits, constructions, menaces) et les 3 dernières actions.
+
 Raccourcis du simulateur : **B** !bois · **P** !pierre · **C** !chasse · **V** lancer un vote · **1** 100 Bits · **5** 500 Bits · **S** sub.
 
 ## Commandes du chat (gratuites)

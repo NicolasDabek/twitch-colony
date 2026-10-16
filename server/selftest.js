@@ -20,7 +20,7 @@ assert.ok(!mask('abcdefghijklmnopqrstuvwxyz0123').includes('qrst'));
 const g2=new Colony({cooldownMs:0}); g2.chat('A','!bois'); g2.chat('A','!bois'); assert.equal(g2.res.bois,14);
 console.log('config OK');
 const fs=require('fs'),path=require('path');
-for(const [a,b] of [['server/game.js','docs/game.js'],['public/overlay.js','docs/overlay.js']])
+for(const [a,b] of [['server/game.js','docs/game.js'],['public/overlay.js','docs/overlay.js'],['public/controls.js','docs/controls.js'],['public/style.css','docs/style.css'],['public/demo.css','docs/demo.css']])
   assert.equal(fs.readFileSync(path.join(__dirname,'..',a),'utf8'),fs.readFileSync(path.join(__dirname,'..',b),'utf8'),`${b} périmé : lancez npm run build:pages`);
 console.log('docs OK');
 // ─── Analyse game design ───
@@ -59,3 +59,8 @@ T+=6*60000; assert.equal(c.activeViewers(),0); T=1e9;
 // Les viewers gratuits progressent sans Bits
 c=mk({cooldownMs:5000}); for(let s=0;s<60;s++){ T+=5000; ['a','b','c'].forEach(u=>c.chat(u,'!bois')); } assert.ok(c.affordable('hutte')); T=1e9;
 console.log('game design OK');
+// Alertes et fil d'actions
+c=mk(); c.chat('A','!bois'); c.chat('B','!pierre'); c.chat('C','!chasse'); c.chat('D','!bois'); assert.equal(c.feed.length,3); assert.ok(/D coupe du bois/.test(c.feed[0].m));
+c.sub('Z'); assert.equal(c.alert.kind,'sub'); c.cheer('Y',100); assert.equal(c.alert.kind,'bits'); c.res.bois=999; c.build('hutte'); assert.equal(c.alert.kind,'build');
+for(const f of ['docs/index.html','public/sim.html','public/confidentialite.html']) assert.ok(/name="viewport"/.test(fs.readFileSync(path.join(__dirname,'..',f),'utf8')),f+' viewport');
+console.log('ui OK');

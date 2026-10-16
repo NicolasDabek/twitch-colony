@@ -1,13 +1,48 @@
-const ICON={hutte:'🛖',ferme:'🌾',carriere:'⛏️',tour:'🗼'}, $=id=>document.getElementById(id);
+// Rendu de l'overlay (OBS, simulateur et démo GitHub Pages). Construit son propre DOM dans #ov.
+const ICON={hutte:'🛖',ferme:'🌾',carriere:'⛏️',tour:'🏰'}, NAME={hutte:'Hutte',ferme:'Ferme',carriere:'Carrière',tour:'Tour'};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function render(s){
-  const sec=t=>Math.max(0,Math.ceil((t-(s.now||Date.now()))/1000)), mmss=t=>{const x=sec(t);return Math.floor(x/60)+':'+String(x%60).padStart(2,'0');};
-  const th=s.threat?(s.threat.type==='raid'?`⚔️ Raid dans ${mmss(s.threat.at)} · tours ${s.towers}/${s.towersNeeded}`:`❄️ Hiver dans ${mmss(s.threat.at)} · besoin ${s.pop*3} 🍖`):'';
-  $('res').innerHTML=`<h3>${esc(s.stage||'Colonie')} — ${s.pop} colons · météo : ${esc(s.weather)}</h3>🪵 ${s.res.bois} &nbsp; 🪨 ${s.res.pierre} &nbsp; 🍖 ${s.res.nourriture}${s.res.nourriture===0?' <b style="color:#f66">FAMINE</b>':''}<br><small>${th}</small><br>${s.special?`<small>✨ Phare : gains ×2 encore ${mmss(s.special.until)}</small><br>`:''}<small>Objectif communautaire : ${Math.min(s.bitsTotal,5000)}/5000 Bits (orage magique)</small><div class="bar" style="width:${Math.min(100,s.bitsTotal/50)}%"></div>`;
-  $('vote').innerHTML=s.vote?`<h3>🗳️ ${esc(s.vote.title)} (${sec(s.vote.ends)} s)</h3>`+Object.entries(s.vote.tally).map(([o,n])=>`!vote ${esc(o)} — ${n}${s.costs&&s.costs[o]?` <small>(${s.costs[o].bois}🪵 ${s.costs[o].pierre}🪨)</small>`:''}`).join('<br>'):'<h3>Commandes</h3>!bois · !pierre · !chasse · !construire hutte · !vote …<br><small>!optout pour ne pas apparaître au classement</small>'+(s.costs?'<br><small>'+Object.entries(s.costs).map(([b,c])=>`${b} ${c.bois}🪵${c.pierre?' '+c.pierre+'🪨':''}`).join(' · ')+(s.active?` · ${s.active} actifs`:'')+'</small>':'');
-  $('lb').innerHTML='<h3>🏆 Classement de la session</h3>'+(s.leaderboard.map((l,i)=>`${i+1}. ${esc(l.name)} — ${l.pts}${l.title?` <b>· ${l.title}</b>`:''}`).join('<br>')||'<small>Personne encore… tapez !bois</small>');
-  $('log').innerHTML=s.log.map(l=>esc(l.m)).join(' · ');
-  $('map').className=s.weather==='clair'?'':'storm';
-  $('map').innerHTML=s.buildings.map((b,i)=>`<span class="b" style="left:${40+(i*97)%740}px;top:${300+Math.floor(i*97/740)*70}px">${ICON[b]||'🏠'}</span>`).join('')+(s.special?'<span class="b" style="left:380px;top:120px;font-size:70px" title="Phare de la session">🗼✨</span>':'')+`<span class="b" style="left:20px;top:20px;font-size:20px">${'🧑‍🌾'.repeat(Math.min(s.pop,25))}</span>`;
+const fmt=n=>Number(n).toLocaleString('fr-FR').replace(/\u202f/g,' ');
+const LEGAL="Les Bits permettent à la communauté d'influencer la partie en direct. Ils ne donnent accès à aucun objet, compte, service ou avantage en dehors de ce stream.";
+let skew=0; // décalage horloge serveur/navigateur
+function nowS(){ return Date.now()+skew; }
+function secLeft(t){ return Math.max(0,Math.ceil((t-nowS())/1000)); }
+function mmss(t){ const x=secLeft(t); return Math.floor(x/60)+':'+String(x%60).padStart(2,'0'); }
+function buildOverlay(){
+  const ov=document.getElementById('ov'); if(!ov||ov.dataset.built) return; ov.dataset.built=1;
+  ov.innerHTML=`<div class="scene" id="ov-scene"><div class="ground"></div><div class="town" id="ov-town"></div></div>
+  <div class="colL"><div class="card res" id="ov-res"></div><div class="card" id="ov-goal"></div></div>
+  <div class="colR"><div class="card" id="ov-vote"></div><div class="card" id="ov-threat"></div><div class="card lb" id="ov-lb"></div></div>
+  <div class="card alert" id="ov-alert"></div><div class="card feed" id="ov-feed"></div><div class="foot">« ${LEGAL} »</div>`;
 }
-if(!window.STANDALONE) new EventSource('/events').onmessage=e=>render(JSON.parse(e.data));
+function render(s){
+  buildOverlay(); if(s.now) skew=s.now-Date.now();
+  const $=id=>document.getElementById('ov-'+id); if(!$('res')) return;
+  const W={'clair':'☀️','orage magique':'⛈️'}[s.weather]||'☁️';
+  $('res').innerHTML=`<span>🪵 ${s.res.bois}<small>bois</small></span><span>🪨 ${s.res.pierre}<small>pierre</small></span>`+
+    `<span class="${s.res.nourriture===0?'famine':''}">🍖 ${s.res.nourriture}<small>${s.res.nourriture===0?'FAMINE':'nourriture'}</small></span>`+
+    `<span>👥 ${s.pop}<small>colons</small></span><span>${W}<small>${esc(s.weather)}</small></span><span>🏘️<small>${esc(s.stage||'')}</small></span>`+
+    (s.special?`<span>✨ ×2<small>Phare ${mmss(s.special.until)}</small></span>`:'');
+  const g=s.goal||{bits:5000,label:'Orage magique'}, pct=Math.min(100,s.bitsTotal/g.bits*100);
+  $('goal').innerHTML=`<div class="gl"><span>⚡ Objectif communautaire : ${esc(g.label)}${g.done?' ✅':''}</span><span>${fmt(Math.min(s.bitsTotal,g.bits))} / ${fmt(g.bits)} Bits</span></div><div class="track"><div class="fill" style="width:${pct}%"></div></div>`;
+  if(s.vote){
+    const tot=Object.values(s.vote.tally).reduce((a,b)=>a+b,0), max=Math.max(0,...Object.values(s.vote.tally));
+    $('vote').innerHTML=`<h3><span>🗳️ ${esc(s.vote.title)}</span><span class="pill">⏱ ${secLeft(s.vote.ends)} s</span></h3>`+
+      Object.entries(s.vote.tally).map(([o,n])=>`<div class="opt ${max&&n===max?'lead':''}"><div class="l"><span><code>!vote ${esc(o)}</code> ${s.costs&&s.costs[o]?`<small>${s.costs[o].bois}🪵${s.costs[o].pierre?' '+s.costs[o].pierre+'🪨':''}</small>`:''}</span><span>${n}</span></div><div class="vb"><i style="width:${tot?n/tot*100:0}%"></i></div></div>`).join('');
+  } else {
+    $('vote').innerHTML=`<h3><span>💬 Commandes</span></h3><div class="cmds"><code>!bois</code><code>!pierre</code><code>!chasse</code><code>!construire …</code><code>!vote …</code></div>`+
+      (s.costs?`<div class="sub" style="margin-top:8px">`+Object.entries(s.costs).map(([b,c])=>`${ICON[b]} ${c.bois}🪵${c.pierre?' '+c.pierre+'🪨':''}`).join(' · ')+(s.active?` · ${s.active} actifs`:'')+`</div>`:'')+
+      `<div class="sub">!optout : ne pas apparaître au classement</div>`;
+  }
+  const t=s.threat; $('threat').innerHTML=t?`<h3><span>${t.type==='raid'?'⚔️ Prochain raid':'❄️ Prochain hiver'}</span><span class="pill calm">${mmss(t.at)}</span></h3><div class="threat">`+
+    (t.type==='raid'?`Tours : ${s.towers} / ${s.towersNeeded} ${s.towers>=s.towersNeeded?'✅ protégés':'⚠️ construisez une tour'}`:`Nourriture : ${s.res.nourriture} / ${s.pop*3} ${s.res.nourriture>=s.pop*3?'✅':'⚠️ !chasse'}`)+`</div>`:'';
+  const medal=['🥇','🥈','🥉','4.','5.'];
+  $('lb').innerHTML='<h3><span>🏆 Classement de la session</span></h3>'+(s.leaderboard.map((l,i)=>`<div class="row"><span>${medal[i]} ${esc(l.name)}</span>${l.title?`<b>${l.pts} · Fondateur</b>`:`<span>${l.pts}</span>`}</div>`).join('')||'<div class="sub">Personne encore… tapez !bois</div>');
+  const a=s.alert, on=a&&nowS()-a.t<4500; $('alert').className='card alert '+(a?a.kind:'')+(on?' on':''); if(a) $('alert').textContent=a.m;
+  const feed=s.feed||[]; $('feed').style.display=feed.length?'':'none'; $('feed').innerHTML=feed.map(f=>`<div>${esc(f.m)}</div>`).join('');
+  $('scene').className='scene'+(s.weather==='clair'?'':' storm');
+  const townHtml=s.buildings.map(b=>`<div class="bld">${ICON[b]||'🏠'}<small>${NAME[b]||esc(b)}</small></div>`).join('')+
+    (s.special?'<div class="bld big">🗼<small>Phare de la session</small></div>':'')+`<div class="people">${'🧑‍🌾'.repeat(Math.min(s.pop,18))}${s.pop>18?` <small>+${s.pop-18}</small>`:''}</div>`;
+  if($('town').dataset.k!==townHtml){ $('town').dataset.k=townHtml; $('town').innerHTML=townHtml; }
+  if(window.onColonyState) window.onColonyState(s);
+}
+if(document.body&&document.body.dataset.page==='overlay') new EventSource('/events').onmessage=e=>render(JSON.parse(e.data));
