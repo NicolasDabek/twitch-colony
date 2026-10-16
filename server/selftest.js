@@ -1,0 +1,12 @@
+const assert=require('assert'),{Colony}=require('./game');
+const g=new Colony();
+g.chat('Alice','!bois'); assert.equal(g.res.bois,12);
+g.chat('Alice','!bois'); assert.equal(g.res.bois,12,'cooldown');
+g.cheer('Bob',100); assert.equal(g.res.bois,22);
+g.cheer('Bob',500); assert.ok(g.special);
+g.cheer('Bob',5000); assert.equal(g.weather,'orage magique');
+g.chat('Bob','!optout'); assert.ok(!g.state().leaderboard.find(l=>l.name==='Bob'));
+g.startVote(['hutte','ferme']); g.chat('Alice','!vote hutte'); g.vote.ends=0; g.tick(); assert.ok(g.buildings.includes('hutte'));
+assert.equal(g.state().leaderboard[0].title,'Fondateur de la session');
+g.reset(); assert.equal(g.bitsTotal,0); assert.deepEqual(g.leaders,{});
+console.log('selftest OK');

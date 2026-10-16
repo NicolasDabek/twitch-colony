@@ -1,0 +1,17 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Twitch Colony — simulateur</title><link rel="stylesheet" href="style.css">
+<style>.ctl{padding:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}button{padding:6px 10px}</style></head><body class="sim-bg">
+<div class="ctl">Pseudo <input id="u" value="Viewer1" size="10">
+<button data-c="!bois">!bois [B]</button><button data-c="!pierre">!pierre [P]</button><button data-c="!chasse">!chasse [C]</button>
+<button data-c="!construire hutte">!construire hutte</button><button data-t="vote">Lancer un vote [V]</button>
+<button data-c="!vote hutte">!vote hutte</button><button data-c="!vote ferme">!vote ferme</button><button data-c="!vote carriere">!vote carriere</button>
+<button data-bits="100">100 Bits [1]</button><button data-bits="500">500 Bits [5]</button><button data-bits="5000">5000 Bits</button>
+<button data-t="sub">Sub [S]</button><button data-c="!optout">!optout</button><button data-t="reset">Nouvelle session</button>
+<label><input type="checkbox" id="rnd"> pseudo aléatoire</label></div>
+<iframe src="overlay.html" width="1280" height="720" style="border:0"></iframe>
+<script>
+const send=e=>{ if(document.getElementById('rnd').checked) document.getElementById('u').value='Viewer'+Math.floor(Math.random()*50);
+  fetch('/api/sim',{method:'POST',body:JSON.stringify({user:document.getElementById('u').value,...e})}); };
+document.querySelectorAll('button').forEach(b=>b.onclick=()=>b.dataset.c?send({type:'chat',text:b.dataset.c}):b.dataset.bits?send({type:'cheer',bits:+b.dataset.bits}):send({type:b.dataset.t}));
+const K={b:{type:'chat',text:'!bois'},p:{type:'chat',text:'!pierre'},c:{type:'chat',text:'!chasse'},v:{type:'vote'},1:{type:'cheer',bits:100},5:{type:'cheer',bits:500},s:{type:'sub'}};
+addEventListener('keydown',e=>{ if(e.target.tagName!=='INPUT'&&K[e.key]) send(K[e.key]); });
+</script></body></html>

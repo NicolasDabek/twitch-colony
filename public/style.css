@@ -1,0 +1,10 @@
+body{margin:0;font-family:system-ui,sans-serif;color:#fff;background:transparent}
+.sim-bg{background:#1b1f2a}
+#ov{width:1280px;height:720px;position:relative;overflow:hidden}
+#map{position:absolute;left:20px;top:20px;width:820px;height:600px;border-radius:12px;background:linear-gradient(#6fb3e0,#9fd47a 45%,#6aa84f)}
+#map.storm{background:linear-gradient(#3a2d5c,#5b4b8a 45%,#3e6b35)}
+.panel{position:absolute;background:rgba(10,12,20,.75);border-radius:10px;padding:10px 14px}
+#res{right:20px;top:20px;width:380px} #vote{right:20px;top:150px;width:380px} #lb{right:20px;top:330px;width:380px} #log{left:20px;bottom:60px;width:790px;font-size:13px;max-height:80px;overflow:hidden}
+.bar{height:8px;background:#9146ff;border-radius:4px}
+#foot{position:absolute;left:0;right:0;bottom:0;padding:8px 20px;font-size:13px;background:rgba(0,0,0,.7)}
+.b{position:absolute;font-size:42px} h3{margin:2px 0 6px;font-size:15px;color:#c9b6ff}
