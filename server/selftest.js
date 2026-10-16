@@ -102,3 +102,9 @@ console.log('carte 72 OK');
   const band=Math.max(typ.reached['Cité'],few.reached['Cité'],many.reached['Cité'])/Math.min(typ.reached['Cité'],few.reached['Cité'],many.reached['Cité']);
   assert.ok(band<1.3,'durée trop sensible au nombre de viewers : ×'+band.toFixed(2)); }
 console.log('équilibrage OK');
+{const {Colony}=require('./game.js');const g=new Colony();
+g.chat('a','!aide');g.chat('a','!rejoindre bûcheron');const s=g.state();
+if(!s.objectives||!s.objectives.short||!s.objectives.mid||!s.objectives.long) throw new Error('objectifs manquants');
+if(!Array.isArray(s.patronsBoard)) throw new Error('mécènes manquant');
+g.giftSubs('b',5);g.sub('c');if(!g.state().named||!g.state().named.length) throw new Error('villageois nommé');
+console.log('mécaniques OK');}
