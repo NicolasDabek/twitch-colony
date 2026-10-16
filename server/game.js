@@ -1,9 +1,8 @@
 // Logique de la colonie. Tout est lié à la SESSION de stream : rien ne persiste
 // d'un stream à l'autre, et rien n'est converti en avantage hors stream.
 const BUILDINGS = { hutte:{bois:20,pierre:0,pop:2}, ferme:{bois:30,pierre:10,food:1}, carriere:{bois:40,pierre:0}, tour:{bois:60,pierre:40} };
-const COOLDOWN_MS = 5000;
 class Colony {
-  constructor(){ this.reset(); }
+  constructor(opts={}){ this.cooldownMs=opts.cooldownMs??5000; this.voteDurationMs=opts.voteDurationMs??30000; this.reset(); }
   reset(){
     this.res={bois:10,pierre:0,nourriture:20}; this.pop=3; this.buildings=[];
     this.leaders={}; this.optout=new Set(); this.vote=null; this.weather='clair';
@@ -12,7 +11,7 @@ class Colony {
   }
   _log(m){ this.log.unshift({t:Date.now(),m}); this.log=this.log.slice(0,12); }
   _credit(user,pts){ if(!user||this.optout.has(user.toLowerCase())) return; this.leaders[user]=(this.leaders[user]||0)+pts; }
-  _cool(user,cmd){ const k=user+cmd,n=Date.now(); if(this.last[k]&&n-this.last[k]<COOLDOWN_MS) return false; this.last[k]=n; return true; }
+  _cool(user,cmd){ const k=user+cmd,n=Date.now(); if(this.last[k]&&n-this.last[k]<this.cooldownMs) return false; this.last[k]=n; return true; }
   chat(user,text){
     const [cmd,arg]=String(text).trim().toLowerCase().split(/\s+/);
     if(cmd==='!optout'){ this.optout.add(user.toLowerCase()); delete this.leaders[user]; this._log(`${user} ne figure plus au classement`); return; }
@@ -24,7 +23,7 @@ class Colony {
     if(cmd==='!construire'&&BUILDINGS[arg]) this.startVote([arg,'attendre'],`Construire ${arg} ?`);
   }
   startVote(options,title='Que construit la colonie ?'){
-    if(this.vote) return; this.vote={title,options,voters:{},ends:Date.now()+30000}; this._log(`Vote : ${title}`);
+    if(this.vote) return; this.vote={title,options,voters:{},ends:Date.now()+this.voteDurationMs}; this._log(`Vote : ${title}`);
   }
   _closeVote(){
     const c={}; Object.values(this.vote.voters).forEach(o=>c[o]=(c[o]||0)+1);

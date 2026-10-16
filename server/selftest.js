@@ -10,3 +10,12 @@ g.startVote(['hutte','ferme']); g.chat('Alice','!vote hutte'); g.vote.ends=0; g.
 assert.equal(g.state().leaderboard[0].title,'Fondateur de la session');
 g.reset(); assert.equal(g.bitsTotal,0); assert.deepEqual(g.leaders,{});
 console.log('selftest OK');
+const {buildConfig,mask}=require('./config');
+let r=buildConfig({MODE:'twitch'}); assert.ok(r.errors.length>=3,'erreurs si vide');
+r=buildConfig({MODE:'twitch',TWITCH_CHANNEL:'#NicoTest',TWITCH_BOT_USERNAME:'nicobot',TWITCH_OAUTH_TOKEN:'oauth:abcdefghijklmnopqrstuvwxyz0123'});
+assert.deepEqual(r.errors,[]); assert.equal(r.config.twitch.token,'abcdefghijklmnopqrstuvwxyz0123'); assert.equal(r.config.twitch.channel,'nicotest');
+r=buildConfig({MODE:'twitch',TWITCH_CHANNEL:'x y',TWITCH_BOT_USERNAME:'b0t',TWITCH_OAUTH_TOKEN:'bad token!'}); assert.ok(r.errors.length>=2);
+assert.deepEqual(buildConfig({}).errors,[]); assert.ok(buildConfig({PORT:'abc'}).errors.length);
+assert.ok(!mask('abcdefghijklmnopqrstuvwxyz0123').includes('qrst'));
+const g2=new Colony({cooldownMs:0}); g2.chat('A','!bois'); g2.chat('A','!bois'); assert.equal(g2.res.bois,14);
+console.log('config OK');

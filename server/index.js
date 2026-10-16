@@ -1,12 +1,18 @@
 const http=require('http'),fs=require('fs'),path=require('path');
 const {Colony}=require('./game'),{startTwitch}=require('./twitch');
-try{ fs.readFileSync(path.join(__dirname,'..','.env'),'utf8').split('\n').forEach(l=>{const m=l.match(/^\s*([A-Z_]+)=(.*)$/); if(m&&!process.env[m[1]]) process.env[m[1]]=m[2];}); }catch{}
-const PORT=+process.env.PORT||3000, MODE=process.env.MODE||'sim', PUB=path.join(__dirname,'..','public');
-const game=new Colony(); const clients=new Set();
-const twitchOn = MODE==='twitch' && startTwitch(game,process.env);
+const {loadEnv,buildConfig,summary,ENV_PATH}=require('./config'),{ensureToken}=require('./auth');
+if(!loadEnv()) console.log(`[config] Pas de fichier .env (${ENV_PATH}) : valeurs par défaut, mode simulation.`);
+const {config:cfg,errors,warnings}=buildConfig();
+warnings.forEach(w=>console.warn('[config] ⚠ '+w));
+if(errors.length){ console.error('[config] Configuration invalide :\n  - '+errors.join('\n  - ')+'\nCorrigez le fichier .env (voir .env.example et le README), ou mettez MODE=sim pour jouer sans Twitch.'); process.exit(1); }
+console.log('[config] '+summary(cfg));
+const PORT=cfg.port, PUB=path.join(__dirname,'..','public');
+const game=new Colony(cfg); const clients=new Set();
+let twitchOn=cfg.mode==='twitch';
+if(twitchOn) ensureToken(cfg.twitch).then(ok=>{ if(ok) startTwitch(game,cfg.twitch); else { console.error('[twitch] Connexion impossible, arrêt.'); process.exit(1); } });
 const push=()=>{ const d=`data: ${JSON.stringify({...game.state(),mode:twitchOn?'twitch':'sim'})}\n\n`; clients.forEach(c=>c.write(d)); };
 setInterval(()=>{ game.tick(); push(); },1000);
-setInterval(()=>game.startVote(['hutte','ferme','carriere','tour']),180000);
+if(cfg.voteIntervalMs) setInterval(()=>game.startVote(['hutte','ferme','carriere','tour']),cfg.voteIntervalMs);
 const TYPES={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css'};
 http.createServer((req,res)=>{
   const u=new URL(req.url,'http://x');
