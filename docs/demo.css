@@ -22,7 +22,7 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 .demo .timer{color:#ff4d6d}
 .demo .msg{min-height:20px;font-size:13px;color:#ffb3c0;margin-top:8px}
 .demo details{background:#1f1c2c;border-radius:14px;padding:0 12px;color:#ccc;font-size:14px}
-.demo summary{min-height:48px;line-height:48px;cursor:pointer}
+.demo summary{min-height:48px;padding:13px 0;line-height:1.4;cursor:pointer}
 .demo details .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-bottom:12px}
 .demo details label{display:flex;align-items:center;gap:8px;min-height:44px;grid-column:1/-1}
 .demo a{color:#cdb8ff}
@@ -40,3 +40,6 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
   .demo .foot-m{display:block}
 }
 .demo .foot-m{display:none;font-size:12px;color:#aaa;padding:4px 0 12px}
+.demo .ico{width:1.15em;height:1.15em;vertical-align:-0.22em}
+.demo .mini .r em{font-style:normal;font-weight:600;color:#e4dcff;font-size:12px}
+.demo .mini .r span{color:#fff}

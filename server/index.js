@@ -13,7 +13,7 @@ if(twitchOn) ensureToken(cfg.twitch).then(ok=>{ if(ok) startTwitch(game,cfg.twit
 const push=()=>{ const d=`data: ${JSON.stringify({...game.state(),mode:twitchOn?'twitch':'sim'})}\n\n`; clients.forEach(c=>c.write(d)); };
 setInterval(()=>{ game.tick(); push(); },1000);
 if(cfg.voteIntervalMs) setInterval(()=>game.autoVote(),cfg.voteIntervalMs);
-const TYPES={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.png':'image/png'};
+const TYPES={'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.png':'image/png','.svg':'image/svg+xml'};
 http.createServer((req,res)=>{
   const u=new URL(req.url,'http://x');
   if(u.pathname==='/events'){ res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache',Connection:'keep-alive'}); clients.add(res); push(); req.on('close',()=>clients.delete(res)); return; }

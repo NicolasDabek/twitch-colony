@@ -3,7 +3,7 @@
   const $=id=>document.getElementById(id), last={};
   const put=(id,h)=>{ const e=$(id); if(e.dataset.k!==h){ e.dataset.k=h; e.innerHTML=h; } }; let S=null, cdMs=5000, msgTimer;
   const user=()=>{ const u=$('u'); if($('rnd').checked) u.value='Viewer'+Math.floor(Math.random()*50); return u.value.trim()||'Viewer'; };
-  const say=m=>{ $('msg').textContent=m; clearTimeout(msgTimer); msgTimer=setTimeout(()=>$('msg').textContent='',2500); };
+  const say=m=>{ $('msg').innerHTML=iconify(esc(m)); clearTimeout(msgTimer); msgTimer=setTimeout(()=>$('msg').textContent='',2500); };
   const left=(u,c)=>Math.max(0,Math.ceil(((last[u+c]||0)+cdMs-Date.now())/1000));
   function chat(text){
     const u=user(), c=text.split(' ')[0];
@@ -19,7 +19,7 @@
     const u=$('u').value.trim()||'Viewer';
     document.querySelectorAll('button[data-c]').forEach(b=>{ const c=b.dataset.c.split(' ')[0]; if(c==='!optout') return; const l=left(u,c);
       b.classList.toggle('cool',!!l); b.setAttribute('aria-disabled',!!l); let t=b.querySelector('.cd'); if(l){ if(!t){t=document.createElement('span');t.className='cd';b.appendChild(t);} t.textContent=l+' s'; } else if(t) t.remove(); });
-    if(S&&S.vote){ const tm=$('vote').querySelector('.timer'); if(tm) tm.textContent='⏱ '+Math.max(0,Math.ceil((S.vote.ends-S.now)/1000-(Date.now()-S._rx)/1000))+' s'; }
+    if(S&&S.vote){ const tm=$('vote').querySelector('.timer'); if(tm) tm.innerHTML=I('timer')+' '+Math.max(0,Math.ceil((S.vote.ends-S.now)/1000-(Date.now()-S._rx)/1000))+' s'; }
   }
   setInterval(paintCooldowns,250);
   const ICON={hutte:'🛖',ferme:'🌾',carriere:'⛏️',tour:'🏰'}, NAME={hutte:'Hutte',ferme:'Ferme',carriere:'Carrière',tour:'Tour'};
@@ -30,16 +30,18 @@
     render(s);
     // Vote
     if(s.vote){ const tot=Object.values(s.vote.tally).reduce((a,b)=>a+b,0), max=Math.max(0,...Object.values(s.vote.tally));
-      put('vote',`<h4>🗳️ ${esc(s.vote.title)} <span class="timer"></span></h4>`+Object.entries(s.vote.tally).map(([o,n])=>`<button data-c="!vote ${esc(o)}" class="${max&&n===max?'lead':''}" style="--p:${tot?n/tot*100:0}%"><span>${ICON[o]||''} ${NAME[o]||esc(o)}<small>!vote ${esc(o)}</small></span><span>${n}</span></button>`).join(''));
-    } else put('vote',`<h4>🗳️ Vote <span style="color:#aaa;text-transform:none;letter-spacing:0">aucun en cours</span></h4><button data-t="vote" style="width:100%">Lancer un vote (bâtiments abordables)<small>V</small></button>`);
+      put('vote',`<h4><span>🗳️ ${esc(s.vote.title)}</span> <span class="timer"></span></h4>`+Object.entries(s.vote.tally).map(([o,n])=>`<button data-c="!vote ${esc(o)}" class="${max&&n===max?'lead':''}" style="--p:${tot?n/tot*100:0}%"><span>${ICON[o]||''} ${NAME[o]||esc(o)}<small>!vote ${esc(o)}</small></span><span>${n}</span></button>`).join(''));
+    } else put('vote',`<h4><span>🗳️ Vote</span> <span style="color:#aaa;text-transform:none;letter-spacing:0">aucun en cours</span></h4><button data-t="vote" style="width:100%">Lancer un vote (bâtiments abordables)<small>V</small></button>`);
     // Construire
     put('build',Object.entries(s.costs||{}).map(([b,c])=>`<button data-c="!construire ${b}">${ICON[b]} ${NAME[b]}<small>${c.bois}🪵${c.pierre?' '+c.pierre+'🪨':''}</small></button>`).join(''));
     const g=s.goal||{bits:5000}; $('goalinfo').textContent=`${Math.min(s.bitsTotal,g.bits).toLocaleString('fr-FR')} / ${g.bits.toLocaleString('fr-FR')} Bits`;
     // Vue mobile
     $('mini').className='mini'+(s.weather==='clair'?'':' storm');
-    const mh=`<div class="r"><span>🪵 ${s.res.bois}</span><span>🪨 ${s.res.pierre}</span><span>🍖 ${s.res.nourriture}</span><span>👥 ${s.pop}</span><span>🏘️ ${esc(s.stage)}</span>${s.threat?`<span>${s.threat.type==='raid'?'⚔️':'❄️'} ${Math.max(0,Math.ceil((s.threat.at-s.now)/60000))} min</span>`:''}${s.special?'<span>✨ ×2</span>':''}</div>`+
+    const ch=(ic,v,lab,tip)=>`<span title="${esc(tip)}">${I(ic)} ${v} <em>${lab}</em></span>`;
+    const mh=`<div class="r">${ch('bois',s.res.bois,'bois','Bois')}${ch('pierre',s.res.pierre,'pierre','Pierre')}${ch('nourriture',s.res.nourriture,'nourr.','Nourriture')}${ch('colons',s.pop,'colons','Colons')}${ch('palier',esc(s.stage),'','Palier de la colonie')}${s.threat?`<span>${s.threat.type==='raid'?'⚔️':'❄️'} ${Math.max(0,Math.ceil((s.threat.at-s.now)/60000))} min</span>`:''}${s.special?'<span>✨ ×2</span>':''}</div>`+
       `<div class="bl">${s.buildings.map(b=>`<div>${ICON[b]}<small>${NAME[b]}</small></div>`).join('')}${s.special?'<div>🗼<small>Phare</small></div>':''}<div class="ppl">${'🧑‍🌾'.repeat(Math.min(s.pop,8))}</div></div>`; if($('mini').dataset.k!==mh){ $('mini').dataset.k=mh; $('mini').innerHTML=mh; }
-    const a=s.alert||(s.feed&&s.feed[0]); if(a&&a.t!==lastAlert){ lastAlert=a.t; $('toast').textContent=a.m; }
+    const a=s.alert||(s.feed&&s.feed[0]); if(a&&a.t!==lastAlert){ lastAlert=a.t; $('toast').innerHTML=iconify(esc(a.m)); }
+    iconifyDom(document.querySelector('.side'));
     paintCooldowns();
   }
   // Échelle de l'overlay sur ordinateur : il tient toujours dans l'écran.

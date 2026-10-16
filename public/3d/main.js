@@ -1,7 +1,14 @@
 // Village 3D isométrique branché sur l'état réel du jeu (server/game.js).
 // Mode serveur : état via SSE (/events) ; démo GitHub Pages : jeu dans le navigateur (driver-local.js).
-import * as THREE from './three.module.js';
-const {layout,mulberry}=window.TwitchColony;
+import * as THREE from './three.module.js?v=r160';
+// Garde-fou : si un ancien game.js est en cache (sans layout), on recharge une fois en contournant le cache.
+const TC=window.TwitchColony||{};
+if(typeof TC.layout!=='function'||typeof TC.mulberry!=='function'){
+  const u=new URL(location); if(!u.searchParams.has('fresh')){ u.searchParams.set('fresh',Date.now()); location.replace(u); }
+  window.showFatal('Le moteur du jeu (game.js) est une ancienne version en cache. Rechargez la page (ou videz le cache du navigateur).');
+  throw new Error('game.js obsolète');
+}
+const {layout,mulberry}=TC;
 const TYPES={hutte:{n:'Hutte',c:0xc9925a,roof:0x8a5a2b},ferme:{n:'Ferme',c:0xe8d9a8,roof:0xb5432f},carriere:{n:'Carrière',c:0x9a9a9a,roof:0x6d6d6d},
  tour:{n:'Tour',c:0xb8b0a0,roof:0x4a5d8a},phare:{n:'Phare de la session',c:0xf2efe6,roof:0xffd23f}};
 const N=24, OFF=N/2, P=new URLSearchParams(location.search), OBS=P.has('obs'); if(OBS) document.body.classList.add('obs');
@@ -73,21 +80,25 @@ function apply(s){
 let skew=0; const now=()=>Date.now()+skew, secLeft=t=>Math.max(0,Math.ceil((t-now())/1000)), mmss=t=>{ const x=secLeft(t); return Math.floor(x/60)+':'+String(x%60).padStart(2,'0'); };
 function hud(s){
   if(s.now) skew=s.now-Date.now();
-  $('res').innerHTML=`<span>🪵 ${s.res.bois}<small>bois</small></span><span>🪨 ${s.res.pierre}<small>pierre</small></span><span class="${s.res.nourriture===0?'famine':''}">🍖 ${s.res.nourriture}<small>${s.res.nourriture===0?'FAMINE':'nourriture'}</small></span>`+
-    `<span>🧑‍🌾 ${s.pop}<small>colons</small></span><span>🏘️<small>${esc(s.stage)}</small></span>`+(s.threat?`<span>${s.threat.type==='raid'?'⚔️':'❄️'}<small>${s.threat.type} ${mmss(s.threat.at)}</small></span>`:'')+(s.special?`<span>✨×2<small>Phare ${mmss(s.special.until)}</small></span>`:'');
+  const st=(ic,v,lab,tip,bad)=>`<span class="stat${bad?' bad':''}" title="${esc(tip)}">${I(ic)}<span class="sv"><b>${v}</b><em>${lab}</em></span></span>`;
+  $('res').innerHTML=st('bois',s.res.bois,'Bois','Bois : sert à construire (!bois)')+st('pierre',s.res.pierre,'Pierre','Pierre : fermes et tours (!pierre)')+
+    st('nourriture',s.res.nourriture,s.res.nourriture===0?'Famine !':'Nourriture','Nourriture : nourrit les colons (!chasse, fermes)',s.res.nourriture===0)+st('colons',s.pop,'Colons','Colons : population de la colonie')+
+    st('palier',esc(s.stage),'Palier','Palier de la colonie')+(s.threat?st(s.threat.type==='raid'?'raid':'hiver',mmss(s.threat.at),s.threat.type==='raid'?'Raid':'Hiver','Prochaine menace : '+(s.threat.type==='raid'?'raid (il faut des tours)':'hiver (il faut de la nourriture)')):'')+
+    (s.special?st('phare','×2 '+mmss(s.special.until),'Phare','Phare de la session : gains du chat ×2'):'');
   const g=s.goal||{bits:5000,label:'Orage magique'};
   $('goal').innerHTML=`<div class="gl"><span>⚡ Objectif : ${esc(g.label)}${g.done?' ✅':''}</span><span>${fmt(Math.min(s.bitsTotal,g.bits))} / ${fmt(g.bits)} Bits</span></div><div class="track"><div class="fill" style="width:${Math.min(100,s.bitsTotal/g.bits*100)}%"></div></div>`;
   if(s.vote){ const tot=Object.values(s.vote.tally).reduce((a,b)=>a+b,0), max=Math.max(0,...Object.values(s.vote.tally));
     $('vote').innerHTML=`<h3><span>🗳️ ${esc(s.vote.title)}</span><span class="pill">⏱ ${secLeft(s.vote.ends)} s</span></h3>`+Object.entries(s.vote.tally).map(([o,n])=>`<div class="opt ${max&&n===max?'lead':''}"><div class="l"><span><code>!vote ${esc(o)}</code></span><span>${n}</span></div><div class="vb"><i style="width:${tot?n/tot*100:0}%"></i></div></div>`).join('');
   } else if(s.threat){ $('vote').innerHTML=`<h3><span>${s.threat.type==='raid'?'⚔️ Prochain raid':'❄️ Prochain hiver'}</span><span class="pill calm">${mmss(s.threat.at)}</span></h3><div class="sub">`+
       (s.threat.type==='raid'?`Tours : ${s.towers} / ${s.towersNeeded} ${s.towers>=s.towersNeeded?'✅':'⚠️'}`:`Nourriture : ${s.res.nourriture} / ${s.pop*3} ${s.res.nourriture>=s.pop*3?'✅':'⚠️'}`)+`</div><div class="sub">!bois · !pierre · !chasse · !construire …</div>`; }
-  const a=s.alert, on=a&&now()-a.t<4500; $('alert').className='card alert '+(a?a.kind:'')+(on?' on':''); if(a) $('alert').textContent=a.m;
+  const a=s.alert, on=a&&now()-a.t<4500; $('alert').className='card alert '+(a?a.kind:'')+(on?' on':''); if(a&&$('alert').dataset.t!=a.t){ $('alert').dataset.t=a.t; $('alert').innerHTML=iconify(esc(a.m)); }
+  iconifyDom(document.querySelector('.hud'));
   layoutHud();
 }
 function layoutHud(){ const st=document.documentElement.style; st.setProperty('--resh',($('res').offsetHeight+16)+'px'); st.setProperty('--legh',document.querySelector('.legal').offsetHeight+'px'); st.setProperty('--ctlh',(OBS?0:$('ctl').offsetHeight)+'px'); }
 // ─── Contrôles de démo (absents en ?obs) ───
 const crowd=['Viewer1','Viewer2','Viewer3','Viewer4','Viewer5']; let ci=0; const who=()=>crowd[ci++%crowd.length];
-let msgT; const say=m=>{ $('msg').textContent=m; clearTimeout(msgT); msgT=setTimeout(()=>$('msg').textContent='',3000); };
+let msgT; const say=m=>{ $('msg').innerHTML=iconify(esc(m)); clearTimeout(msgT); msgT=setTimeout(()=>$('msg').textContent='',3000); };
 $('ctl').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.c) Driver.send({type:'chat',user:who(),text:b.dataset.c});
   else if(b.dataset.b){ if(last&&last.costs){ const c=last.costs[b.dataset.b]; if(last.res.bois<c.bois||last.res.pierre<c.pierre){ say(`${TYPES[b.dataset.b].n} : il faut ${c.bois} bois${c.pierre?' et '+c.pierre+' pierre':''}`); return; } } Driver.send({type:'build',name:b.dataset.b}); }
@@ -126,5 +137,6 @@ R.setAnimationLoop(()=>{ const dt=Math.min(clock.getDelta(),.05), t=clock.elapse
   town.children.forEach(g=>{ const k=Math.min(1,(pn-(g.userData.born||0))/450); g.scale.setScalar(k<1?.01+k*(1+.25*Math.sin(k*Math.PI)):1); });
   colonists.forEach(c=>{ const u=c.userData, a=t*.6+u.ph; c.position.set(u.c.x+Math.cos(a)*.3,Math.abs(Math.sin(t*6+u.ph))*.05,u.c.z+Math.sin(a)*.3); c.rotation.y=-a; });
   R.render(S,cam); placeLabels(); });
-Driver.start(s=>{ apply(s); window.__state=s; });
+let failed=false;
+Driver.start(s=>{ if(failed) return; try{ apply(s); window.__state=s; }catch(e){ failed=true; console.error(e); window.showFatal('Erreur d\'affichage du village : '+e.message); } });
 window.__ready=true;

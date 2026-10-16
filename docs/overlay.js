@@ -17,11 +17,11 @@ function buildOverlay(){
 function render(s){
   buildOverlay(); if(s.now) skew=s.now-Date.now();
   const $=id=>document.getElementById('ov-'+id); if(!$('res')) return;
-  const W={'clair':'☀️','orage magique':'⛈️'}[s.weather]||'☁️';
-  $('res').innerHTML=`<span>🪵 ${s.res.bois}<small>bois</small></span><span>🪨 ${s.res.pierre}<small>pierre</small></span>`+
-    `<span class="${s.res.nourriture===0?'famine':''}">🍖 ${s.res.nourriture}<small>${s.res.nourriture===0?'FAMINE':'nourriture'}</small></span>`+
-    `<span>👥 ${s.pop}<small>colons</small></span><span>${W}<small>${esc(s.weather)}</small></span><span>🏘️<small>${esc(s.stage||'')}</small></span>`+
-    (s.special?`<span>✨ ×2<small>Phare ${mmss(s.special.until)}</small></span>`:'');
+  const W={'clair':'soleil','orage magique':'orage'}[s.weather]||'nuage';
+  const st=(ic,v,lab,tip,bad)=>`<span class="stat${bad?' bad':''}" title="${esc(tip)}">${I(ic)}<span class="sv"><b>${v}</b><em>${lab}</em></span></span>`;
+  $('res').innerHTML=st('bois',s.res.bois,'Bois','Bois : sert à construire (!bois)')+st('pierre',s.res.pierre,'Pierre','Pierre : sert aux fermes et aux tours (!pierre)')+
+    st('nourriture',s.res.nourriture,s.res.nourriture===0?'Famine !':'Nourriture','Nourriture : nourrit les colons (!chasse, fermes)',s.res.nourriture===0)+st('colons',s.pop,'Colons','Colons : population de la colonie')+
+    st(W,esc(s.weather),'Météo','Météo actuelle')+st('palier',esc(s.stage||''),'Palier','Palier de la colonie')+(s.special?st('phare','×2 '+mmss(s.special.until),'Phare','Phare de la session : gains du chat ×2'):'');
   const g=s.goal||{bits:5000,label:'Orage magique'}, pct=Math.min(100,s.bitsTotal/g.bits*100);
   $('goal').innerHTML=`<div class="gl"><span>⚡ Objectif communautaire : ${esc(g.label)}${g.done?' ✅':''}</span><span>${fmt(Math.min(s.bitsTotal,g.bits))} / ${fmt(g.bits)} Bits</span></div><div class="track"><div class="fill" style="width:${pct}%"></div></div>`;
   if(s.vote){
@@ -43,6 +43,7 @@ function render(s){
   const townHtml=s.buildings.map(b=>`<div class="bld">${ICON[b]||'🏠'}<small>${NAME[b]||esc(b)}</small></div>`).join('')+
     (s.special?'<div class="bld big">🗼<small>Phare de la session</small></div>':'')+`<div class="people">${'🧑‍🌾'.repeat(Math.min(s.pop,18))}${s.pop>18?` <small>+${s.pop-18}</small>`:''}</div>`;
   if($('town').dataset.k!==townHtml){ $('town').dataset.k=townHtml; $('town').innerHTML=townHtml; }
+  iconifyDom(document.getElementById('ov'));
   if(window.onColonyState) window.onColonyState(s);
 }
 if(document.body&&document.body.dataset.page==='overlay') new EventSource('/events').onmessage=e=>render(JSON.parse(e.data));

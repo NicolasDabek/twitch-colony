@@ -15,7 +15,7 @@ body{margin:0;font-family:system-ui,sans-serif;color:#fff;background:transparent
 #ov .colL{position:absolute;left:20px;top:20px;width:840px;display:flex;flex-direction:column;gap:10px}
 #ov .colR{position:absolute;right:20px;top:20px;width:360px;display:flex;flex-direction:column;gap:10px}
 #ov .res{display:flex;gap:22px;font-size:24px;font-weight:800;align-items:center}
-#ov .res span small{font-size:14px;font-weight:600;color:#bbb;display:block}
+#ov .res{gap:18px;flex-wrap:wrap}
 #ov .famine{color:#ff6b6b}
 #ov .gl{display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin-bottom:6px}
 #ov .track{height:16px;background:rgba(255,255,255,.18);border-radius:8px;overflow:hidden}
@@ -37,3 +37,12 @@ body{margin:0;font-family:system-ui,sans-serif;color:#fff;background:transparent
 #ov .feed div{padding:2px 0;transition:opacity .4s}#ov .feed div:nth-child(2){opacity:.75}#ov .feed div:nth-child(3){opacity:.45}
 #ov .foot{position:absolute;left:0;right:0;bottom:0;padding:8px 20px;font-size:14px;background:rgba(0,0,0,.65);color:#ddd}
 @keyframes pop{from{transform:scale(.3)}to{transform:scale(1)}}
+
+/* Icônes SVG et valeurs étiquetées */
+#ov .ico{width:1.1em;height:1.1em;vertical-align:-0.2em;display:inline-block;flex:0 0 auto}
+#ov .stat{display:flex;align-items:center;gap:8px;color:#fff;white-space:nowrap}
+#ov .stat .ico{width:28px;height:28px}
+#ov .stat .sv{display:flex;flex-direction:column;line-height:1.05}
+#ov .stat b{font-size:24px;font-weight:800;color:#fff}
+#ov .stat em{font-style:normal;font-size:14px;font-weight:700;color:#e4dcff;letter-spacing:.02em}
+#ov .stat.bad b,#ov .stat.bad em{color:#ff8a8a}

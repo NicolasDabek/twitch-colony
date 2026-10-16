@@ -20,7 +20,7 @@ assert.ok(!mask('abcdefghijklmnopqrstuvwxyz0123').includes('qrst'));
 const g2=new Colony({cooldownMs:0}); g2.chat('A','!bois'); g2.chat('A','!bois'); assert.equal(g2.res.bois,14);
 console.log('config OK');
 const fs=require('fs'),path=require('path');
-for(const [a,b] of [['server/game.js','docs/game.js'],['public/overlay.js','docs/overlay.js'],['public/controls.js','docs/controls.js'],['public/style.css','docs/style.css'],['public/demo.css','docs/demo.css'],['public/3d/main.js','docs/3d/main.js'],['public/3d/three.module.js','docs/3d/three.module.js']])
+for(const [a,b] of [['server/game.js','docs/game.js'],['public/overlay.js','docs/overlay.js'],['public/controls.js','docs/controls.js'],['public/style.css','docs/style.css'],['public/demo.css','docs/demo.css'],['public/3d/main.js','docs/3d/main.js'],['public/icons.js','docs/icons.js'],['public/3d/three.module.js','docs/3d/three.module.js']])
   assert.equal(fs.readFileSync(path.join(__dirname,'..',a),'utf8'),fs.readFileSync(path.join(__dirname,'..',b),'utf8'),`${b} périmé : lancez npm run build:pages`);
 console.log('docs OK');
 // ─── Analyse game design ───

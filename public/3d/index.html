@@ -1,5 +1,5 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Twitch Colony — village 3D</title><link rel="stylesheet" href="style.css"></head><body>
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Twitch Colony — village 3D</title><link rel="stylesheet" href="style.css"><link rel="icon" href="../favicon.svg"></head><body>
 <canvas id="c"></canvas><div id="labels"></div>
 <div class="hud">
  <div class="card res" id="res"></div>
@@ -17,5 +17,14 @@
  </div>
  <div class="legal">Les Bits permettent à la communauté d'influencer la partie en direct. Ils ne donnent accès à aucun objet, compte, service ou avantage en dehors de ce stream.</div>
 </div>
-<script src="../game.js"></script><script src="../driver-server.js"></script>
+<div id="fatal" role="alert" hidden></div>
+<script>
+// Messages d'erreur visibles (au lieu de panneaux vides), y compris sur les navigateurs intégrés d'Android.
+window.showFatal=function(m){ var f=document.getElementById('fatal'); if(!f) return; f.hidden=false; f.innerHTML='<b>Le village 3D n\'a pas pu démarrer.</b><br>'+String(m).replace(/</g,'&lt;')+'<br><a href="" onclick="location.reload();return false">Recharger</a> · <a href="../">Version 2D</a>'; };
+window.addEventListener('error',function(e){ if(e.target&&e.target!==window&&(e.target.src||e.target.href)){ window.showFatal('Fichier introuvable : '+(e.target.src||e.target.href)); } else if(e.message&&!/obsolète/.test(e.message)){ window.showFatal(e.message); } },true);
+window.addEventListener('unhandledrejection',function(e){ window.showFatal(e.reason&&e.reason.message||String(e.reason)); });
+setTimeout(function(){ if(!window.__state) window.showFatal('Le jeu ne s\'est pas initialisé (WebGL ou modules JavaScript non pris en charge par ce navigateur ?). Essayez Chrome ou Firefox.'); },8000);
+</script>
+<script nomodule>window.showFatal('Ce navigateur ne prend pas en charge les modules JavaScript. Ouvrez la page dans Chrome, Firefox ou Safari récents.');</script>
+<script src="../icons.js"></script><script src="../game.js"></script><script src="../driver-server.js"></script>
 <script type="module" src="main.js"></script></body></html>
