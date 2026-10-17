@@ -11,7 +11,7 @@ if(typeof TC.layout!=='function'||typeof TC.mulberry!=='function'){
 const {layout,mulberry}=TC;
 const TYPES={hutte:{n:'Hutte',c:0xc9925a,roof:0x8a5a2b},ferme:{n:'Ferme',c:0xe8d9a8,roof:0xb5432f},carriere:{n:'Carrière',c:0x9a9a9a,roof:0x6d6d6d},
  tour:{n:'Tour',c:0xb8b0a0,roof:0x4a5d8a},phare:{n:'Phare de la session',c:0xf2efe6,roof:0xffd23f},
- grenier:{n:'Grenier',c:0xc9925a,roof:0x7a4a22},palissade:{n:'Palissade',c:0xa0652d,roof:0x6b4a2b},marche:{n:'Marché',c:0xe8d9a8,roof:0xd04040},atelier:{n:'Atelier',c:0x9aa3ad,roof:0x4a5d8a},merveille:{n:'Merveille',c:0xf2efe6,roof:0xffd23f},foyer:{n:'Grand Foyer',c:0x8d8d8d,roof:0xff8a1f}};
+ grenier:{n:'Grenier',c:0xc9925a,roof:0x7a4a22},palissade:{n:'Palissade',c:0xa0652d,roof:0x6b4a2b},marche:{n:'Marché',c:0xe8d9a8,roof:0xd04040},atelier:{n:'Atelier',c:0x9aa3ad,roof:0x4a5d8a},forge:{n:'Forge',c:0x6b5a4a,roof:0x8a3b2a},merveille:{n:'Merveille',c:0xf2efe6,roof:0xffd23f},foyer:{n:'Grand Foyer',c:0x8d8d8d,roof:0xff8a1f}};
 const N=24, OUT=72, O=(OUT-N)/2, OFF=N/2, P=new URLSearchParams(location.search), OBS=P.has('obs'); if(OBS) document.body.classList.add('obs');
 const $=id=>document.getElementById(id), esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=n=>Number(n).toLocaleString('fr-FR').replace(/\u202f/g,' ');
@@ -39,6 +39,7 @@ function building(t){ const d=TYPES[t], g=new THREE.Group();
  else if(t==='marche'){ mesh(new THREE.BoxGeometry(1.8,.08,1.8),0xb59a6a,0,.04,0,g); [[-.45,-.45,0xd04040],[.45,-.45,0x3d6fd1],[-.45,.45,0xe0b03a],[.45,.45,0x7fae3e]].forEach(([x,z,c])=>{ mesh(new THREE.BoxGeometry(.6,.35,.45),0x8a5a2b,x,.25,z,g); const r=mesh(new THREE.ConeGeometry(.5,.3,4),c,x,.78,z,g); r.rotation.y=Math.PI/4; for(const dx of [-.25,.25]) mesh(new THREE.BoxGeometry(.04,.5,.04),0x6b4a2b,x+dx,.5,z+.2,g); }); }
  else if(t==='atelier'){ mesh(new THREE.BoxGeometry(1.5,.8,.8),d.c,0,.4,0,g); const r=mesh(new THREE.ConeGeometry(.95,.5,4),d.roof,0,1.05,0,g); r.rotation.y=Math.PI/4; r.scale.set(1.1,1,.6); mesh(new THREE.CylinderGeometry(.09,.09,.6,6),0x555555,.5,1.2,.15,g);
   const w=mesh(new THREE.TorusGeometry(.28,.06,6,12),0xffd23f,-.4,.45,.42,g); g.userData.spin=w; }
+ else if(t==='forge'){ mesh(new THREE.BoxGeometry(1.5,.75,.8),d.c,0,.38,0,g); const r=mesh(new THREE.ConeGeometry(.95,.45,4),d.roof,0,.98,0,g); r.rotation.y=Math.PI/4; r.scale.set(1.1,1,.6); mesh(new THREE.BoxGeometry(.22,.9,.22),0x555555,.5,1.1,0,g); mesh(new THREE.BoxGeometry(.35,.18,.2),0x2b2b33,-.35,.12,.5,g); mesh(new THREE.SphereGeometry(.12,8,6),0xff8a2b,.5,1.6,0,g); }
  else if(t==='merveille'){ mesh(new THREE.BoxGeometry(2.8,.3,2.8),0xe8dcc0,0,.15,0,g); g.userData.phases=[];
   const p1=new THREE.Group(); for(let i=0;i<4;i++) for(let j=0;j<4;j++) if(i%3===0||j%3===0) mesh(new THREE.CylinderGeometry(.1,.1,1.2,8),d.c,-1.05+i*.7,.9,-1.05+j*.7,p1);
   const p2=new THREE.Group(); mesh(new THREE.BoxGeometry(2.6,.25,2.6),0xe8dcc0,0,1.6,0,p2); mesh(new THREE.BoxGeometry(1.6,.8,1.6),d.c,0,2.1,0,p2);
@@ -131,6 +132,7 @@ function raidStep(pn){ for(const u of raiders.slice()){ const k=Math.min(1,(pn-u
 let skew=0; const now=()=>Date.now()+skew, secLeft=t=>Math.max(0,Math.ceil((t-now())/1000)), mmss=t=>{ const x=secLeft(t); return Math.floor(x/60)+':'+String(x%60).padStart(2,'0'); };
 function hud(s){
   if(s.now){ skew=s.now-Date.now(); window.__skew=skew; } const RT=s.rates||{}, P=window.Panels;
+  if(s.bitsTiers) document.querySelectorAll('[data-tier]').forEach(b=>{ const t=s.bitsTiers[+b.dataset.tier]; if(t&&+b.dataset.bits!==t.bits){ b.dataset.bits=t.bits; const a=b.querySelector('.amt'); if(a) a.textContent=' '+t.bits; } });
   const st=(ic,v,lab,tip,bad)=>`<span class="stat${bad?' bad':''}" title="${esc(tip)}">${I(ic)}<span class="sv"><b>${v}</b><em>${lab}</em></span></span>`;
   $('res').innerHTML=st('bois',s.res.bois+P.rate(RT.bois),'Bois','Bois : sert à construire (!bois)')+st('pierre',s.res.pierre+P.rate(RT.pierre),'Pierre','Pierre : fermes et tours (!pierre)')+
     st('nourriture',s.res.nourriture+P.rate(RT.nourriture),s.res.nourriture===0?'Famine !':'Nourriture','Nourriture : nourrit les villageois (!chasse, fermes)',s.res.nourriture===0)+st('colons',s.pop,'Villageois','Villageois : population du village')+
@@ -144,10 +146,10 @@ function hud(s){
     const opts=Object.entries(s.vote.tally).map(([o,n])=>{ const lead=max&&n===max?' lead':'', pct=tot?n/tot*100:0;
       return OBS?`<div class="opt${lead}"><div class="l"><span><code>!vote ${esc(o)}</code></span><span>${n}</span></div><div class="vb"><i style="width:${pct}%"></i></div></div>`
         :`<button class="vopt${lead}" data-v="${esc(o)}" style="--p:${pct}%" title="Voter ${esc(NAMES[o]||o)} (!vote ${esc(o)})"><span class="vn">${I(o)||''} ${esc(NAMES[o]||o)} <small>!vote ${esc(o)}</small></span><span class="vc">${n}</span></button>`; }).join('');
-    const html=`<h3><span>🗳️ ${esc(s.vote.title)}</span><span class="pill" id="vtimer"></span></h3>${OBS?'':'<div class="vhint">Touchez une option pour voter</div>'}<div class="vopts">${opts}</div>`;
+    const html=`<h3><span>🗳️ ${esc(s.vote.title)}</span><span class="pill" id="vtimer"></span></h3>${OBS?'':'<div class="vhint">Touchez une option pour voter</div>'}<div class="vopts">${opts}</div>${P.pending(s)}`;
     if($('vote').dataset.k!==html){ $('vote').dataset.k=html; $('vote').innerHTML=html; }
     $('vote').classList.add('active'); $('vtimer').innerHTML=I('timer')+' '+secLeft(s.vote.ends)+' s';
-  } else { $('vote').classList.remove('active'); const th=P.threat(s)+(OBS?'':P.voteEmpty()+'<button class="vlaunch" data-t="vote">🗳️ Lancer un vote maintenant</button>');
+  } else { $('vote').classList.remove('active'); const th=P.threat(s)+(OBS?'':P.voteEmpty()+P.pending(s)+'<button class="vlaunch" data-t="vote">🗳️ Lancer un vote maintenant</button>')+(OBS?P.pending(s):'');
     if($('vote').dataset.k!==th){ $('vote').dataset.k=th; $('vote').innerHTML=th; } }
   const mob=innerWidth<700||matchMedia('(pointer:coarse) and (max-width:1100px)').matches;
   const inf=P.foyer(s)+P.objectives(s,mob); if($('info').dataset.k!==inf){ $('info').dataset.k=inf; $('info').innerHTML=inf; }
@@ -170,11 +172,11 @@ $('ctl').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b
   else if(b.dataset.t==='gift') Driver.send({type:'gift',user:who(),n:5});
   else if(b.id==='infos'){ $('sheet').hidden=!$('sheet').hidden; paintSheet(); }
   else if(b.dataset.t) Driver.send({type:b.dataset.t,user:who()}); });
-function paintSheet(){ if(!last) return; const P=window.Panels; const h=P.howto()+'<h3><span>Ma contribution</span></h3>'+crowd.map(u=>P.me(last,u)).join('')+P.boards(last)+P.badges(last); if($('sheetc').dataset.k!==h){ $('sheetc').dataset.k=h; $('sheetc').innerHTML=h; iconifyDom($('sheetc')); } }
+function paintSheet(){ if(!last) return; const P=window.Panels; const h=P.howto(last)+'<h3><span>Ma contribution</span></h3>'+crowd.map(u=>P.me(last,u)).join('')+P.boards(last)+P.badges(last); if($('sheetc').dataset.k!==h){ $('sheetc').dataset.k=h; $('sheetc').innerHTML=h; iconifyDom($('sheetc')); } }
 $('sheetx').onclick=()=>{ $('sheet').hidden=true; };
 // Toucher un bâtiment : nom, effet, production
 const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(); let downAt=null;
-const PROD={hutte:'Logement : +2 villageois',ferme:'Production : +12 nourriture / min',carriere:'Production : +6 pierre / min',tour:'Défense du Foyer : +10',grenier:"Hiver : nourriture nécessaire ÷ 2",palissade:'Défense du Foyer : +10',marche:'Production : +6 bois et +6 pierre / min',atelier:'!bois / !pierre : +25 %',merveille:'Objectif final de la session',foyer:'Si ses PV tombent à 0 : 3 min pour le rallumer'};
+const PROD={hutte:'Logement : +2 villageois',ferme:'Production : +12 nourriture / min',carriere:'Production : +6 pierre / min',tour:'Défense du Foyer : +10',grenier:"Hiver : nourriture nécessaire ÷ 2",palissade:'Défense du Foyer : +10',marche:'Production : +6 bois et +6 pierre / min',atelier:'!bois / !pierre : +25 %',forge:'!defendre compte double',merveille:'Objectif final de la session',foyer:'Si ses PV tombent à 0 : 3 min pour le rallumer'};
 function pick(x,y){ ndc.set(x/innerWidth*2-1,-(y/innerHeight)*2+1); ray.setFromCamera(ndc,cam); const hit=ray.intersectObjects(town.children,true)[0]; if(!hit) return null; let o=hit.object; while(o&&!o.userData.type) o=o.parent; return o; }
 function showTip(o,x,y){ const t=o.userData.type, P=window.Panels, n=last?last.buildings.filter(b=>b===t).length:0;
   let extra=''; if(t==='foyer'&&last&&last.foyer) extra=`<div>${last.foyer.hp}/${last.foyer.max} PV · défense ${last.defense?last.defense.total:0} / force ${last.raidPower||0}</div>`; if(t==='merveille'&&last) extra=`<div>Phase ${last.wonder.phase}/3${last.wonder.cost?' · prochaine : '+last.wonder.cost.bois+' bois, '+last.wonder.cost.pierre+' pierre':''}</div>`;

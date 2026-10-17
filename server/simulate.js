@@ -11,8 +11,8 @@ const SCENARIOS=[
   {name:'20 viewers, Foyer négligé',viewers:20,bits:'modérés',neglect:true},
 ];
 // Rythme réaliste : chaque viewer actif envoie en moyenne une commande toutes les 30 s.
-function run(sc,{hours=10,seed=1,cmdEverySec=30}={}){
-  let T=1e12; const r=mulberry(seed*7919+sc.viewers), g=new Colony({now:()=>T,rng:r,seed});
+function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength}={}){
+  let T=1e12; const r=mulberry(seed*7919+sc.viewers), g=new Colony({now:()=>T,rng:r,seed,gameLength});
   const users=Array.from({length:sc.viewers},(_,i)=>'v'+i), reached={}, start=T; let firstBuild=null, minHp=100, over=null;
   STAGES.forEach((s,i)=>{ if(i===0) reached[s.name]=0; });
   // Rôles : 70 % des viewers rejoignent un métier (!rejoindre), et le jouent 60 % du temps.
@@ -20,11 +20,12 @@ function run(sc,{hours=10,seed=1,cmdEverySec=30}={}){
   users.forEach((u,i)=>{ if(r()<.7){ role[u]=RO[i%7===6?3:i%3]; g.chat(u,'!rejoindre '+role[u]); } });
   const pick=u=>{ const need=g.pop*3, food=g.res.nourriture;
     if(g.revival) return '!rallumer';
-    if(!sc.neglect&&g.nextThreat.type==='raid'&&g.nextThreat.at-T<=3*60000&&(role[u]==='garde'||r()<.35)) return '!defendre';
+    if(!sc.neglect&&g.nextThreat.type==='raid'&&g.nextThreat.at-T<=3*60000&&(role[u]==='garde'||r()<.5)) return '!defendre';
     if(!sc.neglect&&g.foyer.hp<70&&r()<.15) return '!reparer'; if(role[u]&&r()<.6) return RC[role[u]];
     if(food<need&&r()<.6) return '!chasse'; if(r()<.35) return '!pierre'; return r()<.85?'!bois':'!chasse'; };
   const want=opts=>{ const s=g.state();
-    if(opts.includes('murs')) return sc.neglect?'reserves':'murs';
+    if(opts.includes('murs')){ if(sc.neglect) return r()<.5?'reserves':'murs'; // chat négligent : stratégie votée au hasard
+      const ti=g.threatInfo(); return ti.dmg>10?'reserves':'murs'; } // chat attentif : murs si +10 suffit, sinon cacher les réserves
     if(opts.includes('merveille')&&(g.buildings.length>=21||r()<.5)) return 'merveille';
     if(!sc.neglect&&opts.includes('tour')&&s.towers<s.towersNeeded) return 'tour';
     for(const b of ['grenier','palissade','marche','atelier']) if(opts.includes(b)&&!g.count(b)) return b;

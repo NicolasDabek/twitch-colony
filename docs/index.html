@@ -1,5 +1,5 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Twitch Colony — démo simulation</title><link rel="stylesheet" href="style.css?v=044b34fb"><link rel="stylesheet" href="demo.css?v=d56fb06e"><link rel="icon" href="favicon.svg"></head>
+<title>Twitch Colony — démo simulation</title><link rel="stylesheet" href="style.css?v=9b0ae5a0"><link rel="stylesheet" href="demo.css?v=d56fb06e"><link rel="icon" href="favicon.svg"></head>
 <body class="demo">
 <header><b>🏕️ Twitch Colony</b><a href="3d/" class="h3d">🧊 Vue 3D</a><label class="pseudo" for="u" title="Pseudo simulé">👤 <span class="sr-only">Pseudo simulé</span><input id="u" value="Viewer1" autocomplete="off" spellcheck="false"></label></header>
 <div id="live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -21,7 +21,7 @@
    <div class="grid4"><button data-c="!rejoindre bûcheron">🪵<small>Bûcheron</small></button><button data-c="!rejoindre mineur">🪨<small>Mineur</small></button><button data-c="!rejoindre chasseur">🍖<small>Chasseur</small></button><button data-c="!rejoindre garde">🛡️<small>Garde</small></button></div></section>
   <section class="sec"><h4>Construire</h4><div class="grid3" id="build"></div></section>
   <section class="sec bits"><h4>Simuler un soutien <span id="goalinfo"></span></h4>
-   <div class="grid3" id="bitsbtns"><button data-bits="100">100 Bits<small>+10 bois</small></button><button data-bits="300">300 Bits<small>Remparts +15 déf.</small></button><button data-bits="500">500 Bits<small>Phare ×1,5</small></button><button data-bits="1500">1 500 Bits<small>Bénédiction ×2</small></button><button data-bits="5000">5 000 Bits<small>Orage magique</small></button><button data-t="sub">⭐ Sub<small>villageois nommé</small></button><button data-t="gift">🎉 5 subs offerts<small>fête au village</small></button></div>
+   <div class="grid3" id="bitsbtns"><button data-bits="100">100 Bits<small>+10 bois</small></button><button data-bits="300" data-tier="1"><span class="amt">300</span> Bits<small>Remparts +15 déf.</small></button><button data-bits="500" data-tier="2"><span class="amt">500</span> Bits<small>Phare ×1,5</small></button><button data-bits="1500" data-tier="3"><span class="amt">1 500</span> Bits<small>Bénédiction ×2</small></button><button data-bits="5000" data-tier="4"><span class="amt">5 000</span> Bits<small>Orage magique</small></button><button data-t="sub">⭐ Sub<small>villageois nommé</small></button><button data-t="gift">🎉 5 subs offerts<small>fête au village</small></button></div>
    <div class="msg" id="capinfo" style="color:#ddd"></div></section>
   <details open><summary>❔ Comment participer</summary><div id="howto"></div></details>
   <details><summary>⚙️ Outils de démo (vote, reset, pseudo aléatoire, !optout)</summary>
@@ -34,5 +34,5 @@
  </div>
  <div class="stagewrap" id="stagewrap"><div id="ov"></div></div>
 </div>
-<script src="icons.js?v=69f9cdea"></script><script src="panels.js?v=465c58bd"></script><script src="overlay.js?v=f61ab6da"></script><script src="game.js?v=dec1f16e"></script><script src="driver-local.js?v=477131a3"></script><script src="controls.js?v=0533bb71"></script>
+<script src="icons.js?v=2cdf9281"></script><script src="panels.js?v=d9ce1021"></script><script src="overlay.js?v=8542a7fb"></script><script src="game-config.js?v=fa0d2a88"></script><script src="game.js?v=4ab4132b"></script><script src="driver-local.js?v=477131a3"></script><script src="controls.js?v=8cd75803"></script>
 </body></html>

@@ -26,7 +26,7 @@ http.createServer((req,res)=>{
       else if(e.type==='sub') game.sub(e.user||'Viewer'); else if(e.type==='vote') game.autoVote(); else if(e.type==='reset') game.reset(); else if(e.type==='build') game.build(e.name); else if(e.type==='gift') game.giftSubs(e.user||'Viewer',e.n||5); else if(e.type==='wonder') game.buildWonder(); else if(e.type==='raid') game.forceRaid();
       push(); res.end('ok'); }catch{ res.writeHead(400); res.end('bad'); } }); return;
   }
-  if(u.pathname==='/game.js'){ res.writeHead(200,{'Content-Type':'text/javascript',...SEC_HEADERS}); return fs.createReadStream(path.join(__dirname,'game.js')).pipe(res); }
+  if(u.pathname==='/game.js'||u.pathname==='/game-config.js'){ res.writeHead(200,{'Content-Type':'text/javascript',...SEC_HEADERS}); return fs.createReadStream(path.join(__dirname,u.pathname.slice(1))).pipe(res); }
   if(u.pathname==='/api/state'){ res.setHeader('Content-Type','application/json'); return res.end(JSON.stringify(game.state())); }
   let f=path.normalize(path.join(PUB,u.pathname==='/'?'overlay.html':u.pathname.endsWith('/')?u.pathname+'index.html':u.pathname));
   if(!isInside(PUB,f)){ res.writeHead(403); return res.end(); }

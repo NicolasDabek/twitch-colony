@@ -28,9 +28,9 @@ function render(s){
   if(s.vote){
     const tot=Object.values(s.vote.tally).reduce((a,b)=>a+b,0), max=Math.max(0,...Object.values(s.vote.tally));
     $('vote').innerHTML=`<h3><span>🗳️ ${esc(s.vote.title)}</span><span class="pill">⏱ ${secLeft(s.vote.ends)} s</span></h3>`+
-      Object.entries(s.vote.tally).map(([o,n])=>`<div class="opt ${max&&n===max?'lead':''}"><div class="l"><span><code>!vote ${esc(o)}</code> ${s.costs&&s.costs[o]?`<small>${s.costs[o].bois}🪵${s.costs[o].pierre?' '+s.costs[o].pierre+'🪨':''}</small>`:''}</span><span>${n}</span></div><div class="vb"><i style="width:${tot?n/tot*100:0}%"></i></div></div>`).join('');
+      Object.entries(s.vote.tally).map(([o,n])=>`<div class="opt ${max&&n===max?'lead':''}"><div class="l"><span><code>!vote ${esc(o)}</code> ${s.costs&&s.costs[o]?`<small>${s.costs[o].bois}🪵${s.costs[o].pierre?' '+s.costs[o].pierre+'🪨':''}</small>`:''}</span><span>${n}</span></div><div class="vb"><i style="width:${tot?n/tot*100:0}%"></i></div></div>`).join('')+Panels.pending(s);
   } else {
-    $('vote').innerHTML=Panels.howto()+
+    $('vote').innerHTML=Panels.howto(s)+Panels.pending(s)+
       (s.costs?`<div class="sub" style="margin-top:4px">`+(s.active?` · ${s.active} actifs · rendement ×${(s.yieldFactor||1).toFixed(2).replace('.',',')}`:'')+`</div>`:'')+
       '';
   }

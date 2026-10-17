@@ -27,6 +27,16 @@ function buildConfig(env=process.env){
   c.cooldownMs=int(env,'COMMAND_COOLDOWN_SECONDS',5,0,3600,errors)*1000;
   c.voteDurationMs=int(env,'VOTE_DURATION_SECONDS',30,5,3600,errors)*1000;
   c.voteIntervalMs=int(env,'AUTO_VOTE_INTERVAL_SECONDS',180,0,86400,errors)*1000;
+  // Réglages de partie (partagés avec la démo via server/game-config.js)
+  const GC=require('./game-config');
+  c.gameLength=(env.GAME_LENGTH||GC.DEFAULTS.gameLength).trim().toLowerCase();
+  if(!GC.LENGTHS[c.gameLength]){ errors.push(`GAME_LENGTH doit valoir ${Object.keys(GC.LENGTHS).map(k=>'« '+k+' »').join(', ')} (reçu « ${env.GAME_LENGTH} »).`); c.gameLength=GC.DEFAULTS.gameLength; }
+  c.bitsTiers={...GC.DEFAULTS.bitsTiers};
+  if((env.BITS_TIERS||'').trim()){ const v=env.BITS_TIERS.split(',').map(x=>x.trim()), n=v.map(Number), L=GC.LIMITS;
+    if(n.length!==3||n.some(x=>!Number.isInteger(x)||x<L.bitsMin||x>L.bitsMax)||!(n[0]<n[1]&&n[1]<n[2])) errors.push(`BITS_TIERS doit contenir 3 entiers croissants entre ${L.bitsMin} et ${L.bitsMax}, séparés par des virgules : remparts,phare,bénédiction (ex. 300,500,1500 ; reçu « ${env.BITS_TIERS} »).`);
+    else c.bitsTiers={remparts:n[0],phare:n[1],benediction:n[2]}; }
+  c.goalStep=int(env,'GOAL_STEP',GC.DEFAULTS.goalStep,GC.LIMITS.goalMin,GC.LIMITS.goalMax,errors);
+  if(c.goalStep<=c.bitsTiers.benediction) warnings.push(`GOAL_STEP (${c.goalStep}) est inférieur ou égal au seuil Bénédiction (${c.bitsTiers.benediction}) : l'objectif communautaire sera atteint très vite.`);
   c.twitch={
     channel:(env.TWITCH_CHANNEL||'').trim().replace(/^#/,'').toLowerCase(),
     botUsername:(env.TWITCH_BOT_USERNAME||'').trim().toLowerCase(),
@@ -49,6 +59,6 @@ function buildConfig(env=process.env){
 }
 function summary(c){
   const t=c.twitch;
-  return `mode=${c.mode} hôte=${c.host} port=${c.port} chaîne=${t.channel||'(vide)'} bot=${t.botUsername||'(vide)'} token=${mask(t.token)} clientId=${mask(t.clientId)} clientSecret=${mask(t.clientSecret)} refresh=${mask(t.refreshToken)}`;
+  return `mode=${c.mode} hôte=${c.host} port=${c.port} partie=${c.gameLength} bits=${c.bitsTiers.remparts}/${c.bitsTiers.phare}/${c.bitsTiers.benediction} objectif=${c.goalStep} chaîne=${t.channel||'(vide)'} bot=${t.botUsername||'(vide)'} token=${mask(t.token)} clientId=${mask(t.clientId)} clientSecret=${mask(t.clientSecret)} refresh=${mask(t.refreshToken)}`;
 }
 module.exports={loadEnv,buildConfig,mask,summary,SECRETS,ENV_PATH};

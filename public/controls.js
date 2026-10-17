@@ -30,15 +30,17 @@
     render(s); Panels.liveState(s,$('u').value.trim()||'Viewer');
     // Vote
     if(s.vote){ const tot=Object.values(s.vote.tally).reduce((a,b)=>a+b,0), max=Math.max(0,...Object.values(s.vote.tally));
-      put('vote',`<h4><span>🗳️ ${esc(s.vote.title)}</span> <span class="timer"></span></h4>`+Object.entries(s.vote.tally).map(([o,n])=>`<button data-c="!vote ${esc(o)}" class="${max&&n===max?'lead':''}" style="--p:${tot?n/tot*100:0}%"><span>${I(o)} ${NAME[o]||esc(o)}<small>!vote ${esc(o)}</small></span><span>${n}</span></button>`).join(''));
-    } else put('vote',`<h4><span>🗳️ Vote</span></h4>${Panels.voteEmpty()}<button data-t="vote" class="vlaunch" aria-keyshortcuts="v">🗳️ Lancer un vote maintenant<small>simulation · touche V</small></button>`);
+      put('vote',`<h4><span>🗳️ ${esc(s.vote.title)}</span> <span class="timer"></span></h4>`+Object.entries(s.vote.tally).map(([o,n])=>`<button data-c="!vote ${esc(o)}" class="${max&&n===max?'lead':''}" style="--p:${tot?n/tot*100:0}%"><span>${I(o)} ${NAME[o]||esc(o)}<small>!vote ${esc(o)}</small></span><span>${n}</span></button>`).join('')+Panels.pending(s));
+    } else put('vote',`<h4><span>🗳️ Vote</span></h4>${Panels.voteEmpty()}${Panels.pending(s)}<button data-t="vote" class="vlaunch" aria-keyshortcuts="v">🗳️ Lancer un vote maintenant<small>simulation · touche V</small></button>`);
     // Construire
     const unl=s.unlockedBuildings||Object.keys(s.costs||{});
     put('build',Object.entries(s.costs||{}).map(([b,c])=>unl.includes(b)?`<button data-c="!construire ${b}" title="${esc(Panels.DESC[b]||'')}" class="${s.res.bois>=c.bois&&s.res.pierre>=c.pierre?'ok':''}">${BI(b)} ${NAME[b]}<small>${c.bois}🪵${c.pierre?' '+c.pierre+'🪨':''}</small></button>`:`<button class="locked" disabled title="${esc(Panels.DESC[b]||'')}">${BI(b)} ${NAME[b]}<small>🔒 palier suivant</small></button>`).join('')+
-      (s.wonder?`<button data-w="1" class="${s.wonder.unlocked?'':'locked'}" ${s.wonder.unlocked&&s.wonder.cost?'':'disabled'}>${I('merveille')} Merveille ${s.wonder.phase}/3<small>${s.wonder.cost?(s.wonder.unlocked?s.wonder.cost.bois+'🪵 '+s.wonder.cost.pierre+'🪨':'🔒 Ville'):'achevée'}</small></button>`:''));
+      (s.wonder?`<button data-w="1" class="${s.wonder.unlocked?'':'locked'}" ${s.wonder.unlocked&&s.wonder.cost?'':'disabled'}>${I('merveille')} Merveille ${s.wonder.phase}/3<small>${s.wonder.cost?(s.wonder.unlocked?s.wonder.cost.bois+'🪵 '+s.wonder.cost.pierre+'🪨':'🔒 '+(s.wonder.nextStage||'Ville')):'achevée'}</small></button>`:''));
     put('me',Panels.me(s,$('u').value.trim()||'Viewer'));
-    put('miniobj',Panels.objectives(s,innerWidth<900)+Panels.foyer(s)+(s.revival?`<div class="rvmini">${Panels.revival(s)}</div>`:'')+(s.gameOver?`<div class="rvmini">${Panels.gameOver(s)}</div>`:''));
-    put('howto',Panels.howto());
+    put('miniobj',Panels.objectives(s,innerWidth<900)+Panels.foyer(s)+Panels.lastRaid(s)+(s.revival?`<div class="rvmini">${Panels.revival(s)}</div>`:'')+(s.gameOver?`<div class="rvmini">${Panels.gameOver(s)}</div>`:''));
+    put('howto',Panels.howto(s));
+    // Seuils Bits configurés (BITS_TIERS / GOAL_STEP) : boutons de démo alignés sur le serveur
+    if(s.bitsTiers) document.querySelectorAll('[data-tier]').forEach(b=>{ const t=s.bitsTiers[+b.dataset.tier]; if(t&&+b.dataset.bits!==t.bits){ b.dataset.bits=t.bits; const a=b.querySelector('.amt'); if(a) a.textContent=t.bits.toLocaleString('fr-FR'); } });
     $('hpinfo').textContent=s.foyer?s.foyer.hp+'/'+s.foyer.max+' PV':'';
     $('capinfo').innerHTML=s.bitsCapLeft!=null?(s.bitsCapLeft>0?`Ressources Bits encore possibles sur 10 min : ${s.bitsCapLeft}`:`<b style="color:#ffb020">Plafond de ressources Bits atteint pour 10 min</b> : les effets spéciaux restent actifs`):'';
     const g=s.goal||{bits:5000}; $('goalinfo').textContent=`${Math.min(g.cur??s.bitsTotal,g.bits).toLocaleString('fr-FR')} / ${g.bits.toLocaleString('fr-FR')} Bits`;
