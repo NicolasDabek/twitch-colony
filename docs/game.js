@@ -325,7 +325,7 @@ class Colony {
       this._alert('threat',`⚔️ Raid repoussé (force ${pow} / défense ${d.total}) : le Foyer est intact !${gain}`); this._badge('raid'); if(this.defi&&this.defi.type==='survive'&&!this.defi.done) this._winDefi(); }
     else { this.foyer.hp=Math.max(0,this.foyer.hp-dmg); let loss='';
       if(this.strategy!=='reserves'){ const want=dmg*this.stealPerDmg(), cap=r=>Math.floor(Math.max(0,this.res[r])*FOYER.stealMaxShare);
-        const lb=Math.min(want,cap('bois')), lp=Math.min(want,cap('pierre')); this.res.bois-=lb; this.res.pierre-=lp; this.lastRaid.stolen={bois:lb,pierre:lp}; loss=`. Pillage : -${lb} bois, -${lp} pierre`; }
+        const lb=Math.min(want,cap('bois')), lp=Math.min(want,cap('pierre')); this.res.bois-=lb; this.res.pierre-=lp; this.lastRaid.stolen={bois:lb,pierre:lp}; loss=`. Pillage : ${[lb?`-${lb} bois`:'',lp?`-${lp} pierre`:''].filter(Boolean).join(', ')||'stock vide, rien à voler'}`; }
       else loss='. Réserves cachées : rien n\'a été volé';
       this._alert('threat',`⚔️ Raid ! Force ${pow} contre défense ${d.total} : le Foyer perd ${dmg} PV (${this.foyer.hp}/${this.foyer.max})${loss}`);
       if(this.foyer.hp<=0) this._foyerDown(); }
