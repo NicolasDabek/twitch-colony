@@ -1,7 +1,8 @@
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Twitch Colony — simulation</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="demo.css"><link rel="icon" href="favicon.svg"></head>
 <body class="demo">
-<header><b>🏕️ Twitch Colony</b><a href="3d/" style="margin-left:auto;margin-right:8px;min-height:44px;line-height:44px">🧊 Vue 3D</a><label class="pseudo">👤 <input id="u" value="Viewer1" aria-label="Pseudo simulé"></label></header>
+<header><b>🏕️ Twitch Colony</b><a href="3d/" class="h3d">🧊 Vue 3D</a><label class="pseudo" for="u" title="Pseudo simulé">👤 <span class="sr-only">Pseudo simulé</span><input id="u" value="Viewer1" autocomplete="off" spellcheck="false"></label></header>
+<div id="live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 <div class="layout">
  <div class="side">
   <div class="mini" id="mini"></div>
@@ -10,10 +11,10 @@
   <section class="sec v" id="vote"></section>
   <section class="sec"><h4>Récolter <span id="cdinfo" style="color:#aaa;text-transform:none;letter-spacing:0">cooldown 5 s</span></h4>
    <div class="grid3">
-    <button data-c="!bois">🪵 Bois<small>+2 · B</small></button>
-    <button data-c="!pierre">🪨 Pierre<small>+1 · P</small></button>
-    <button data-c="!chasse">🍖 Chasse<small>+2 · C</small></button>
-   </div><div class="msg" id="msg" role="status"></div></section>
+    <button data-c="!bois" aria-keyshortcuts="b" title="!bois · raccourci clavier B">🪵 Bois<small>+2 bois</small></button>
+    <button data-c="!pierre" aria-keyshortcuts="p" title="!pierre · raccourci clavier P">🪨 Pierre<small>+1 pierre</small></button>
+    <button data-c="!chasse" aria-keyshortcuts="c" title="!chasse · raccourci clavier C">🍖 Chasse<small>+2 nourriture</small></button>
+   </div><div class="msg" id="msg"></div></section>
   <section class="sec def"><h4>Défendre le Foyer <span id="hpinfo"></span></h4>
    <div class="grid3"><button data-c="!defendre">🛡️ Défendre<small>!defendre</small></button><button data-c="!reparer">🔧 Réparer<small>10 bois + 5 pierre</small></button><button data-c="!rallumer">🔥 Rallumer<small>si détruit</small></button></div></section>
   <section class="sec"><h4>Métier <small style="text-transform:none;letter-spacing:0;color:#aaa">+50 % sur sa commande</small></h4>
@@ -25,9 +26,9 @@
   <details open><summary>❔ Comment participer</summary><div id="howto"></div></details>
   <details><summary>⚙️ Outils de démo (vote, reset, pseudo aléatoire, !optout)</summary>
    <div class="grid2">
-    <button data-t="vote">🗳️ Lancer un vote<small>V</small></button><button data-t="raid">⚔️ Simuler une attaque<small>raid immédiat</small></button>
+    <button data-t="vote" aria-keyshortcuts="v">🗳️ Lancer un vote<small>touche V</small></button><button data-t="raid">⚔️ Simuler une attaque<small>raid immédiat</small></button>
     <button data-c="!optout">!optout</button><button data-t="reset">🔄 Nouvelle session</button>
-    <label><input type="checkbox" id="rnd"> pseudo aléatoire à chaque action</label>
+    <label class="chk" for="rnd"><input type="checkbox" id="rnd"> pseudo aléatoire à chaque action</label>
    </div></details>
   <div class="foot-m">« Les Bits permettent à la communauté d'influencer la partie en direct. Ils ne donnent accès à aucun objet, compte, service ou avantage en dehors de ce stream. » · <a href="confidentialite.html">Confidentialité</a></div>
  </div>

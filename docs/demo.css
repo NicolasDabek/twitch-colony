@@ -1,8 +1,10 @@
 body.demo{background:#15131f;color:#fff;min-height:100vh}
-.demo header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:8px}
+.demo header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 16px;gap:8px}
+.demo header .h3d{margin-left:auto;min-height:44px;line-height:44px;padding:0 4px;white-space:nowrap}
 .demo header b{font-size:18px}
-.demo .pseudo{background:#262236;border-radius:20px;padding:6px 12px;font-size:14px;display:flex;align-items:center;gap:6px}
-.demo .pseudo input{background:transparent;border:0;color:#fff;font:inherit;width:110px;min-height:32px}
+.demo .pseudo{background:#262236;border-radius:22px;padding:0 12px;font-size:15px;display:flex;align-items:center;gap:6px;min-height:44px;cursor:text;min-width:0}
+.demo .pseudo input{background:transparent;border:0;color:#fff;font:inherit;width:110px;min-width:0;min-height:44px;padding:0}
+.demo .pseudo:focus-within{outline:2px solid #cdb8ff}
 .demo .layout{display:grid;grid-template-columns:360px 1fr;gap:12px;padding:0 12px 12px;align-items:start}
 .demo .side{display:flex;flex-direction:column;gap:12px}
 .demo .stagewrap{position:sticky;top:12px;overflow:hidden;border-radius:14px}
@@ -13,19 +15,22 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 .demo .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .demo button{font:inherit;color:#fff;border:0;border-radius:12px;min-height:56px;background:#2d2842;font-size:15px;font-weight:700;cursor:pointer;position:relative;padding:6px}
 .demo button:hover{background:#3a3456}.demo button:focus-visible{outline:2px solid #cdb8ff}
-.demo button small{display:block;font-size:11px;font-weight:500;color:#aaa}
-.demo button.cool{opacity:.45;cursor:not-allowed}.demo button .cd{position:absolute;right:6px;top:4px;font-size:11px;font-weight:700}
+.demo button small{display:block;font-size:12px;font-weight:500;color:#aaa}
+.demo button.cool{opacity:.45;cursor:not-allowed}.demo button .cd{position:absolute;right:6px;top:4px;font-size:12px;font-weight:700}
 .demo .bits button{background:#3a2a10;color:#ffd23f}
 .demo .v button{width:100%;display:flex;justify-content:space-between;align-items:center;padding:0 14px;margin-bottom:8px;background:linear-gradient(90deg,#4b3a7a var(--p),#2d2842 var(--p))}
 .demo .v button.lead{background:linear-gradient(90deg,#8a6a10 var(--p),#2d2842 var(--p))}
 .demo .v button small{display:inline;margin-left:6px}
-.demo .timer{color:#ff4d6d}
+.demo .timer{color:#ff6b85}
+.demo .v .vlaunch{display:block;text-align:center;padding:6px 14px;background:#4b3a7a}.demo .v .vlaunch small{display:block;margin:2px 0 0}
 .demo .msg{min-height:20px;font-size:13px;color:#ffb3c0;margin-top:8px}
 .demo details{background:#1f1c2c;border-radius:14px;padding:0 12px;color:#ccc;font-size:14px}
 .demo summary{min-height:48px;padding:13px 0;line-height:1.4;cursor:pointer}
 .demo details .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-bottom:12px}
-.demo details label{display:flex;align-items:center;gap:8px;min-height:44px;grid-column:1/-1}
+.demo details label{display:flex;align-items:center;gap:12px;min-height:48px;grid-column:1/-1;cursor:pointer}
+.demo details label.chk input{width:24px;height:24px;margin:0;accent-color:#9146ff;cursor:pointer;flex:0 0 auto}
 .demo a{color:#cdb8ff}
+.demo h4 small{font-size:12px}
 @media (max-width:900px){
   .demo .layout{grid-template-columns:1fr;padding:0 12px 12px}
   .demo .stagewrap{display:none}
@@ -34,7 +39,7 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
   .demo .mini .r{position:absolute;left:8px;top:8px;right:8px;display:flex;flex-wrap:wrap;gap:6px;font-size:14px;font-weight:800}
   .demo .mini .r span{background:rgba(0,0,0,.6);border-radius:8px;padding:4px 7px}
   .demo .mini .bl{position:absolute;bottom:14px;left:14px;right:14px;font-size:44px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:flex-end}
-  .demo .mini .bl small{display:block;font-size:11px;text-align:center;background:rgba(0,0,0,.5);border-radius:4px}
+  .demo .mini .bl small{display:block;font-size:12px;text-align:center;background:rgba(0,0,0,.5);border-radius:4px}
   .demo .mini .ppl{font-size:22px}
   .demo .toast{display:block;background:#2b1f47;border-left:4px solid #9146ff;border-radius:10px;padding:10px 12px;font-size:14px;min-height:42px}
   .demo .foot-m{display:block}
@@ -62,4 +67,5 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 .demo .rvmini{border:2px solid #ff6b3d;border-radius:10px;padding:8px;margin-top:8px}.demo .rvmini .big-title{font-size:20px}
 .demo #me .me{margin-top:0}
 @media (max-width:900px){ .demo .grid4 button{min-height:60px} .demo #miniobj .ol{font-size:12px} }
-@media (max-width:900px){ .demo .mini .r{z-index:2} .demo .mini .bl{font-size:24px;gap:2px 6px;max-height:120px;overflow:hidden;flex-wrap:wrap-reverse} .demo .mini .bl small{font-size:9px} .demo header a{white-space:nowrap} .demo header b{white-space:nowrap} }
+@media (max-width:900px){ .demo .mini .r{z-index:2} .demo .mini .bl{font-size:24px;gap:2px 6px;max-height:120px;overflow:hidden;flex-wrap:wrap-reverse} .demo .mini .bl small{font-size:12px} .demo header b{white-space:nowrap} }
+@media (max-width:420px){ .demo header{padding:10px 12px} .demo header b{font-size:17px} .demo .pseudo{flex:1 1 100%;order:3} .demo .pseudo input{flex:1;width:auto} }

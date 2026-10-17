@@ -152,7 +152,7 @@ class Colony {
       const role=this.roles[user]&&ROLES[this.roles[user]]===cmd?ROLE_MULT:1, streak=this.streak(user)>=3?STREAK_MULT:1, atelier=this.count('atelier')&&cmd!=='!chasse'?1.25:1;
       const mult=(this.phareActive()?CHAT_MULT_PHARE:1)*role*streak*atelier; const add=gain[1]*mult*this.yieldFactor(); this.res[gain[0]]+=add; this.contrib[user]=(this.contrib[user]||0)+add;
       if(this.defi&&this.defi.type==='gather'&&this.defi.cmd===cmd&&this.now()<this.defi.ends) this._defiProgress(user);
-      this._feed(`${{'!bois':'🪵','!pierre':'🪨','!chasse':'🍖'}[cmd]} ${user} ${{'!bois':'coupe du bois','!pierre':'taille la pierre','!chasse':'chasse'}[cmd]} (+${add>=1&&Number.isInteger(add)?add:add.toFixed(add<0.1?2:1).replace('.',',')})`);
+      this._feed(`${{'!bois':'🪵','!pierre':'🪨','!chasse':'🍖'}[cmd]} ${user} ${{'!bois':'coupe du bois','!pierre':'taille la pierre','!chasse':'chasse'}[cmd]} (+${add>=1&&Number.isInteger(add)?add:add.toFixed(add<0.1?2:1).replace('.',',')} ${gain[0]})`);
       if(cmd==='!bois'&&this.weather==='orage magique') this.res.pierre+=1;
       this._builder(user,1); return;
     }

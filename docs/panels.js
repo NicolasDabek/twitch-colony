@@ -36,5 +36,20 @@ function revival(s){ const r=s.revival; if(!r) return '';
 function gameOver(s){ const g=s.gameOver; if(!g) return ''; const m=g.summary;
   return `<div class="big-title">${ico('crane')} Partie terminée</div><div class="sub" style="font-size:18px">${esc(g.reason)}</div><ul class="howto"><li>Durée : ${Math.floor(m.duree/60)} h ${String(m.duree%60).padStart(2,'0')} · palier ${esc(m.stage)} · ${m.buildings} bâtiments · Merveille ${m.wonder}/3</li><li>Raids repoussés : ${m.repelled}/${m.raids} · défis réussis : ${m.defis}</li><li>Bâtisseurs : ${m.top.map(esc).join(', ')||'—'}</li><li>Badges : ${m.badges.map(esc).join(', ')||'—'}</li></ul><div class="sub" style="font-size:18px">Nouvelle session dans ${left(g.restartAt)} s</div>`; }
 function badges(s){ return (s.badges||[]).length?`<div class="sub">${ico('badge')} Badges : ${s.badges.map(esc).join(' · ')}</div>`:''; }
-window.Panels={objectives,foyer,threat,boards,howto,me,revival,gameOver,badges,rate,bar,NAME,DESC,mmss};
+// Vote : état vide (aucun vote en cours) avec la façon dont le prochain s'ouvre.
+const voteEmpty=()=>`<div class="vempty"><b>Aucun vote en cours</b><span>Le prochain s'ouvre automatiquement (toutes les 3 min par défaut) dès qu'un bâtiment est abordable, ou quand un viewer tape <code>!construire hutte</code>.</span></div>`;
+// Annonces polies pour lecteurs d'écran (région #live, aria-live="polite") : retours de commande et votes.
+let liveT=null, lastVoteKey=null, lastFeedT=0, primed=false;
+function announce(m){ const el=document.getElementById('live'); if(!el||!m) return; const t=String(m).replace(/<[^>]*>/g,'').trim(); el.textContent=''; clearTimeout(liveT); liveT=setTimeout(()=>{ el.textContent=t; },60); }
+function liveState(s,user){ if(!s) return; const msgs=[];
+  const vk=s.vote?s.vote.title+'|'+s.vote.ends:null;
+  if(vk&&vk!==lastVoteKey) msgs.push(`Vote ouvert : ${String(s.vote.title).replace(/[\s.?!:]+$/,'')}. Options : ${Object.keys(s.vote.tally).map(o=>NAME[o]||o).join(', ')}. Pour voter : !vote suivi de l'option.`);
+  else if(!vk&&lastVoteKey) msgs.push('Vote terminé.'+(s.alert&&Math.abs((s.now||Date.now())-s.alert.t)<5000?' '+s.alert.m:''));
+  lastVoteKey=vk;
+  const feed=primed?(s.feed||[]).filter(f=>f.t>lastFeedT):[]; if(s.feed&&s.feed.length) lastFeedT=Math.max(lastFeedT,...s.feed.map(f=>f.t));
+  primed=true;
+  if(user&&feed.length){ const us=[].concat(user), mine=feed.filter(f=>us.some(u=>f.m.includes(' '+u+' '))).reverse(); mine.forEach(f=>msgs.push(f.m)); }
+  if(msgs.length) announce(msgs.join(' '));
+}
+window.Panels={voteEmpty,announce,liveState,objectives,foyer,threat,boards,howto,me,revival,gameOver,badges,rate,bar,NAME,DESC,mmss};
 })();

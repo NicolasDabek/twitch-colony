@@ -147,7 +147,7 @@ function hud(s){
     const html=`<h3><span>🗳️ ${esc(s.vote.title)}</span><span class="pill" id="vtimer"></span></h3>${OBS?'':'<div class="vhint">Touchez une option pour voter</div>'}<div class="vopts">${opts}</div>`;
     if($('vote').dataset.k!==html){ $('vote').dataset.k=html; $('vote').innerHTML=html; }
     $('vote').classList.add('active'); $('vtimer').innerHTML=I('timer')+' '+secLeft(s.vote.ends)+' s';
-  } else { $('vote').classList.remove('active'); const th=P.threat(s)+(OBS?'':'<button class="vlaunch" data-t="vote">🗳️ Lancer un vote</button>');
+  } else { $('vote').classList.remove('active'); const th=P.threat(s)+(OBS?'':P.voteEmpty()+'<button class="vlaunch" data-t="vote">🗳️ Lancer un vote maintenant</button>');
     if($('vote').dataset.k!==th){ $('vote').dataset.k=th; $('vote').innerHTML=th; } }
   const mob=innerWidth<700||matchMedia('(pointer:coarse) and (max-width:1100px)').matches;
   const inf=P.foyer(s)+P.objectives(s,mob); if($('info').dataset.k!==inf){ $('info').dataset.k=inf; $('info').innerHTML=inf; }
@@ -161,7 +161,7 @@ function hud(s){
 function layoutHud(){ const st=document.documentElement.style; st.setProperty('--infoh',$('info').offsetHeight+'px'); st.setProperty('--voteh',$('vote').offsetHeight+'px'); st.setProperty('--resh',($('res').offsetHeight+16)+'px'); st.setProperty('--legh',document.querySelector('.legal').offsetHeight+'px'); st.setProperty('--ctlh',(OBS?0:$('ctl').offsetHeight)+'px'); }
 // ─── Contrôles de démo (absents en ?obs) ───
 const crowd=['Viewer1','Viewer2','Viewer3','Viewer4','Viewer5']; let ci=0; const who=()=>crowd[ci++%crowd.length];
-let msgT; const say=m=>{ $('msg').innerHTML=iconify(esc(m)); clearTimeout(msgT); msgT=setTimeout(()=>$('msg').textContent='',3000); };
+let msgT; const say=m=>{ $('msg').innerHTML=iconify(esc(m)); window.Panels.announce(m); clearTimeout(msgT); msgT=setTimeout(()=>$('msg').textContent='',3000); };
 $('ctl').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.c) Driver.send({type:'chat',user:who(),text:b.dataset.c});
   else if(b.dataset.b){ if(last&&last.costs){ const c=last.costs[b.dataset.b]; if(last.res.bois<c.bois||last.res.pierre<c.pierre){ say(`${TYPES[b.dataset.b].n} : il faut ${c.bois} bois${c.pierre?' et '+c.pierre+' pierre':''}`); return; } } Driver.send({type:'build',name:b.dataset.b}); }
@@ -253,5 +253,5 @@ R.setAnimationLoop(()=>{ const dt=Math.min(clock.getDelta(),.05), t=clock.elapse
   colonists.forEach(c=>{ const u=c.userData, a=t*.6+u.ph; c.position.set(u.c.x+Math.cos(a)*.3,Math.abs(Math.sin(t*6+u.ph))*.05,u.c.z+Math.sin(a)*.3); c.rotation.y=-a; });
   stormStep(dt,t); R.render(S,cam); placeLabels(); });
 let failed=false;
-Driver.start(s=>{ if(failed) return; try{ apply(s); window.__state=s; }catch(e){ failed=true; console.error(e); window.showFatal('Erreur d\'affichage du village : '+e.message); } });
+Driver.start(s=>{ if(failed) return; try{ apply(s); window.__state=s; if(!OBS) window.Panels.liveState(s,crowd); }catch(e){ failed=true; console.error(e); window.showFatal('Erreur d\'affichage du village : '+e.message); } });
 window.__ready=true;
