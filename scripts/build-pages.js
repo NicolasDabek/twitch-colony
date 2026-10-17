@@ -3,7 +3,7 @@ const fs=require('fs'),path=require('path'),r=p=>path.join(__dirname,'..',p);
 const copies=[['server/game.js','docs/game.js'],['public/confidentialite.html','docs/confidentialite.html']];
 for(const f of ['overlay.js','style.css','demo.css','controls.js','driver-local.js','icons.js','panels.js','favicon.svg']) copies.push(['public/'+f,'docs/'+f]);
 fs.mkdirSync(r('docs/3d'),{recursive:true});
-for(const f of ['main.js','style.css','three.module.js']) copies.push(['public/3d/'+f,'docs/3d/'+f]);
+for(const f of ['main.js','boot.js','nomodule.js','style.css','three.module.js']) copies.push(['public/3d/'+f,'docs/3d/'+f]);
 for(const [a,b] of copies) fs.copyFileSync(r(a),r(b));
 const html=fs.readFileSync(r('public/sim.html'),'utf8').replace('<script src="driver-server.js"></script>','<script src="game.js"></script><script src="driver-local.js"></script>').replace('Twitch Colony — simulation','Twitch Colony — démo simulation');
 fs.writeFileSync(r('docs/index.html'),html);

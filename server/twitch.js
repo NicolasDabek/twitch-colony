@@ -1,6 +1,11 @@
 // Adaptateur chat Twitch : IRC natif (TLS, sans dépendance). Bits via tag bits=, subs via USERNOTICE.
 // TODO EventSub (channel.cheer, channel.subscribe) avec TWITCH_EVENTSUB_SECRET.
 const tls=require('tls');
+// Nom public : display-name, sinon le login du préfixe IRC (« :login!login@login.tmi.twitch.tv »).
+function userOf(tags,line){
+  const d=(tags['display-name']||'').trim(); if(d) return d;
+  const m=line.match(/(?:^|\s):([^\s!:@]+)!/); return m?m[1]:(tags.login||'');
+}
 function startTwitch(game,t,log=console){
   let delay=5000;
   const connect=()=>{
@@ -16,7 +21,7 @@ function startTwitch(game,t,log=console){
       if(/NOTICE \* :(Login authentication failed|Improperly formatted auth)/.test(l)){ log.error('[twitch] Authentification refusée : vérifiez TWITCH_OAUTH_TOKEN et TWITCH_BOT_USERNAME.'); return; }
       if(/ 366 /.test(l)){ delay=5000; log.log(`[twitch] connecté au chat de #${t.channel}`); return; }
       const tags={}; if(l[0]==='@') l.slice(1,l.indexOf(' ')).split(';').forEach(kv=>{ const i=kv.indexOf('='); tags[kv.slice(0,i)]=kv.slice(i+1); });
-      const user=tags['display-name']||'';
+      const user=userOf(tags,l);
       if(/ PRIVMSG /.test(l)){ const msg=l.slice(l.indexOf(' :',l.indexOf('PRIVMSG'))+2); if(tags.bits) game.cheer(user,+tags.bits); else game.chat(user,msg); }
       else if(/ USERNOTICE /.test(l)&&tags['msg-id']==='submysterygift') game.giftSubs(user,+tags['msg-param-mass-gift-count']||1);
       else if(/ USERNOTICE /.test(l)&&/^(sub|resub)$/.test(tags['msg-id'])) game.sub(user);
@@ -25,4 +30,4 @@ function startTwitch(game,t,log=console){
   };
   connect(); return true;
 }
-module.exports={startTwitch};
+module.exports={startTwitch,userOf};

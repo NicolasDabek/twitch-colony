@@ -20,7 +20,7 @@ assert.ok(!mask('abcdefghijklmnopqrstuvwxyz0123').includes('qrst'));
 const g2=new Colony({cooldownMs:0}); g2.chat('A','!bois'); g2.chat('A','!bois'); assert.equal(g2.res.bois,14);
 console.log('config OK');
 const fs=require('fs'),path=require('path');
-for(const [a,b] of [['server/game.js','docs/game.js'],['public/overlay.js','docs/overlay.js'],['public/controls.js','docs/controls.js'],['public/style.css','docs/style.css'],['public/demo.css','docs/demo.css'],['public/3d/main.js','docs/3d/main.js'],['public/icons.js','docs/icons.js'],['public/3d/three.module.js','docs/3d/three.module.js']])
+for(const [a,b] of [['server/game.js','docs/game.js'],['public/overlay.js','docs/overlay.js'],['public/controls.js','docs/controls.js'],['public/style.css','docs/style.css'],['public/demo.css','docs/demo.css'],['public/3d/main.js','docs/3d/main.js'],['public/icons.js','docs/icons.js'],['public/3d/three.module.js','docs/3d/three.module.js'],['public/3d/boot.js','docs/3d/boot.js'],['public/3d/nomodule.js','docs/3d/nomodule.js']])
   assert.equal(fs.readFileSync(path.join(__dirname,'..',a),'utf8'),fs.readFileSync(path.join(__dirname,'..',b),'utf8'),`${b} périmé : lancez npm run build:pages`);
 console.log('docs OK');
 // ─── Analyse game design ───
@@ -150,3 +150,36 @@ console.log('mécaniques OK');}
   // Vote de stratégie avant le raid
   g=mk(); T=g.nextThreat.at-FOYER.warnMs+1; g.tick(); assert.deepStrictEqual(g.vote.options,['murs','reserves']);
   console.log('mécaniques (rôles, séries, défis, merveille, badges, déblocages, Foyer) OK'); }
+// ─── Sécurité serveur (revue du 17/10) ───
+{ const {buildConfig}=require('./config'),{isInside,MAX_BODY,CSP}=require('./http-util'),{userOf}=require('./twitch');
+  assert.strictEqual(buildConfig({}).config.host,'127.0.0.1','écoute locale par défaut');
+  assert.strictEqual(buildConfig({HOST:'0.0.0.0'}).config.host,'0.0.0.0'); assert.ok(buildConfig({HOST:'a b'}).errors.length);
+  const P=path.join(path.sep,'srv','public');
+  assert.ok(isInside(P,P)&&isInside(P,path.join(P,'3d','main.js')));
+  assert.ok(!isInside(P,P+'-evil'+path.sep+'x.js')&&!isInside(P,P+'2')&&!isInside(P,path.join(P,'..','server','index.js')),'dossier frère refusé');
+  assert.ok(/script-src 'self'/.test(CSP)&&!/script-src[^;]*unsafe/.test(CSP));
+  // display-name vide → login du préfixe IRC
+  assert.strictEqual(userOf({'display-name':''},'@badges=;display-name=;user-id=1 :nicotest!nicotest@nicotest.tmi.twitch.tv PRIVMSG #c :!bois'),'nicotest');
+  assert.strictEqual(userOf({'display-name':'NicoTest'},'@display-name=NicoTest :nicotest!nicotest@nicotest.tmi.twitch.tv PRIVMSG #c :salut'),'NicoTest');
+  assert.strictEqual(userOf({},':abc!abc@abc.tmi.twitch.tv PRIVMSG #c :x!y'),'abc');
+  console.log('sécurité (hôte, chemins, CSP, nom IRC) OK');
+  // Serveur réel : hôte par défaut, 413, en-têtes, traversée
+  const {spawn}=require('child_process'),http=require('http'),net=require('net');
+  const port=20000+Math.floor(Math.random()*20000);
+  const srv=spawn(process.execPath,[path.join(__dirname,'index.js')],{env:{...process.env,MODE:'sim',PORT:String(port),HOST:''},stdio:['ignore','pipe','pipe']});
+  let out=''; srv.stdout.on('data',d=>out+=d); srv.stderr.on('data',d=>out+=d);
+  const req=(o,body)=>new Promise((ok,ko)=>{ const r=http.request({host:'127.0.0.1',port,...o},res=>{ let b=''; res.on('data',c=>b+=c); res.on('end',()=>ok({status:res.statusCode,headers:res.headers,body:b})); }); r.on('error',ko); if(body) r.write(body); r.end(); });
+  const raw=(line)=>new Promise(ok=>{ const s=net.connect(port,'127.0.0.1',()=>s.write(line+'\r\nHost: x\r\nConnection: close\r\n\r\n')); let b=''; s.on('data',d=>b+=d); s.on('close',()=>ok(b)); s.on('error',()=>ok(b)); });
+  const fail=e=>{ srv.kill(); console.error(out); console.error(e); process.exit(1); };
+  const t0=Date.now(); const ready=async()=>{ while(!/Twitch Colony :/.test(out)){ if(Date.now()-t0>8000) throw new Error('serveur non démarré'); await new Promise(r=>setTimeout(r,50)); } };
+  (async()=>{ await ready();
+    assert.ok(out.includes(`http://127.0.0.1:${port}/`),'écoute sur 127.0.0.1 par défaut');
+    let r=await req({path:'/overlay.html'}); assert.strictEqual(r.status,200);
+    assert.strictEqual(r.headers['x-content-type-options'],'nosniff'); assert.strictEqual(r.headers['content-security-policy'],CSP);
+    r=await req({path:'/api/sim',method:'POST',headers:{'Content-Type':'application/json'}},JSON.stringify({type:'chat',user:'T',text:'!bois'})); assert.strictEqual(r.body,'ok');
+    r=await req({path:'/api/sim',method:'POST',headers:{'Content-Type':'application/json'}},'x'.repeat(MAX_BODY+1)); assert.strictEqual(r.status,413,'corps > 10 Ko → 413');
+    r=await new Promise(ok=>{ const q=http.request({host:'127.0.0.1',port,path:'/api/sim',method:'POST',headers:{'Transfer-Encoding':'chunked'}},res=>{ res.resume(); ok({status:res.statusCode}); }); q.on('error',()=>ok({status:'reset'})); q.write('y'.repeat(8000)); q.write('y'.repeat(8000)); q.end(); });
+    assert.strictEqual(r.status,413,'flux sans Content-Length > 10 Ko → 413');
+    for(const p of ['/../server/index.js','/..%2fserver%2findex.js','/../.env','/%2e%2e/.env']){ const b=await raw(`GET ${p} HTTP/1.1`); assert.ok(!/^HTTP\/1\.1 200/.test(b),'traversée refusée : '+p); }
+    srv.kill(); console.log('serveur HTTP (127.0.0.1, 413, nosniff + CSP, traversée) OK');
+  })().catch(fail); }

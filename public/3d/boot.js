@@ -1,0 +1,6 @@
+// Démarrage 3D : messages d'erreur visibles (fichier séparé : aucun script inline, compatible CSP script-src 'self').
+// Messages d'erreur visibles (au lieu de panneaux vides), y compris sur les navigateurs intégrés d'Android.
+window.showFatal=function(m){ var f=document.getElementById('fatal'); if(!f) return; f.hidden=false; f.innerHTML='<b>Le village 3D n\'a pas pu démarrer.</b><br>'+String(m).replace(/</g,'&lt;')+'<br><a href="" id="fatal-reload">Recharger</a> · <a href="../">Version 2D</a>'; var r=document.getElementById('fatal-reload'); if(r) r.addEventListener('click',function(ev){ ev.preventDefault(); location.reload(); }); };
+window.addEventListener('error',function(e){ if(e.target&&e.target!==window&&(e.target.src||e.target.href)){ window.showFatal('Fichier introuvable : '+(e.target.src||e.target.href)); } else if(e.message&&!/obsolète/.test(e.message)){ window.showFatal(e.message); } },true);
+window.addEventListener('unhandledrejection',function(e){ window.showFatal(e.reason&&e.reason.message||String(e.reason)); });
+setTimeout(function(){ if(!window.__state) window.showFatal('Le jeu ne s\'est pas initialisé (WebGL ou modules JavaScript non pris en charge par ce navigateur ?). Essayez Chrome ou Firefox.'); },8000);

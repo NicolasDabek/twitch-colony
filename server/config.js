@@ -22,6 +22,8 @@ function buildConfig(env=process.env){
   const c={ mode:(env.MODE||'sim').toLowerCase() };
   if(!['sim','twitch'].includes(c.mode)) errors.push(`MODE doit valoir « sim » ou « twitch » (reçu « ${env.MODE} »).`);
   c.port=int(env,'PORT',3000,1,65535,errors);
+  c.host=(env.HOST||'').trim()||'127.0.0.1'; // local par défaut ; 0.0.0.0 = accessible depuis le réseau local
+  if(!/^[A-Za-z0-9.:\-\[\]]+$/.test(c.host)) errors.push(`HOST doit être une adresse IP ou un nom d'hôte (reçu « ${env.HOST} »).`);
   c.cooldownMs=int(env,'COMMAND_COOLDOWN_SECONDS',5,0,3600,errors)*1000;
   c.voteDurationMs=int(env,'VOTE_DURATION_SECONDS',30,5,3600,errors)*1000;
   c.voteIntervalMs=int(env,'AUTO_VOTE_INTERVAL_SECONDS',180,0,86400,errors)*1000;
@@ -47,6 +49,6 @@ function buildConfig(env=process.env){
 }
 function summary(c){
   const t=c.twitch;
-  return `mode=${c.mode} port=${c.port} chaîne=${t.channel||'(vide)'} bot=${t.botUsername||'(vide)'} token=${mask(t.token)} clientId=${mask(t.clientId)} clientSecret=${mask(t.clientSecret)} refresh=${mask(t.refreshToken)}`;
+  return `mode=${c.mode} hôte=${c.host} port=${c.port} chaîne=${t.channel||'(vide)'} bot=${t.botUsername||'(vide)'} token=${mask(t.token)} clientId=${mask(t.clientId)} clientSecret=${mask(t.clientSecret)} refresh=${mask(t.refreshToken)}`;
 }
 module.exports={loadEnv,buildConfig,mask,summary,SECRETS,ENV_PATH};

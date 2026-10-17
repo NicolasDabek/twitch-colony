@@ -126,32 +126,32 @@ Aucun effet payant n'est aléatoire. Les viewers gratuits peuvent tout construir
 
 ## Configurer Twitch
 
-Tous les secrets vont dans **\`.env\`**. Ce fichier est ignoré par git et ne doit jamais être commité ni montré à l'écran pendant un stream. \`.env.example\` documente chaque variable. Sans \`.env\`, ou avec \`MODE=sim\`, le jeu tourne en simulateur, sans aucune valeur Twitch.
+Tous les secrets vont dans **`.env`**. Ce fichier est ignoré par git et ne doit jamais être commité ni montré à l'écran pendant un stream. `.env.example` documente chaque variable. Sans `.env`, ou avec `MODE=sim`, le jeu tourne en simulateur, sans aucune valeur Twitch.
 
 ### 1. Créer l'application Twitch
 1. Activez la double authentification sur votre compte Twitch (c'est obligatoire pour la console développeur).
 2. Allez sur https://dev.twitch.tv/console/apps, puis cliquez sur **Register Your Application**.
-3. **Nom** : par ex. \`twitch-colony-nicolas\`. **OAuth Redirect URLs** : \`http://localhost:3000\`. **Catégorie** : *Chat Bot*. **Type de client** : *Confidentiel*.
-4. Validez, puis ouvrez **Manage**. Copiez le **Client ID** dans \`TWITCH_CLIENT_ID\`. Cliquez sur **New Secret** et copiez la valeur dans \`TWITCH_CLIENT_SECRET\`.
+3. **Nom** : par ex. `twitch-colony-nicolas`. **OAuth Redirect URLs** : `http://localhost:3000`. **Catégorie** : *Chat Bot*. **Type de client** : *Confidentiel*.
+4. Validez, puis ouvrez **Manage**. Copiez le **Client ID** dans `TWITCH_CLIENT_ID`. Cliquez sur **New Secret** et copiez la valeur dans `TWITCH_CLIENT_SECRET`.
 
 ### 2. Obtenir le jeton (avec le compte qui servira de bot)
-1. Connecté avec ce compte, ouvrez cette URL dans le navigateur (remplacez \`VOTRE_CLIENT_ID\`) :
-   \`\`\`
+1. Connecté avec ce compte, ouvrez cette URL dans le navigateur (remplacez `VOTRE_CLIENT_ID`) :
+   ```
    https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=VOTRE_CLIENT_ID&redirect_uri=http://localhost:3000&scope=chat:read+chat:edit+bits:read+channel:read:subscriptions
-   \`\`\`
-2. Acceptez. Le navigateur est redirigé vers \`http://localhost:3000/?code=XXXX&scope=…\`. Copiez la valeur de \`code\`, qui n'est valable que quelques minutes.
+   ```
+2. Acceptez. Le navigateur est redirigé vers `http://localhost:3000/?code=XXXX&scope=…`. Copiez la valeur de `code`, qui n'est valable que quelques minutes.
 3. Échangez ce code contre les jetons :
-   \`\`\`bash
+   ```bash
    curl -X POST https://id.twitch.tv/oauth2/token \\
      -d client_id=VOTRE_CLIENT_ID -d client_secret=VOTRE_SECRET \\
      -d code=XXXX -d grant_type=authorization_code -d redirect_uri=http://localhost:3000
-   \`\`\`
-4. Mettez \`access_token\` dans \`TWITCH_OAUTH_TOKEN\` (le préfixe \`oauth:\` est facultatif) et \`refresh_token\` dans \`TWITCH_REFRESH_TOKEN\`.
+   ```
+4. Mettez `access_token` dans `TWITCH_OAUTH_TOKEN` (le préfixe `oauth:` est facultatif) et `refresh_token` dans `TWITCH_REFRESH_TOKEN`.
 
-Scopes requis : \`chat:read\` (lire le chat), \`chat:edit\` (répondre, à venir), \`bits:read\` (Bits), \`channel:read:subscriptions\` (subs). ⚠ Les scopes \`bits:read\` et \`channel:read:subscriptions\` doivent être autorisés par le compte **de la chaîne** : le plus simple est d'utiliser le compte de votre chaîne comme bot.
+Scopes requis : `chat:read` (lire le chat), `chat:edit` (répondre, à venir), `bits:read` (Bits), `channel:read:subscriptions` (subs). ⚠ Les scopes `bits:read` et `channel:read:subscriptions` doivent être autorisés par le compte **de la chaîne** : le plus simple est d'utiliser le compte de votre chaîne comme bot.
 
-### 3. Remplir \`.env\`
-\`\`\`
+### 3. Remplir `.env`
+```
 MODE=twitch
 TWITCH_CHANNEL=nom_de_votre_chaine
 TWITCH_BOT_USERNAME=nom_du_compte_bot
@@ -159,14 +159,16 @@ TWITCH_OAUTH_TOKEN=…
 TWITCH_CLIENT_ID=…
 TWITCH_CLIENT_SECRET=…
 TWITCH_REFRESH_TOKEN=…
-\`\`\`
-Ensuite, lancez \`npm start\`. Au démarrage :
+```
+Facultatif : `HOST` (adresse d'écoute, `127.0.0.1` par défaut, donc accessible uniquement depuis cette machine, ce qui suffit pour OBS). Mettez `HOST=0.0.0.0` seulement pour un accès depuis le réseau local (par exemple tester sur un téléphone en Wi-Fi).
+
+Ensuite, lancez `npm start`. Au démarrage :
 - la configuration est vérifiée, avec des messages d'erreur clairs en français si une valeur manque ou est mal formée ;
 - le jeton est validé auprès de Twitch, avec un avertissement si des scopes manquent ;
-- si le jeton a expiré et que \`TWITCH_REFRESH_TOKEN\`, \`TWITCH_CLIENT_ID\` et \`TWITCH_CLIENT_SECRET\` sont fournis, il est renouvelé automatiquement (en mémoire uniquement, le fichier \`.env\` n'est pas modifié) ;
+- si le jeton a expiré et que `TWITCH_REFRESH_TOKEN`, `TWITCH_CLIENT_ID` et `TWITCH_CLIENT_SECRET` sont fournis, il est renouvelé automatiquement (en mémoire uniquement, le fichier `.env` n'est pas modifié) ;
 - les secrets ne sont jamais affichés en clair dans les logs (ils sont masqués).
 
-\`server/twitch.js\` lit le chat IRC de Twitch (TLS natif, sans dépendance), les Bits (tag \`bits\`) et les subs (\`USERNOTICE\`). En mode twitch, le simulateur est désactivé. **À faire** : passer à EventSub (\`channel.cheer\`, \`channel.subscribe\`) avec \`TWITCH_EVENTSUB_SECRET\`.
+`server/twitch.js` lit le chat IRC de Twitch (TLS natif, sans dépendance), les Bits (tag `bits`) et les subs (`USERNOTICE`). En mode twitch, le simulateur est désactivé. **À faire** : passer à EventSub (`channel.cheer`, `channel.subscribe`) avec `TWITCH_EVENTSUB_SECRET`.
 
 ## Structure
 
