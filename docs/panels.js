@@ -17,7 +17,7 @@ function foyer(s){ const f=s.foyer; if(!f) return ''; const p=f.hp/f.max, d=s.de
   return `<div class="fy"><span class="fyl">${ico('foyer')} Grand Foyer</span>${bar(f.hp,f.max,'hp '+(p<.3?'low':p<.6?'mid':''))}<b>${f.hp}/${f.max} PV</b></div>`+
     `<div class="sub">${ico('bouclier')} Défense ${d.total||0} (tours ${d.tours||0} · défenseurs ${d.defenseurs||0}${d.remparts?' · remparts '+d.remparts:''}${d.strategie?' · murs '+d.strategie:''}) contre force ${s.raidPower||0} · <code>!defendre</code> <code>!reparer</code></div>`; }
 function threat(s){ const t=s.threatInfo; if(!t) return '';
-  return lastRaid(s)+`<h3><span>${t.type==='raid'?ico('raid')+' Prochain raid':ico('hiver')+' Prochain hiver'}</span><span class="pill ${t.ok?'calm':''}">${mmss(t.at)}</span></h3><div class="threat ${t.ok?'ok':'bad'}">${ico(t.ok?'ok':'warn')} ${esc(t.label)}</div>`+bar(t.have,t.need,t.ok?'ok':'bad'); }
+  return lastRaid(s)+`<h3><span>${t.type==='raid'?ico('raid')+(t.guard?' Raid « garde de la Merveille »':' Prochain raid'):ico('hiver')+' Prochain hiver'}</span><span class="pill ${t.ok?'calm':''}">${mmss(t.at)}</span></h3><div class="threat ${t.ok?'ok':'bad'}">${ico(t.ok?'ok':'warn')} ${esc(t.label)}</div>`+bar(t.have,t.need,t.ok?'ok':'bad'); }
 function boards(s){ const med=['1.','2.','3.','4.','5.'];
   const b=(s.leaderboard||[]).slice(0,3).map((l,i)=>`<div class="row"><span>${med[i]} ${esc(l.name)}</span>${l.title?`<b>${l.pts} · Fondateur</b>`:`<span>${l.pts}</span>`}</div>`).join('')||'<div class="sub">Tapez !bois pour apparaître</div>';
   const m=(s.patronsBoard||[]).slice(0,3).map((l,i)=>`<div class="row"><span>${med[i]} ${esc(l.name)}</span><span>${l.pts}</span></div>`).join('')||'<div class="sub">Aucun soutien pour l\'instant</div>';
@@ -38,7 +38,7 @@ function gameOver(s){ const g=s.gameOver; if(!g) return ''; const m=g.summary;
 function badges(s){ return (s.badges||[]).length?`<div class="sub">${ico('badge')} Badges : ${s.badges.map(esc).join(' · ')}</div>`:''; }
 // Dernier raid (affiché 3 min) : butin si repoussé, pillage si perdu.
 function lastRaid(s){ const L=s.lastRaid; if(!L||clk()-L.t>3*60000) return '';
-  if(!L.dmg) return `<div class="raidres ok">${ico('ok')} Raid repoussé${L.reward?` : butin +${L.reward.bois} bois, +${L.reward.pierre} pierre`:' (grâce aux remparts : pas de butin)'}</div>`;
+  if(!L.dmg) return `<div class="raidres ok">${ico('ok')} Raid${L.guard?' « garde de la Merveille »':''} repoussé${L.reward?` : butin${L.shared?` partagé grâce aux remparts de ${esc(L.shared)}`:''} +${L.reward.bois} bois, +${L.reward.pierre} pierre`:''}</div>`;
   return `<div class="raidres bad">${ico('raid')} Raid perdu : −${L.dmg} PV${L.stolen?` · pillage ${stolenTxt(L.stolen,'−')}`:' · réserves cachées, rien de volé'}</div>`; }
 function stolenTxt(st,sign){ const p=[]; if(st.bois) p.push(`${sign}${st.bois} bois`); if(st.pierre) p.push(`${sign}${st.pierre} pierre`); return p.length?p.join(', '):'rien (stock vide)'; }
 // Propositions !construire en attente pendant un vote (3 max)
@@ -53,7 +53,7 @@ function liveState(s,user){ if(!s) return; const msgs=[];
   if(vk&&vk!==lastVoteKey) msgs.push(`Vote ouvert : ${String(s.vote.title).replace(/[\s.?!:]+$/,'')}. Options : ${Object.keys(s.vote.tally).map(o=>NAME[o]||o).join(', ')}. Pour voter : !vote suivi de l'option.`);
   else if(!vk&&lastVoteKey) msgs.push('Vote terminé.'+(s.alert&&Math.abs((s.now||Date.now())-s.alert.t)<5000?' '+s.alert.m:''));
   lastVoteKey=vk;
-  const L=s.lastRaid; if(L&&L.t!==lastRaidT){ if(primed) msgs.push(L.dmg?`Raid perdu : le Foyer perd ${L.dmg} PV.${L.stolen?` Pillage : ${stolenTxt(L.stolen,'moins ').replace(', ',' et ')}.`:' Réserves cachées : rien n\'a été volé.'}`:`Raid repoussé !${L.reward?` Butin : plus ${L.reward.bois} bois et plus ${L.reward.pierre} pierre.`:''}`); lastRaidT=L.t; }
+  const L=s.lastRaid; if(L&&L.t!==lastRaidT){ if(primed) msgs.push(L.dmg?`Raid perdu : le Foyer perd ${L.dmg} PV.${L.stolen?` Pillage : ${stolenTxt(L.stolen,'moins ').replace(', ',' et ')}.`:' Réserves cachées : rien n\'a été volé.'}`:`Raid repoussé !${L.reward?` Butin${L.shared?` partagé grâce aux remparts de ${L.shared}`:''} : plus ${L.reward.bois} bois et plus ${L.reward.pierre} pierre.`:''}`); lastRaidT=L.t; }
   if(primed&&s.alert&&s.alert.kind==='stage'&&s.alert.t!==lastStageT) msgs.push(s.alert.m); if(s.alert&&s.alert.kind==='stage') lastStageT=s.alert.t;
   const feed=primed?(s.feed||[]).filter(f=>f.t>lastFeedT):[]; if(s.feed&&s.feed.length) lastFeedT=Math.max(lastFeedT,...s.feed.map(f=>f.t));
   primed=true;

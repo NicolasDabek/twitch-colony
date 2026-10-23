@@ -101,7 +101,7 @@ function apply(s){
   for(let i=blds.length;i<L.items.length;i++){ const b=L.items[i], g=building(b.type);
     g.position.set(b.x+b.w/2-OFF,0,b.z+b.h/2-OFF); g.rotation.y=b.rot*Math.PI/2; g.scale.setScalar(.01); g.userData.born=performance.now(); town.add(g);
     g.userData.type=b.type; blds.push({g,tag:label(TYPES[b.type].n,new THREE.Vector3(g.position.x,b.type==='tour'?2.3:b.type==='merveille'?3.9:1.35,g.position.z),b.w*b.h)}); }
-  blds.forEach(b=>{ if(b.g.userData.phases){ b.g.userData.phases.forEach((p,i)=>p.visible=i<(s.wonder?s.wonder.phase:0)); b.tag.el.textContent=`Merveille ${s.wonder.phase}/3`; b.tag.w=0; } });
+  blds.forEach(b=>{ if(b.g.userData.phases){ b.g.userData.phases.forEach((p,i)=>p.visible=i<(s.wonder?s.wonder.phase:0)); b.tag.el.textContent=`Merveille ${s.wonder.pct!=null?s.wonder.pct+' %':s.wonder.phase+'/3'}`; b.tag.w=0; } });
   const ph=!!s.special;
   if(ph&&!phare){ const g=new THREE.Group(); const beam=new THREE.Mesh(new THREE.CylinderGeometry(.18,.5,9,12,1,true),new THREE.MeshBasicMaterial({color:0xffe28a,transparent:true,opacity:.35,depthWrite:false})); beam.position.y=5.5; g.add(beam); g.position.set(L.phare.x+1-OFF,0,L.phare.z+1-OFF); g.scale.setScalar(.01); g.userData.born=performance.now(); town.add(g); phare={g,tag:label(TYPES.phare.n,new THREE.Vector3(g.position.x,3.2,g.position.z),10)}; }
   else if(!ph&&phare){ town.remove(phare.g); dropLabel(phare.tag); phare=null; }

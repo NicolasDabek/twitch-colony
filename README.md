@@ -43,7 +43,7 @@ Raccourcis du simulateur : **B** !bois · **P** !pierre · **C** !chasse · **V*
 | `!construire <bâtiment>` / `!construire merveille` | propose un vote de construction (bâtiments débloqués uniquement) |
 | `!vote <option>` | vote en cours ; **+2 points** aux votants de l'option gagnante |
 | `!rejoindre bûcheron\|mineur\|chasseur\|garde` | métier : +50 % sur `!bois` / `!pierre` / `!chasse` ; un garde compte double avec `!defendre` |
-| `!defendre` | va défendre le Grand Foyer (+2 défense par défenseur, +4 pour un garde, plafond 16) pour le prochain raid |
+| `!defendre` | va défendre le Grand Foyer (+3 défense par défenseur, +6 pour un garde, plafond 24 ; petite audience : bonus jusqu'à × 2 sous 8 viewers actifs) pour le prochain raid |
 | `!reparer` | 10 bois + 5 pierre de la colonie → +5 PV au Foyer |
 | `!rallumer` | quand le Foyer est détruit : chaque viewer différent compte pour le rallumage |
 | `!aide` | rappelle les commandes dans le fil |
@@ -54,7 +54,7 @@ Raccourcis du simulateur : **B** !bois · **P** !pierre · **C** !chasse · **V*
 ## Enjeux de la partie
 
 - **Paliers** : Campement → Hameau (3 bâtiments) → Village (6) → Bourg (10) → Ville (15) → **Grande ville (18)** → Cité (21). Moins d'une heure entre deux paliers avec une audience typique. **Fin de la partie = Cité + Merveille**, avec une annonce de victoire et la durée.
-- **Durée de partie** (`GAME_LENGTH` dans `.env`) : `courte` (≈ 4 h), `normale` (≈ 4 h 30, par défaut) ou `longue` (≈ 5 h 30). Toujours au moins 3 h, même avec beaucoup de Bits. Les réglages partagés serveur / démo sont dans `server/game-config.js`.
+- **Durée de partie** (`GAME_LENGTH` dans `.env`) : `courte` (≈ 3 h 30), `normale` (≈ 4 h 30, par défaut) ou `longue` (≈ 5 h 30). Toujours au moins 3 h, même avec beaucoup de Bits. Les réglages partagés serveur / démo sont dans `server/game-config.js`.
 - **Coûts** : coût de base × 2,4 × 1,25 par exemplaire déjà construit × 1,10 par bâtiment déjà construit (partie normale). Les coûts ne dépendent pas du nombre de viewers.
 - **Adaptation à l'audience** : on compte les viewers actifs A, lissés sur 10 min. Au-delà de 5, chaque commande rapporte (5/A)^0,92 de sa valeur de base. La progression totale n'augmente donc que d'environ 25 % entre 5 et 100 viewers, et chaque commande compte toujours (le gain s'affiche dans le fil, par ex. « +0,4 »).
 - **Logement** : villageois max = 3 + 2 par hutte + 1 pour 3 autres bâtiments. Un sub sans place libre donne de la nourriture.
@@ -65,7 +65,7 @@ Raccourcis du simulateur : **B** !bois · **P** !pierre · **C** !chasse · **V*
 Un panneau **Objectifs** (trois lignes sans étiquette, court → moyen → long terme, chacune avec sa barre de progression colorée) est affiché dans l'overlay, la démo 2D et la vue 3D (version compacte sur mobile) :
 - **Court terme : défis communautaires** toutes les 5 min (coupez du bois, taillez de la pierre, chassez, votez nombreux, survivez à la prochaine menace). Réussi : +25 ressources, +10 nourriture, +3 points pour chaque participant.
 - **Moyen terme : projets** (loger les villageois, défenses du palier, Grenier, réserve pour l'hiver, Palissade, Marché, Atelier) et **bâtiments débloqués par palier** : Grenier (Hameau, l'hiver coûte moitié moins), Palissade (Village, +10 défense), Marché (Bourg, +1 bois et +1 pierre / 10 s), Atelier (Ville, `!bois` / `!pierre` +25 %), Forge (Grande ville, chaque `!defendre` compte double).
-- **Long terme : Cité (21 bâtiments) + Merveille** en 3 phases : phase 1 à la Ville, phase 2 à la Grande ville, phase 3 à la Cité (chaque phase = alerte + badge ; à la Cité, une barre d'épargne montre la progression). **La partie est gagnée quand les deux sont achevés.** Des **badges de session** marquent les étapes (premières fondations, raid repoussé, hiver survécu, 3 défis, orage, fête, Merveille, paliers).
+- **Long terme : Cité (21 bâtiments) + Merveille** en 3 phases : phase 1 à la Ville, phase 2 à la Grande ville, phase 3 à la Cité (chaque phase = alerte + badge ; à la Cité, une barre d'épargne montre la progression). **La partie est gagnée quand les deux sont achevés.** Des **badges de session** marquent les étapes (premières fondations, raid repoussé, hiver survécu, 3 défis, orage, fête, Merveille, paliers). **La phase finale se construit en 3 tranches** : aux jalons **33 % et 66 %**, le village reçoit +60 bois et +30 pierre, une fête de 2 min, et un raid « garde de la Merveille » (force +6) arrive 3 min plus tard.
 
 L'interface montre aussi : le prochain bâtiment abordable et ce qui manque, la production par minute de chaque ressource, la menace suivante avec son compte à rebours et ce qu'il faut pour la passer, la contribution et le cooldown de chaque viewer, et deux classements séparés **Bâtisseurs** (actions gratuites) et **Mécènes** (Bits et subs). Dans la vue 3D, **toucher un bâtiment** affiche son nom, son effet et sa production ; les villageois offerts par un sub portent le pseudo de l'abonné.
 
@@ -73,7 +73,7 @@ L'interface montre aussi : le prochain bâtiment abordable et ce qui manque, la 
 
 Le **Grand Foyer** occupe le centre de la carte (le Phare de la session s'y allume sous forme de faisceau). Il a **100 PV**, affichés dans le HUD et au-dessus du Foyer en 3D, et regagne 1 PV toutes les 2 min.
 - **Raids** (toutes les 30 min, en alternance avec l'hiver) : des assaillants arrivent du bord de la carte et marchent vers le Foyer. **Force du raid = 22 + 6 × palier.** **Défense** = 10 par tour ou palissade + défenseurs `!defendre` (3 points chacun, garde ×2, Forge ×2, plafond 24 ; avec moins de 12 viewers actifs chaque défenseur compte un peu plus) + remparts (Bits) + stratégie votée. **Dégâts = force − défense** (calcul fixe, affiché à l'avance).
-- **Raid repoussé** par la défense gratuite : **butin** de 40 bois et 20 pierre × (1 + palier). Pas de butin si seuls les remparts payés en Bits ont fait la différence (les Bits ne produisent pas de ressources hors plafond).
+- **Raid repoussé** par la défense gratuite : **butin** de 40 bois et 20 pierre × (1 + palier). Si les remparts payés en Bits ont fait la différence, **butin partagé** : la moitié, au nom du donateur des remparts, comptée dans le plafond de ressources Bits (30 / 10 min).
 - **Raid perdu** : **pillage** de dégâts × 3 × (1 + palier) en bois et en pierre, **au plus 30 % du stock** (on peut toujours progresser sans Bits), sauf si la stratégie *cacher les réserves* a été votée. Le résultat s'affiche 3 min dans le panneau de menace et est annoncé aux lecteurs d'écran.
 - **Vote de stratégie** 2 min avant chaque raid : *renforcer les murs* (+10 défense) ou *cacher les réserves* (rien n'est volé, le Foyer encaisse).
 - **Foyer détruit (0 PV)** : 3 min pour le rallumer, avec un **objectif fixe** : **N viewers différents tapent `!rallumer`** (au moins 3, ou 30 % des viewers actifs) **OU 1 000 Bits**. Le Foyer repart à 40 PV. **2 rallumages maximum par session**, avec une exigence croissante (2e : au moins 6 viewers ou 50 % des actifs, OU 2 500 Bits). Sinon : **fin de partie**, écran récapitulatif de la session (durée, palier, bâtiments, raids, défis, Bâtisseurs, badges), puis une **nouvelle session démarre automatiquement** 30 s plus tard.
@@ -91,15 +91,19 @@ Le **Grand Foyer** occupe le centre de la carte (le Phare de la session s'y allu
 
 | Scénario | 1er bâtiment | Hameau | Village | Bourg | Ville | Grande ville | Cité | Merveille | Fin | Raids repoussés | PV min | Rallumages |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 5 viewers | 4 min | 10 min | 19 min | 40 min | 1 h 16 | 1 h 52 | 2 h 46 | 5 h 01 | 5 h 01 | 10/10 | 100 | 0 |
-| 20 viewers (typique) | 4 min | 10 min | 19 min | 40 min | 1 h 10 | 1 h 46 | 2 h 43 | 4 h 34 | 4 h 34 | 8/9 | 88 | 0 |
-| 50 viewers | 4 min | 10 min | 22 min | 37 min | 1 h 10 | 1 h 46 | 2 h 37 | 4 h 37 | 4 h 37 | 8/9 | 88 | 0 |
-| 200 viewers | 4 min | 10 min | 19 min | 37 min | 1 h 10 | 1 h 43 | 2 h 31 | 4 h 22 | 4 h 22 | 9/9 | 100 | 0 |
-| 20 viewers, sans Bits | 4 min | 13 min | 25 min | 43 min | 1 h 25 | 2 h 07 | 3 h 10 | 4 h 46 | 4 h 46 | 9/10 | 84 | 0 |
-| 20 viewers, Bits massifs | 4 min | 10 min | 19 min | 31 min | 1 h 04 | 1 h 34 | 2 h 16 | 3 h 52 | 3 h 52 | 8/8 | 100 | 0 |
-| 20 viewers, Foyer négligé | 4 min | 10 min | 22 min | 40 min | 1 h 16 | 1 h 55 | 2 h 52 | 5 h 58 | 5 h 58 | 0/12 | 0 | 1 |
+| 5 viewers | 4 min | 10 min | 19 min | 40 min | 1 h 22 | 1 h 58 | 2 h 52 | 4 h 58 | 4 h 58 | 4/11 | 84 | 0 |
+| 20 viewers (typique) | 4 min | 10 min | 19 min | 40 min | 1 h 10 | 1 h 46 | 2 h 43 | 4 h 31 | 4 h 31 | 9/10 | 88 | 0 |
+| 50 viewers | 4 min | 10 min | 22 min | 37 min | 1 h 10 | 1 h 46 | 2 h 37 | 4 h 34 | 4 h 34 | 9/10 | 88 | 0 |
+| 200 viewers | 4 min | 10 min | 19 min | 37 min | 1 h 10 | 1 h 43 | 2 h 31 | 4 h 16 | 4 h 16 | 10/10 | 100 | 0 |
+| 20 viewers, sans Bits | 4 min | 13 min | 25 min | 43 min | 1 h 25 | 2 h 07 | 3 h 10 | 4 h 49 | 4 h 49 | 9/10 | 84 | 0 |
+| 20 viewers, Bits massifs | 4 min | 10 min | 19 min | 31 min | 1 h 04 | 1 h 34 | 2 h 16 | 3 h 49 | 3 h 49 | 8/8 | 100 | 0 |
+| 20 viewers, Foyer négligé | 4 min | 10 min | 22 min | 40 min | 1 h 16 | 1 h 55 | 2 h 52 | 5 h 31 | 5 h 31 | 0/11 | 0 | 2 |
+| 20 viewers (typique) — courte | 4 min | 10 min | 19 min | 37 min | 1 h 10 | 1 h 40 | 2 h 22 | 3 h 37 | 3 h 37 | 8/8 | 100 | 0 |
+| 20 viewers, Bits massifs — courte | 4 min | 10 min | 19 min | 31 min | 58 min | 1 h 25 | 2 h 04 | 3 h 13 | 3 h 13 | 7/7 | 100 | 0 |
+| 20 viewers (typique) — longue | 4 min | 10 min | 22 min | 40 min | 1 h 25 | 2 h 07 | 3 h 04 | 5 h 31 | 5 h 31 | 11/11 | 100 | 0 |
+| 20 viewers, Bits massifs — longue | 4 min | 10 min | 22 min | 34 min | 1 h 13 | 1 h 49 | 2 h 37 | 4 h 25 | 4 h 25 | 10/10 | 100 | 0 |
 
-`npm test` vérifie, sur plusieurs seeds, que **la partie complète dure au moins 3 h 20 dans tous les scénarios (y compris Bits massifs)** et au plus 6 h 30, que le premier bâtiment arrive en moins de 6 min, que la durée varie de moins de 30 % entre 5 et 200 viewers, que négliger le Foyer a des conséquences réelles (au moins 20 min de plus en moyenne), qu'au moins 5 raids sur 9 sont repoussés sans Bits à 20 viewers, qu'aucun palier ne prend plus d'une heure à 20 viewers, et que les durées `courte` et `longue` restent au-dessus de 3 h.
+`npm test` vérifie, sur plusieurs seeds, que **la partie complète dure au moins 3 h 20 dans tous les scénarios (y compris Bits massifs)** et au plus 6 h 30, que le premier bâtiment arrive en moins de 6 min, que la durée varie de moins de 30 % entre 5 et 200 viewers, que négliger le Foyer a des conséquences réelles (au moins 20 min de plus en moyenne), qu'au moins 5 raids sur 9 sont repoussés sans Bits à 20 viewers, qu'aucun palier ne prend plus d'une heure à 20 viewers, et que les durées `courte` et `longue` restent au-dessus de 3 h. Il vérifie aussi (passe GD 3) qu'il n'y a jamais plus de 45 min sans progression entre la Cité et la fin à 20 viewers, que courte < normale − 45 min < longue − 45 min, que le mode courte dure au moins 3 h même avec des Bits massifs, et que l'écart entre graines reste borné à 5 viewers sans Bits.
 
 ## Bits et subs : effets de session uniquement
 

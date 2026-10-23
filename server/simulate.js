@@ -13,7 +13,7 @@ const SCENARIOS=[
 // Rythme réaliste : chaque viewer actif envoie en moyenne une commande toutes les 30 s.
 function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength}={}){
   let T=1e12; const r=mulberry(seed*7919+sc.viewers), g=new Colony({now:()=>T,rng:r,seed,gameLength});
-  const users=Array.from({length:sc.viewers},(_,i)=>'v'+i), reached={}, start=T; let firstBuild=null, minHp=100, over=null;
+  const users=Array.from({length:sc.viewers},(_,i)=>'v'+i), reached={}, start=T; let firstBuild=null, minHp=100, over=null, lastPk=null; const events=[];
   STAGES.forEach((s,i)=>{ if(i===0) reached[s.name]=0; });
   // Rôles : 70 % des viewers rejoignent un métier (!rejoindre), et le jouent 60 % du temps.
   const RO=['bûcheron','mineur','chasseur','garde'], RC={'bûcheron':'!bois','mineur':'!pierre','chasseur':'!chasse','garde':'!bois'}, role={};
@@ -42,10 +42,12 @@ function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength}={}){
     if(firstBuild===null&&g.buildings.length) firstBuild=sec;
     const st=STAGES[g.stage].name; if(reached[st]===undefined) reached[st]=sec;
     if(g.wonder===WONDER.phases.length&&reached.Merveille===undefined) reached.Merveille=sec;
+    const pk=g.wonder+'.'+g.wonderPart+'.'+g.stage; if(pk!==lastPk){ lastPk=pk; events.push(sec); }
     minHp=Math.min(minHp,g.foyer.hp); if(g.gameOver){ over=sec; break; }
     if(g.completedAt){ reached.Fin=sec; break; }
   }
-  return {name:sc.name,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
+  const cite=reached[STAGES[STAGES.length-1].name], ev=cite==null?[]:events.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); let finaleGap=0; for(let i=1;i<ev.length;i++) finaleGap=Math.max(finaleGap,ev[i]-ev[i-1]);
+  return {name:sc.name,finaleGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
 }
 const fmt=s=>s==null?'—':s<3600?Math.round(s/60)+' min':Math.floor(s/3600)+' h '+String(Math.round(s%3600/60)).padStart(2,'0');
 function table(results){
@@ -55,5 +57,7 @@ function table(results){
   return t;
 }
 function all(opts){ return SCENARIOS.map(sc=>run(sc,opts)); }
-if(require.main===module){ const res=all(); if(process.argv.includes('--json')) console.log(JSON.stringify(res,null,1)); else console.log(table(res)); }
-module.exports={run,all,table,SCENARIOS};
+// Modes de durée : la table « normale » complète, puis une ligne typique et une ligne Bits massifs pour « courte » et « longue ».
+function modes(opts){ const S=n=>SCENARIOS.find(s=>s.name===n); const out=[]; for(const len of ['courte','longue']) for(const n of ['20 viewers (typique)','20 viewers, Bits massifs']) out.push({...run(S(n),{...opts,gameLength:len}),name:`${n} — ${len}`}); return out; }
+if(require.main===module){ const res=all().concat(modes()); if(process.argv.includes('--json')) console.log(JSON.stringify(res,null,1)); else console.log(table(res)); }
+module.exports={run,all,modes,table,SCENARIOS};
