@@ -15,7 +15,7 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 .demo .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .demo button{font:inherit;color:#fff;border:0;border-radius:12px;min-height:56px;background:#2d2842;font-size:15px;font-weight:700;cursor:pointer;position:relative;padding:6px}
 .demo button:hover{background:#3a3456}.demo button:focus-visible{outline:2px solid #cdb8ff}
-.demo button small{display:block;font-size:12px;font-weight:500;color:#aaa}
+.demo button small{display:block;font-size:12px;font-weight:500;color:#ccc}
 .demo button.cool{opacity:.45;cursor:not-allowed}.demo button .cd{position:absolute;right:6px;top:4px;font-size:12px;font-weight:700}
 .demo .bits button{background:#3a2a10;color:#ffd23f}
 .demo .v button{width:100%;display:flex;justify-content:space-between;align-items:center;padding:0 14px;margin-bottom:8px;background:linear-gradient(90deg,#4b3a7a var(--p),#2d2842 var(--p))}
@@ -60,7 +60,7 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
  .demo details .grid2 button{min-height:56px}
 }
 .demo .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.demo button.locked{opacity:.4;cursor:not-allowed}.demo button.ok{box-shadow:inset 0 0 0 2px #2fa36b}
+.demo button.locked{cursor:not-allowed;background:#24212f;color:#b9b4c8;box-shadow:inset 0 0 0 1px #4a4560}.demo button.locked small{color:#b9b4c8}.demo button.ok{box-shadow:inset 0 0 0 2px #2fa36b}
 .demo .def button{background:#1d2c4a}
 .demo #miniobj h3{margin:8px 0 4px;font-size:13px;color:#cdb8ff;text-transform:uppercase;letter-spacing:.06em}
 .demo #miniobj .sub,.demo #howto{font-size:13px;color:#ccc}.demo #howto{padding-bottom:10px}
@@ -69,3 +69,13 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 @media (max-width:900px){ .demo .grid4 button{min-height:60px} .demo #miniobj .ol{font-size:12px} }
 @media (max-width:900px){ .demo .mini .r{z-index:2} .demo .mini .bl{font-size:24px;gap:2px 6px;max-height:120px;overflow:hidden;flex-wrap:wrap-reverse} .demo .mini .bl small{font-size:12px} .demo header b{white-space:nowrap} }
 @media (max-width:420px){ .demo header{padding:10px 12px} .demo header b{font-size:17px} .demo .pseudo{flex:1 1 100%;order:3} .demo .pseudo input{flex:1;width:auto} }
+
+/* UX passe 3 : aperçu de l'overlay à l'échelle 1, empilé au-dessus des commandes ; case à cocher 44 px */
+@media (min-width:901px){
+ .demo .layout{grid-template-columns:minmax(0,1fr)}
+ .demo .stagewrap{order:-1;position:static;overflow:auto;max-width:100%;max-height:calc(100vh - 90px);overscroll-behavior:contain}
+ .demo .stagewrap:focus-visible{outline:2px solid #cdb8ff;outline-offset:2px}
+ .demo .stagewrap #ov{transform:none}
+ .demo .side{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));align-items:start}
+}
+.demo details label.chk input{width:44px;height:44px}

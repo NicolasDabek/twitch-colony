@@ -202,6 +202,7 @@ document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
 const fitAll=()=>{ const v=(innerWidth<700?11:9), a=innerWidth/innerHeight, need=OUT*0.75; return Math.max(ZMIN,Math.min(1,v*Math.min(a,1)/need*1.0)); };
 $('home').onclick=()=>{ target.set(0,0,0); rot=0; setZoom(1); };
 $('overview').onclick=()=>{ target.set(0,0,0); setZoom(fitAll()); };
+{ const row=document.querySelector('#ctl .row'), ctl=$('ctl'); const edge=()=>{ const more=row.scrollWidth-row.clientWidth-row.scrollLeft>4; ctl.classList.toggle('scrollable',more); ctl.classList.toggle('atstart',row.scrollLeft<4); }; row.addEventListener('scroll',edge,{passive:true}); addEventListener('resize',edge); new ResizeObserver(edge).observe(row); $('more').onclick=()=>row.scrollBy({left:row.clientWidth*.7,behavior:'smooth'}); edge(); }
 $('fold').onclick=()=>{ const f=$('ctl').classList.toggle('folded'); $('fold').textContent=f?'▴ Commandes':'▾ Masquer'; $('fold').setAttribute('aria-expanded',!f); layoutHud(); };
 window.__cam=()=>({zoom,target:target.toArray()});
 $('rl').onclick=()=>rot--; $('rr').onclick=()=>rot++;

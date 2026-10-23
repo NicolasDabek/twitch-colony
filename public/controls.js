@@ -53,10 +53,8 @@
     iconifyDom(document.querySelector('.side'));
     paintCooldowns();
   }
-  // Échelle de l'overlay sur ordinateur : il tient toujours dans l'écran.
-  function fit(){ const w=$('stagewrap'); if(!w||!w.offsetWidth) return; const k=Math.min(w.offsetWidth/1280,(innerHeight-90)/720); $('ov').style.transform=`scale(${k})`; w.style.height=720*k+'px'; }
-  addEventListener('resize',fit); new ResizeObserver(fit).observe($('stagewrap'));
-  buildOverlay(); fit(); Driver.start(onState);
+  // Aperçu de l'overlay à l'échelle 1 (textes ≥ 12 px) : il défile dans son cadre au lieu d'être réduit.
+  buildOverlay(); Driver.start(onState);
   // Démo/vérification : #autotest déroule quelques actions via les vrais boutons.
   if(location.hash==='#autotest'){ const q=sel=>document.querySelector(sel).click(); q('[data-c="!bois"]'); q('[data-bits="500"]'); q('[data-t="sub"]'); q('[data-t="vote"]'); setTimeout(()=>{ q('[data-c="!vote hutte"], .v button[data-c]'); q('[data-c="!bois"]'); },300); }
 })();

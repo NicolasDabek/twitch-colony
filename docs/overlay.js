@@ -47,4 +47,4 @@ function render(s){
   iconifyDom(document.getElementById('ov'));
   if(window.onColonyState) window.onColonyState(s);
 }
-if(document.body&&document.body.dataset.page==='overlay') new EventSource('/events').onmessage=e=>render(JSON.parse(e.data));
+if(document.body&&document.body.dataset.page==='overlay') new EventSource('/events').onmessage=e=>{ const st=JSON.parse(e.data); render(st); Panels.liveState(st,''); };

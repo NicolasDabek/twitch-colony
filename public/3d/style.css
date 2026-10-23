@@ -109,3 +109,25 @@ body.obs .boards3{top:calc(var(--voteh,160px) + 26px)}
 
 .vote .vempty{margin:6px 0 0;font-size:13px}.vote .vempty b{font-size:14px}
 @media (max-width:700px),(pointer:coarse) and (max-width:1100px){ .vote .vempty span{display:none} }
+
+/* UX passe 3 : commandes groupées par catégorie, cibles ≥ 44 px partout */
+.ctl .row{align-items:flex-end}
+.grp{display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
+.grp .gt{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#d9ccff;padding-left:2px;white-space:nowrap}
+.grp .gb{display:flex;gap:4px}
+.more{display:none}
+@media (min-width:701px) and (pointer:fine),(min-width:1101px){
+ .ctl .row{gap:6px 14px;flex-wrap:wrap}
+ .ctl .row button{min-height:44px;min-width:44px;padding:0 10px;font-size:14px;border-radius:10px}
+ .fold{display:block;position:absolute;right:0;top:-50px;min-height:44px;font-size:14px;background:rgba(14,12,24,.84);border:1px solid rgba(255,255,255,.15)}
+ .ctl.folded .row,.ctl.folded .help{display:none}.ctl.folded{padding:0;border:0;background:none}
+}
+@media (max-width:700px),(pointer:coarse) and (max-width:1100px){
+ .ctl .row{gap:12px;scroll-snap-type:x proximity}
+ .grp{scroll-snap-align:start}.grp .gb{gap:6px}
+ .ctl::after{content:'';position:absolute;top:6px;height:82px;right:8px;width:64px;pointer-events:none;border-radius:0 12px 12px 0;background:linear-gradient(90deg,rgba(14,12,24,0),rgba(14,12,24,.95) 70%);opacity:0;transition:opacity .2s}
+ .ctl.scrollable::after{opacity:1}
+ .ctl.scrollable .more{display:flex;align-items:center;justify-content:center;position:absolute;right:10px;top:34px;z-index:2;min-width:44px;min-height:44px;padding:0;border-radius:22px;background:#4b3a7a;border:2px solid #cdb8ff}
+ .more .ico{width:24px;height:24px}
+ .ctl.folded::after,.ctl.folded .more{display:none}
+}
