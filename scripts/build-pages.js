@@ -1,5 +1,7 @@
-// Génère docs/ (GitHub Pages, statique, sans serveur) à partir de public/ et server/game.js.
-const fs=require('fs'),path=require('path'),r=p=>path.join(__dirname,'..',p);
+// Génère le site GitHub Pages (statique, sans serveur) dans dist/ (dossier ignoré par git, publié par .github/workflows/pages.yml)
+// à partir de public/ et server/game.js. OUT=<dossier> pour écrire ailleurs (utilisé par npm test).
+const fs=require('fs'),path=require('path'),ROOT=path.join(__dirname,'..'),OUT=path.resolve(ROOT,process.env.OUT||'dist');
+const r=p=>p.startsWith('docs/')||p==='docs'?path.join(OUT,p.slice(5)):path.join(ROOT,p);
 const copies=[['server/game.js','docs/game.js'],['server/game-config.js','docs/game-config.js'],['public/confidentialite.html','docs/confidentialite.html']];
 for(const f of ['overlay.js','style.css','demo.css','controls.js','driver-local.js','icons.js','panels.js','favicon.svg']) copies.push(['public/'+f,'docs/'+f]);
 fs.mkdirSync(r('docs/3d'),{recursive:true});
@@ -15,4 +17,4 @@ for(const page of ['docs/index.html','docs/3d/index.html']){
   h=h.replace(/(src|href)="([^"#?:]+\.(?:js|css))"/g,(m,a,f)=>{ const fp=path.join(dir,f); if(!fs.existsSync(fp)) return m; const v=crypto.createHash('sha1').update(fs.readFileSync(fp)).digest('hex').slice(0,8); return `${a}="${f}?v=${v}"`; });
   fs.writeFileSync(r(page),h);
 }
-console.log('docs/ à jour');
+console.log(`site Pages généré dans ${path.relative(ROOT,OUT)||'.'}/`);

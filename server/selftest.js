@@ -20,9 +20,14 @@ assert.ok(!mask('abcdefghijklmnopqrstuvwxyz0123').includes('qrst'));
 const g2=new Colony({cooldownMs:0}); g2.chat('A','!bois'); g2.chat('A','!bois'); assert.equal(g2.res.bois,14);
 console.log('config OK');
 const fs=require('fs'),path=require('path');
-for(const [a,b] of [['server/game.js','docs/game.js'],['server/game-config.js','docs/game-config.js'],['public/overlay.js','docs/overlay.js'],['public/controls.js','docs/controls.js'],['public/style.css','docs/style.css'],['public/demo.css','docs/demo.css'],['public/3d/main.js','docs/3d/main.js'],['public/icons.js','docs/icons.js'],['public/3d/three.module.js','docs/3d/three.module.js'],['public/3d/boot.js','docs/3d/boot.js'],['public/3d/nomodule.js','docs/3d/nomodule.js']])
-  assert.equal(fs.readFileSync(path.join(__dirname,'..',a),'utf8'),fs.readFileSync(path.join(__dirname,'..',b),'utf8'),`${b} périmé : lancez npm run build:pages`);
-console.log('docs OK');
+// Site Pages : généré dans un dossier temporaire (dist/ n'est plus versionné), puis vérifié.
+const os=require('os'), PAGES=fs.mkdtempSync(path.join(os.tmpdir(),'tc-pages-'));
+require('child_process').execFileSync(process.execPath,[path.join(__dirname,'..','scripts','build-pages.js')],{env:{...process.env,OUT:PAGES},stdio:'ignore'});
+for(const [a,b] of [['server/game.js','game.js'],['server/game-config.js','game-config.js'],['public/overlay.js','overlay.js'],['public/controls.js','controls.js'],['public/style.css','style.css'],['public/demo.css','demo.css'],['public/3d/main.js','3d/main.js'],['public/icons.js','icons.js'],['public/3d/three.module.js','3d/three.module.js'],['public/3d/boot.js','3d/boot.js'],['public/3d/nomodule.js','3d/nomodule.js']])
+  assert.equal(fs.readFileSync(path.join(__dirname,'..',a),'utf8'),fs.readFileSync(path.join(PAGES,b),'utf8'),`${b} : copie différente de ${a}`);
+for(const page of ['index.html','3d/index.html']){ const h=fs.readFileSync(path.join(PAGES,page),'utf8'); assert.ok(!/<script(?![^>]*\bsrc=)[^>]*>/.test(h),page+' : script inline'); assert.ok(!/\son[a-z]+=/.test(h),page+' : gestionnaire inline'); assert.ok(h.indexOf('game-config.js')>0&&h.indexOf('game-config.js')<h.indexOf('game.js?'),page+' : game-config.js avant game.js');
+  for(const m of h.matchAll(/(?:src|href)="([^"#:]+\.(?:js|css))\?v=([0-9a-f]{8})"/g)) assert.equal(require('crypto').createHash('sha1').update(fs.readFileSync(path.join(PAGES,path.dirname(page),m[1]))).digest('hex').slice(0,8),m[2],page+' : empreinte ?v= de '+m[1]); }
+console.log('site Pages (build temporaire, copies, CSP, empreintes) OK');
 // ─── Analyse game design ───
 const {BUILDINGS:B}=require('./game');
 let T=1e9; const clock=()=>T; const mk=(o={})=>new Colony({cooldownMs:0,now:clock,...o});
@@ -67,7 +72,7 @@ console.log('game design OK');
 // Alertes et fil d'actions
 c=mk(); c.chat('A','!bois'); c.chat('B','!pierre'); c.chat('C','!chasse'); c.chat('D','!bois'); assert.equal(c.feed.length,3); assert.ok(/D coupe du bois/.test(c.feed[0].m));
 c.sub('Z'); assert.equal(c.alert.kind,'sub'); c.cheer('Y',100); assert.equal(c.alert.kind,'bits'); c.res.bois=999; c.build('hutte'); assert.equal(c.alert.kind,'build');
-for(const f of ['docs/index.html','public/sim.html','public/confidentialite.html']) assert.ok(/name="viewport"/.test(fs.readFileSync(path.join(__dirname,'..',f),'utf8')),f+' viewport');
+for(const f of [path.join(PAGES,'index.html'),'public/sim.html','public/confidentialite.html']) assert.ok(/name="viewport"/.test(fs.readFileSync(path.resolve(__dirname,'..',f),'utf8')),f+' viewport');
 console.log('ui OK');
 // Placement 3D : stable, sans chevauchement, seed par partie
 { const {layout}=require('./game'); const L=['hutte','ferme','carriere','tour','hutte','ferme','hutte','tour','carriere','ferme','hutte','hutte'];

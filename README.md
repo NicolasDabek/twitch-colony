@@ -8,7 +8,7 @@ Jeu de **colonie communautaire** affiché sur un stream Twitch : le chat récolt
 
 **https://nicolasdabek.github.io/twitch-colony/**
 
-C'est une version 100 % navigateur hébergée sur GitHub Pages (dossier `docs/`). Elle utilise la même logique de jeu (`server/game.js`) que le serveur. Après toute modification de `server/game.js` ou `public/overlay.js`, lancez `npm run build:pages` : `npm test` vérifie que `docs/` est à jour.
+C'est une version 100 % navigateur hébergée sur GitHub Pages. Elle utilise la même logique de jeu (`server/game.js`) que le serveur. Le site est publié par une GitHub Action (`.github/workflows/pages.yml`) à chaque push sur `main` : elle lance `npm test`, génère le site avec `npm run build:pages` dans `dist/` (dossier ignoré par git, rien à committer) et le déploie. Pour le voir en local : `npm run build:pages` puis servez `dist/` (par exemple `python3 -m http.server -d dist`).
 
 ### 🧊 Village 3D isométrique
 
