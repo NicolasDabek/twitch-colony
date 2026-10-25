@@ -9,7 +9,7 @@
  <div class="card boards3" id="boards"></div>
  <div class="card big3" id="big" hidden></div>
  <div class="card tip" id="tip" hidden></div>
- <div class="card sheet" id="sheet" hidden><button class="x" id="sheetx" aria-label="Fermer">✕</button><div id="sheetc"></div></div>
+ <div class="card sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheett" hidden><h2 class="sheett" id="sheett">Infos de la partie</h2><button class="x" id="sheetx" aria-label="Fermer les infos"><i data-i="close"></i></button><div id="sheetc"></div></div>
  <div class="card alert" id="alert"></div>
  <div class="card ctl" id="ctl"><button id="fold" class="fold" aria-expanded="true" title="Masquer / afficher les commandes">▾ Masquer</button>
   <div class="row">
@@ -19,10 +19,10 @@
    <div class="grp" role="group" aria-labelledby="g3"><span class="gt" id="g3">Bits et soutien</span><div class="gb"><button data-bits="100" class="gold" title="100 Bits : +10 bois (plafonné)"><i data-i="bits"></i><span> 100</span></button><button data-bits="300" data-tier="1" class="gold" title="300 Bits : remparts +15 défense 10 min"><i data-i="palissade"></i><span class="amt"> 300</span></button><button data-bits="500" data-tier="2" class="gold" title="500 Bits : Phare, gains ×1,5 10 min">💎<span class="amt"> 500</span></button><button data-bits="1500" data-tier="3" class="gold" title="1500 Bits : Bénédiction, production ×2 5 min"><i data-i="ferme"></i><span class="amt"> 1500</span></button><button data-bits="5000" data-tier="4" class="gold" title="5000 Bits : orage magique"><i data-i="orage"></i><span class="amt"> 5000</span></button><button data-t="sub" class="gold" title="Sub : un villageois nommé">⭐<span> Sub</span></button><button data-t="gift" class="gold" title="5 subs offerts : fête au village"><i data-i="fete"></i><span> 5 subs</span></button></div></div>
    <div class="grp" role="group" aria-labelledby="g4"><span class="gt" id="g4">Vue et partie</span><div class="gb"><button id="infos" title="Comment participer, classements, ma contribution"><i data-i="aide"></i><span> Infos</span></button><button id="home" title="Recentrer sur le village"><i data-i="maison"></i><span> Centrer</span></button><button id="overview" title="Vue d'ensemble de la carte"><i data-i="cube"></i><span> Carte</span></button><button id="rl" aria-label="Pivoter à gauche" title="Pivoter à gauche"><i data-i="left"></i><span> Pivoter</span></button><button id="rr" aria-label="Pivoter à droite" title="Pivoter à droite"><i data-i="right"></i><span> Pivoter</span></button><button data-t="reset" title="Nouvelle partie (nouvelle seed)"><i data-i="reset"></i><span> Nouvelle</span></button></div></div>
   </div>
-  <button class="more" id="more" aria-label="Voir plus de commandes" title="Voir plus de commandes"><i data-i="right"></i></button>
-  <small class="help">Partie <b id="seed"></b> · glisser / WASD / flèches : déplacer · molette / pincer : zoom · Q/E : pivoter · <span id="msg"></span></small>
+  <button class="more" id="more" aria-label="Voir plus de commandes" title="Voir plus de commandes"><i data-i="more"></i></button>
+  <small class="help"><span class="hseed">Partie <b id="seed"></b> · </span><span class="hk">glisser / WASD / flèches : déplacer · molette / pincer : zoom · Q/E : pivoter · </span><span class="ht">glisser : déplacer · pincer : zoomer · boutons Pivoter : tourner · </span><span id="msg"></span></small>
  </div>
- <div class="legal">Les Bits permettent à la communauté d'influencer la partie en direct. Ils ne donnent accès à aucun objet, compte, service ou avantage en dehors de ce stream.</div>
+ <details class="legal" id="legal" open><summary title="Afficher les mentions sur les Bits">Bits : aucun avantage hors du stream</summary><p>Les Bits permettent à la communauté d'influencer la partie en direct. Ils ne donnent accès à aucun objet, compte, service ou avantage en dehors de ce stream.</p></details>
 </div>
 <div id="fatal" role="alert" hidden></div>
 <div id="live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>

@@ -79,3 +79,7 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
  .demo .side{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));align-items:start}
 }
 .demo details label.chk input{width:44px;height:44px}
+/* UX passe 4 : l'aperçu 1280 × 720 à l'échelle 1 occupe toute la largeur (sans les marges de 12 px) ; plus de défilement parasite */
+@media (min-width:901px){
+ .demo .stagewrap{margin:0 -12px;max-width:none;max-height:none;overflow-x:auto;overflow-y:hidden;border-radius:0}
+}

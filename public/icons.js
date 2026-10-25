@@ -51,6 +51,8 @@ const P={
  medal2:'<circle cx="12" cy="14" r="7" fill="#cfd6e0"/><path d="M8 2l4 6 4-6" stroke="#3d6fd1" stroke-width="2.5" fill="none"/><text x="12" y="17.5" font-size="9" font-weight="800" text-anchor="middle" fill="#3b4250" font-family="sans-serif">2</text>',
  medal3:'<circle cx="12" cy="14" r="7" fill="#d9915a"/><path d="M8 2l4 6 4-6" stroke="#2fa36b" stroke-width="2.5" fill="none"/><text x="12" y="17.5" font-size="9" font-weight="800" text-anchor="middle" fill="#4a2a10" font-family="sans-serif">3</text>',
  left:'<path d="M5 12a7 7 0 1 0 2-5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M4 3v5h5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/>',
+ close:'<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
+ more:'<circle cx="5" cy="12" r="2.4" fill="currentColor"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/><circle cx="19" cy="12" r="2.4" fill="currentColor"/>',
  right:'<path d="M19 12a7 7 0 1 1-2-5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M20 3v5h-5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/>',
 };
 const I=(n,cls='')=>P[n]?`<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${P[n]}</svg>`:'';

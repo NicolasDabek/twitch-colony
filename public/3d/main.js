@@ -170,10 +170,21 @@ $('ctl').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b
   else if(b.dataset.bits) Driver.send({type:'cheer',user:who(),bits:+b.dataset.bits});
   else if(b.dataset.w) Driver.send({type:'wonder'});
   else if(b.dataset.t==='gift') Driver.send({type:'gift',user:who(),n:5});
-  else if(b.id==='infos'){ $('sheet').hidden=!$('sheet').hidden; paintSheet(); }
+  else if(b.id==='infos'){ if($('sheet').hidden) openSheet(b); else closeSheet(); }
   else if(b.dataset.t) Driver.send({type:b.dataset.t,user:who()}); });
-function paintSheet(){ if(!last) return; const P=window.Panels; const h=P.howto(last)+'<h3><span>Ma contribution</span></h3>'+crowd.map(u=>P.me(last,u)).join('')+P.boards(last)+P.badges(last); if($('sheetc').dataset.k!==h){ $('sheetc').dataset.k=h; $('sheetc').innerHTML=h; iconifyDom($('sheetc')); } }
-$('sheetx').onclick=()=>{ $('sheet').hidden=true; };
+function paintSheet(){ if(!last) return; const P=window.Panels; const h=P.objectives(last)+P.howto(last)+'<h3><span>Ma contribution</span></h3>'+crowd.map(u=>P.me(last,u)).join('')+P.boards(last)+P.badges(last); if($('sheetc').dataset.k!==h){ $('sheetc').dataset.k=h; $('sheetc').innerHTML=h; iconifyDom($('sheetc')); } }
+// Fiche « Infos » : boîte de dialogue modale (focus dedans, Tab piégé, Échap ferme, retour au bouton d'ouverture)
+let sheetOpener=null;
+function openSheet(from){ sheetOpener=from||document.activeElement; $('sheet').hidden=false; paintSheet(); $('sheetx').focus(); }
+function closeSheet(){ $('sheet').hidden=true; const o=sheetOpener; sheetOpener=null; if(o&&o.isConnected&&o.offsetParent!==null) o.focus(); else $('infos').focus(); }
+$('sheetx').onclick=closeSheet;
+$('sheet').addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.preventDefault(); closeSheet(); return; } if(e.key!=='Tab') return;
+  const f=[...$('sheet').querySelectorAll('button,a[href],input,select,textarea,summary,[tabindex]:not([tabindex="-1"])')].filter(x=>!x.disabled&&x.offsetParent!==null); if(!f.length) return;
+  const a=f[0], z=f[f.length-1]; if(e.shiftKey&&document.activeElement===a){ e.preventDefault(); z.focus(); } else if(!e.shiftKey&&document.activeElement===z){ e.preventDefault(); a.focus(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!$('sheet').hidden){ e.preventDefault(); closeSheet(); } });
+document.addEventListener('focusin',e=>{ if(!$('sheet').hidden&&!$('sheet').contains(e.target)) $('sheetx').focus(); });
+// Mentions Bits : repliées sur une ligne sur mobile (toujours présentes, dépliables)
+{ const lg=$('legal'), mq=matchMedia('(max-width:700px),(pointer:coarse) and (max-width:1100px)'); const set=()=>{ lg.open=!mq.matches; layoutHud(); }; mq.addEventListener('change',set); lg.addEventListener('toggle',()=>layoutHud()); set(); }
 // Toucher un bâtiment : nom, effet, production
 const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(); let downAt=null;
 const PROD={hutte:'Logement : +2 villageois',ferme:'Production : +12 nourriture / min',carriere:'Production : +6 pierre / min',tour:'Défense du Foyer : +10',grenier:"Hiver : nourriture nécessaire ÷ 2",palissade:'Défense du Foyer : +10',marche:'Production : +6 bois et +6 pierre / min',atelier:'!bois / !pierre : +25 %',forge:'!defendre compte double',merveille:'Objectif final de la session',foyer:'Si ses PV tombent à 0 : 3 min pour le rallumer'};

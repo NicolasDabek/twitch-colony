@@ -131,3 +131,49 @@ body.obs .boards3{top:calc(var(--voteh,160px) + 26px)}
  .more .ico{width:24px;height:24px}
  .ctl.folded::after,.ctl.folded .more{display:none}
 }
+
+/* UX passe 4 : panneaux mobiles compacts (≤ 40 % de l'écran), fiche Infos opaque, bouton « plus » distinct, aide tactile, mentions Bits sur une ligne */
+.sheet{background:#0e0c18;border-color:rgba(255,255,255,.25)}
+.sheett{margin:0 48px 8px 0;font-size:18px;line-height:1.3}
+.sheet .x{min-width:44px;min-height:44px}
+.legal{pointer-events:auto}.legal p{margin:0}
+.legal summary{display:none}
+.help .ht{display:none}
+@media (max-width:700px),(pointer:coarse) and (max-width:1100px){
+ .help .hk,.help .hseed{display:none}.help .ht{display:inline}
+ .ctl .help{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+ /* ressources : 2 lignes compactes, libellés lus par les lecteurs d'écran */
+ .res{top:6px;left:6px;right:6px;padding:4px 10px;gap:2px 8px!important}
+ .res .stat .ico{width:18px;height:18px}.res .stat b{font-size:15px}
+ .res .stat .sv{flex-direction:row;align-items:baseline;gap:4px}
+ .res .stat em{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+ /* Foyer sur une ligne ; les objectifs passent dans la fiche Infos */
+ .info{left:6px;right:6px;top:calc(var(--resh,60px) - 6px);padding:4px 10px}
+ .info .obj,.info h3{display:none}
+ .vote{left:6px;right:6px;top:calc(var(--resh,60px) + var(--infoh,30px) - 2px);padding:5px 10px}
+ .vote .threat{font-size:13px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vote .threat~.pbar{display:none}
+ .vote h3{margin-bottom:1px}
+ .vote .vempty{display:none}.vote .vlaunch{margin-top:4px}
+ /* objectif Bits sur une ligne */
+ .goal{left:6px;right:6px;padding:4px 10px;bottom:calc(var(--ctlh,100px) + var(--legh,44px) + 6px)}
+ .goal .gl{font-size:12px;margin-bottom:3px}.goal .track{height:6px}
+ /* commandes plus basses */
+ .ctl{left:6px;right:6px;bottom:calc(var(--legh,44px) + 4px);padding:4px 8px}
+ .ctl .row button{min-height:52px;min-width:56px;padding:3px 6px}
+ .ctl .row button .ico{width:22px;height:22px}
+ .grp .gt{font-size:12px;line-height:14px}
+ /* bouton « plus » dans une colonne réservée : il ne recouvre plus aucun bouton */
+ .ctl::after{display:none}
+ .ctl.scrollable .row{margin-right:52px}
+ .ctl.scrollable .more{top:auto;bottom:24px;right:6px}
+ .more .ico{width:22px;height:22px}
+ /* mentions Bits : une ligne dépliable, bouton Masquer / Commandes sur la même ligne */
+ .legal{padding:0 132px 0 10px;font-size:12px;line-height:1.35;background:rgba(0,0,0,.82)}
+ .legal summary{display:flex;align-items:center;min-height:44px;cursor:pointer;color:#eee;font-weight:600;list-style:none}
+ .legal summary::-webkit-details-marker{display:none}
+ .legal summary::before{content:'ⓘ';margin-right:6px;font-size:14px}
+ .legal summary{text-decoration:underline dotted;text-underline-offset:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .legal[open]{padding-bottom:8px}.legal[open] p{color:#ddd}
+ .fold{position:fixed;top:auto;right:6px;bottom:0;z-index:5;min-height:44px}
+ .ctl.folded{padding:0}
+}
