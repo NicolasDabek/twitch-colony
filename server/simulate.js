@@ -13,7 +13,7 @@ const SCENARIOS=[
 // Rythme réaliste : chaque viewer actif envoie en moyenne une commande toutes les 30 s.
 function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength}={}){
   let T=1e12; const r=mulberry(seed*7919+sc.viewers), g=new Colony({now:()=>T,rng:r,seed,gameLength});
-  const users=Array.from({length:sc.viewers},(_,i)=>'v'+i), reached={}, start=T; let firstBuild=null, minHp=100, over=null, lastPk=null; const events=[];
+  const users=Array.from({length:sc.viewers},(_,i)=>'v'+i), reached={}, start=T; let firstBuild=null, minHp=100, over=null, lastPk=null, lastEv=''; const events=[], allEv=[];
   STAGES.forEach((s,i)=>{ if(i===0) reached[s.name]=0; });
   // Rôles : 70 % des viewers rejoignent un métier (!rejoindre), et le jouent 60 % du temps.
   const RO=['bûcheron','mineur','chasseur','garde'], RC={'bûcheron':'!bois','mineur':'!pierre','chasseur':'!chasse','garde':'!bois'}, role={};
@@ -43,11 +43,14 @@ function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength}={}){
     const st=STAGES[g.stage].name; if(reached[st]===undefined) reached[st]=sec;
     if(g.wonder===WONDER.phases.length&&reached.Merveille===undefined) reached.Merveille=sec;
     const pk=g.wonder+'.'+g.wonderPart+'.'+g.stage; if(pk!==lastPk){ lastPk=pk; events.push(sec); }
+    // Évènements visibles (jalon, palier, raid, défi gagné) pour mesurer les creux en fin de partie.
+    const ek=pk+'.'+g.stats.raids+'.'+g.defisWon; if(ek!==lastEv){ lastEv=ek; allEv.push(sec); }
     minHp=Math.min(minHp,g.foyer.hp); if(g.gameOver){ over=sec; break; }
     if(g.completedAt){ reached.Fin=sec; break; }
   }
-  const cite=reached[STAGES[STAGES.length-1].name], ev=cite==null?[]:events.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); let finaleGap=0; for(let i=1;i<ev.length;i++) finaleGap=Math.max(finaleGap,ev[i]-ev[i-1]);
-  return {name:sc.name,finaleGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
+  const cite=reached[STAGES[STAGES.length-1].name], ev=cite==null?[]:events.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); const ev2=cite==null?[]:allEv.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); let eventGap=0; for(let i=1;i<ev2.length;i++) eventGap=Math.max(eventGap,ev2[i]-ev2[i-1]);
+  let finaleGap=0; for(let i=1;i<ev.length;i++) finaleGap=Math.max(finaleGap,ev[i]-ev[i-1]);
+  return {name:sc.name,finaleGap,eventGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
 }
 const fmt=s=>s==null?'—':s<3600?Math.round(s/60)+' min':Math.floor(s/3600)+' h '+String(Math.round(s%3600/60)).padStart(2,'0');
 function table(results){

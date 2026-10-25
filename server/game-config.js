@@ -6,7 +6,7 @@
   // Durée de partie : multiplie les seuils de palier, les coûts de la Merveille et la croissance des coûts.
   // Toutes les durées respectent la règle : une partie complète (Cité + Merveille) dure au moins 3 h.
   const LENGTHS={
-    courte:{label:'courte (≈ 3 h 30)',stageMul:1,wonderMul:0.7,growth:1.10,costMul:2.2},
+    courte:{label:'courte (≈ 3 h 30)',stageMul:0.85,wonderMul:0.6,growth:1.10,costMul:2.2},
     normale:{label:'normale (≈ 4 h 30)',stageMul:1,wonderMul:1,growth:1.10,costMul:2.4},
     longue:{label:'longue (≈ 5 h 30)',stageMul:1.1,wonderMul:1.25,growth:1.10,costMul:2.2},
   };

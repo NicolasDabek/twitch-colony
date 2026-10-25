@@ -35,7 +35,7 @@
     // Construire
     const unl=s.unlockedBuildings||Object.keys(s.costs||{});
     put('build',Object.entries(s.costs||{}).map(([b,c])=>unl.includes(b)?`<button data-c="!construire ${b}" title="${esc(Panels.DESC[b]||'')}" class="${s.res.bois>=c.bois&&s.res.pierre>=c.pierre?'ok':''}">${BI(b)} ${NAME[b]}<small>${c.bois}🪵${c.pierre?' '+c.pierre+'🪨':''}</small></button>`:`<button class="locked" disabled title="${esc(Panels.DESC[b]||'')}">${BI(b)} ${NAME[b]}<small>🔒 palier suivant</small></button>`).join('')+
-      (s.wonder?`<button data-w="1" class="${s.wonder.unlocked?'':'locked'}" ${s.wonder.unlocked&&s.wonder.cost?'':'disabled'}>${I('merveille')} Merveille ${s.wonder.pct!=null?s.wonder.pct+' %':s.wonder.phase+'/3'}<small>${s.wonder.cost?(s.wonder.unlocked?s.wonder.cost.bois+'🪵 '+s.wonder.cost.pierre+'🪨':'🔒 '+(s.wonder.nextStage||'Ville')):'achevée'}</small></button>`:''));
+      (s.wonder?`<button data-w="1" class="${s.wonder.unlocked?'':'locked'}" ${s.wonder.unlocked&&s.wonder.cost?'':'disabled'}>${I('merveille')} Merveille ${s.wonder.pct!=null?s.wonder.pct+' %':s.wonder.phase+'/3'}<small>${s.wonder.cost?(s.wonder.unlocked?s.wonder.cost.bois+'🪵 '+s.wonder.cost.pierre+'🪨':'🔒 '+(s.wonder.opensAt?'dans '+Math.max(1,Math.ceil((s.wonder.opensAt-(s.now||Date.now()))/60000))+' min':(s.wonder.nextStage||'Ville'))):'achevée'}</small></button>`:''));
     put('me',Panels.me(s,$('u').value.trim()||'Viewer'));
     put('miniobj',Panels.objectives(s,innerWidth<900)+Panels.foyer(s)+Panels.lastRaid(s)+(s.revival?`<div class="rvmini">${Panels.revival(s)}</div>`:'')+(s.gameOver?`<div class="rvmini">${Panels.gameOver(s)}</div>`:''));
     put('howto',Panels.howto(s));

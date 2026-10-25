@@ -48,9 +48,9 @@ c=mk(); c.pop=5; c.res.nourriture=100; for(let i=0;i<10;i++) c.tick(); assert.eq
 c=mk(); c.cheer('A',100); assert.equal(c.leaders.A,4);
 // Orage : !bois donne +1 pierre
 c=mk(); c.cheer('A',5000); const p0=c.res.pierre; c.chat('U','!bois'); assert.equal(c.res.pierre,p0+1);
-// Raid sur le Foyer : sans défense, dégâts + pertes ; une tour réduit les dégâts de 10
-c=mk(); c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.foyer.hp,78); assert.equal(c.res.bois,70,'pillage : dégâts × 3, au plus 30 % du stock'); assert.deepEqual(c.lastRaid.stolen,{bois:30,pierre:0}); T=1e9;
-c=mk(); c.buildings=['tour']; c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.foyer.hp,88); assert.equal(c.res.bois,70); assert.equal(c.threat?.type,undefined); assert.equal(c.nextThreat.type,'hiver'); T=1e9;
+// Raid sur le Foyer : sans défense, dégâts + pertes ; une tour réduit les dégâts de 10 (petite audience < 8 actifs : force de base 20)
+c=mk(); c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.foyer.hp,80); assert.equal(c.res.bois,70,'pillage : dégâts × 3, au plus 30 % du stock'); assert.deepEqual(c.lastRaid.stolen,{bois:30,pierre:0}); T=1e9;
+c=mk(); c.buildings=['tour']; c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.foyer.hp,88,'force 20 + 35 % de l’écart avec la défense max (26) = 22'); assert.equal(c.res.bois,70); assert.equal(c.threat?.type,undefined); assert.equal(c.nextThreat.type,'hiver'); T=1e9;
 // Hiver sans nourriture : départs
 c=mk(); c.buildings=['tour']; T+=15*60000; c.tick(); c.res.nourriture=0; c.pop=4; T+=15*60000; c.tick(); assert.ok(c.pop<4); T=1e9;
 // Famine : -1 villageois par minute
@@ -126,7 +126,7 @@ console.log('équilibrage OK');
   assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,2); assert.strictEqual(g.wonderPart,1); assert.strictEqual(g.res.bois,b0-c.bois+WONDER.milestone.bois);
   assert.ok(g.feteUntil>=T+2*60000-1); assert.ok(g.nextThreat.guard&&g.nextThreat.type==='raid'&&g.nextThreat.at===T+3*60000); assert.strictEqual(g.raidPower(),base+6); assert.ok(/33 %/.test(g.alert.m));
   assert.strictEqual(g.state().wonder.pct,78); assert.ok(g.buildWonder()); assert.ok(/66 %/.test(g.alert.m)); assert.strictEqual(g.wonderMilestones,2); assert.ok(!g.completedAt);
-  g.buildings=Array(21).fill({type:'hutte'}); assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,3); g._checkEnd(); assert.ok(g.completedAt);
+  g.buildings=Array(21).fill({type:'hutte'}); assert.ok(!g.buildWonder()&&g.state().wonder.opensAt===g.startedAt+WONDER.finalMinMs,'dernière tranche après 3 h'); T+=WONDER.finalMinMs; assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,3); g._checkEnd(); assert.ok(g.completedAt);
   { const w=mk().WPH[2], parts=[0,1,2].map(i=>{ const h=mk(); h.wonder=2; h.wonderPart=i; return h.wonderCost(); }); assert.strictEqual(parts.reduce((a,p)=>a+p.bois,0),w.bois); assert.strictEqual(parts.reduce((a,p)=>a+p.pierre,0),w.pierre); }
   // butin partagé : compté dans le plafond Bits (30 / 10 min)
   g=mk(); for(let i=0;i<12;i++) g.chat('x'+i,'!bois'); g.chat('d','!defendre'); g.cheer('w',300); g.strategy='murs'; g._bitsGift(BITS_CAP.max); g.forceRaid(); g.tick();
@@ -134,17 +134,38 @@ console.log('équilibrage OK');
   // petite audience : defRef 8, bonus plafonné à × 2
   assert.strictEqual(FOYER.defRef,8); g=mk(); g.chat('a','!defendre'); assert.strictEqual(g.defense().defenseurs,FOYER.defenderPts*2,'1 viewer : × 2 au plus');
   const sim=require('./simulate'), H=3600, S=n=>sim.SCENARIOS.find(s=>s.name===n);
-  // pas plus de 45 min sans progression entre la Cité et la fin (20 viewers, normale)
-  for(const seed of [1,2,3]){ const r=sim.run(S('20 viewers (typique)'),{seed}); assert.strictEqual(r.milestones,2); assert.ok(r.finaleGap<=45*60,`seed ${seed} : ${Math.round(r.finaleGap/60)} min sans progression après la Cité`); }
+  // pas plus de 50 min entre deux tranches/paliers après la Cité (20 viewers, normale) ; la passe GD 4 vérifie les évènements visibles (≤ 40 min)
+  for(const seed of [1,2,3]){ const r=sim.run(S('20 viewers (typique)'),{seed}); assert.strictEqual(r.milestones,2); assert.ok(r.finaleGap<=50*60,`seed ${seed} : ${Math.round(r.finaleGap/60)} min sans progression après la Cité`); }
   // durées : courte < normale − 45 min < longue − 45 min ; Bits massifs en courte ≥ 3 h
   const e=len=>sim.run(S('20 viewers (typique)'),{gameLength:len}).end; const ec=e('courte'), en=e('normale'), el=e('longue');
   assert.ok(ec<en-45*60&&en-45*60<el-45*60,`durées ${[ec,en,el].map(x=>(x/H).toFixed(2))}`);
   for(const seed of [1,2,3]){ const m=sim.run(S('20 viewers, Bits massifs'),{seed,gameLength:'courte'}); assert.ok(m.end>=3*H,`courte + Bits massifs (seed ${seed}) : ${(m.end/H).toFixed(2)} h`); }
-  // 20 viewers : ≥ 8/9 repoussés ; 5 viewers sans Bits : écart entre 5 graines borné
-  for(const seed of [1,2]){ const r=sim.run(S('20 viewers (typique)'),{seed}); assert.ok(r.repelled*9>=8*r.raids,`20 viewers (seed ${seed}) : ${r.repelled}/${r.raids}`); }
-  const v5=[1,2,3,4,5].map(seed=>{ const r=sim.run({name:'5',viewers:5,bits:'aucun'},{seed}); assert.ok(r.end!=null&&r.over==null,`5 viewers sans Bits (seed ${seed}) : partie non terminée`); return r.repelled/r.raids; });
-  assert.ok(Math.min(...v5)>=0.25&&Math.max(...v5)-Math.min(...v5)<=0.4,`5 viewers sans Bits : ${v5.map(x=>x.toFixed(2))}`);
   console.log('passe GD 3 (jalons Merveille, butin partagé, petite audience, modes de durée) OK'); }
+// Passe GD 4 : raids indexés sur la défense gratuite max, petite audience, mode court, creux d'évènements
+{ const {Colony,FOYER,WONDER}=require('./game.js'); let T=1e12; const mk=(o={})=>new Colony({now:()=>T,seed:3,...o});
+  // force = base + 35 % de l'écart avec la défense gratuite max ; les remparts Bits n'entrent pas dans le calcul
+  let g=mk(); for(let i=0;i<10;i++) g.chat('v'+i,'!bois'); g.buildings=['tour','tour','palissade'].map(t=>t); g.stage=3;
+  const base=FOYER.raidBase+FOYER.raidStep*3, max=3*FOYER.towerDef+FOYER.defenderCap+FOYER.stratDef;
+  assert.strictEqual(g.defenseMaxFree(),max); assert.strictEqual(g.raidPower(),base+Math.round(FOYER.scaleK*(max-base)));
+  const p0=g.raidPower(); g.cheer('w',300); assert.ok(g.defense().remparts>0); assert.strictEqual(g.raidPower(),p0,'les remparts Bits ne rendent pas les raids plus durs');
+  // petite audience (< 8 actifs) : force de base et progression réduites
+  const s=mk(); s.chat('a','!bois'); s.stage=3; assert.ok(s.raidPower()<FOYER.raidBase+FOYER.raidStep*3);
+  const sim=require('./simulate'), H=3600, S=n=>sim.SCENARIOS.find(x=>x.name===n), rate=r=>r.repelled/r.raids;
+  // 200 viewers et 20 viewers + Bits massifs : 7 à 10 raids sur 10 repoussés (une défense gratuite complète gagne toujours, hors raid « garde »)
+  for(const n of ['200 viewers','20 viewers, Bits massifs']) for(const seed of [1,2]){ const r=sim.run(S(n),{seed}); assert.ok(rate(r)>=0.7,`${n} (seed ${seed}) : ${r.repelled}/${r.raids}`); }
+  for(const seed of [1,2]){ const r=sim.run(S('200 viewers'),{seed}); assert.ok(rate(r)<=0.9&&r.minHp<=90,`200 viewers (seed ${seed}) : ${r.repelled}/${r.raids}, PV min ${r.minHp}`); }
+  for(const seed of [1,2]){ const r=sim.run(S('20 viewers, sans Bits'),{seed}); assert.ok(rate(r)>=0.7,`20 viewers sans Bits (seed ${seed}) : ${r.repelled}/${r.raids}`); }
+  // 5 viewers sans Bits : environ 6 à 8 raids sur 10 repoussés en moyenne (5 graines), toutes les parties finissent
+  const v5=[1,2,3,4,5].map(seed=>{ const r=sim.run({name:'5',viewers:5,bits:'aucun'},{seed}); assert.ok(r.end!=null&&r.over==null,`5 viewers sans Bits (seed ${seed}) : partie non terminée`); return rate(r); });
+  const avg=v5.reduce((a,b)=>a+b,0)/v5.length; assert.ok(avg>=0.55&&avg<=0.9&&Math.min(...v5)>=0.5,`5 viewers sans Bits : ${v5.map(x=>x.toFixed(2))}`);
+  // mode court : Bourg ≤ 35 min à 20 viewers
+  for(const seed of [1,2,3]){ const r=sim.run(S('20 viewers (typique)'),{seed,gameLength:'courte'}); assert.ok(r.reached.Bourg<=35*60,`courte Bourg ${(r.reached.Bourg/60)|0} min`); }
+  // 3 h minimum dans tous les modes, même à 200 viewers avec beaucoup de Bits (dernière tranche de la Merveille après 3 h)
+  for(const len of ['courte','normale']) for(const v of [50,200]){ const r=sim.run({name:'m',viewers:v,bits:'massifs'},{seed:1,gameLength:len}); assert.ok(r.end>=3*H,`${len} ${v} viewers + Bits massifs : ${(r.end/H).toFixed(2)} h`); }
+  // jamais plus de 40 min sans jalon, palier, raid ou défi gagné entre la Cité et la fin (20 viewers, normale et longue)
+  for(const len of ['normale','longue']) for(const n of ['20 viewers (typique)','20 viewers, sans Bits']) for(const seed of [1,2,3]){ const r=sim.run(S(n),{seed,gameLength:len});
+    assert.ok(r.eventGap<=40*60,`${len} ${n} (seed ${seed}) : ${Math.round(r.eventGap/60)} min sans évènement après la Cité`); }
+  console.log('passe GD 4 (raids indexés sur la défense, petite audience, mode court, rythme de fin) OK'); }
 
 {const {Colony}=require('./game.js');const g=new Colony();
 g.chat('a','!aide');g.chat('a','!rejoindre bûcheron');const s=g.state();
@@ -166,7 +187,7 @@ console.log('mécaniques OK');}
   g=mk(); assert.ok(!g.unlocked('grenier')&&g.unlocked('hutte')); g.stage=1; assert.ok(g.unlocked('grenier')&&!g.unlocked('atelier')); g.stage=4; assert.ok(g.unlocked('atelier'));
   g=mk(); g.res.bois=1e4; g.res.pierre=1e4; g.chat('x','!construire atelier'); assert.ok(!g.vote,'atelier verrouillé au Campement');
   // Merveille : 3 phases, débloquée à la Ville ; fin = Cité + Merveille
-  g=mk(); g.res.bois=1e5; g.res.pierre=1e5; assert.ok(!g.buildWonder(),'Merveille verrouillée'); g.stage=4; assert.ok(g.buildWonder()); assert.ok(!g.buildWonder(),'phase 2 verrouillée avant la Grande ville'); assert.ok(g.badges.includes('merv1')); g.stage=5; assert.ok(g.buildWonder()); g.stage=6; for(let k=0;k<WONDER.parts;k++) assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,WONDER.phases.length); // la phase 3 ne s'ouvre qu'à la Cité
+  g=mk(); g.res.bois=1e5; g.res.pierre=1e5; assert.ok(!g.buildWonder(),'Merveille verrouillée'); g.stage=4; assert.ok(g.buildWonder()); assert.ok(!g.buildWonder(),'phase 2 verrouillée avant la Grande ville'); assert.ok(g.badges.includes('merv1')); g.stage=5; assert.ok(g.buildWonder()); g.stage=6; T+=WONDER.finalMinMs; /* dernière tranche après 3 h */ for(let k=0;k<WONDER.parts;k++) assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,WONDER.phases.length); // la phase 3 ne s'ouvre qu'à la Cité
   g._checkEnd(); assert.ok(g.completedAt,'Cité + Merveille = fin'); assert.ok(g.badges.includes('wonder'));
   // Badges
   g=mk(); g.res.bois=100; g.build('hutte'); assert.ok(g.badges.includes('first')); g.giftSubs('z',3); assert.ok(g.badges.includes('fete'));
@@ -194,10 +215,10 @@ console.log('mécaniques OK');}
   // ─── Passe GD 2 ───
   const {PENDING_MAX,STAGES:STG}=require('./game');
   // Butin d'un raid repoussé par la défense gratuite ; pas de butin si seuls les remparts (Bits) suffisent
-  g=mk(); for(let i=0;i<12;i++) g.chat('d'+i,'!defendre'); const rb0=g.res.bois, rp0=g.res.pierre; g.forceRaid(); g.tick(); assert.strictEqual(g.foyer.hp,FOYER.max); assert.deepStrictEqual(g.lastRaid.reward,{bois:40,pierre:20}); assert.strictEqual(g.res.bois,rb0+40); assert.strictEqual(g.res.pierre,rp0+20);
+  g=mk(); for(let i=0;i<12;i++) g.chat('d'+i,'!defendre'); g.strategy='murs'; /* GD 4 : la force suit la défense gratuite max */ const rb0=g.res.bois, rp0=g.res.pierre; g.forceRaid(); g.tick(); assert.strictEqual(g.foyer.hp,FOYER.max); assert.deepStrictEqual(g.lastRaid.reward,{bois:40,pierre:20}); assert.strictEqual(g.res.bois,rb0+40); assert.strictEqual(g.res.pierre,rp0+20);
   g=mk(); for(let i=0;i<12;i++) g.chat('x'+i,'!bois'); g.chat('d','!defendre'); g.cheer('w',300); g.bitsLog=[]; /* fenêtre du plafond Bits écoulée */ g.strategy='murs'; assert.ok(g.defense().total>=g.raidPower()&&g.defense().total-g.defense().remparts<g.raidPower()); g.forceRaid(); g.tick(); assert.strictEqual(g.foyer.hp,FOYER.max); { const R=g.raidReward(); assert.deepStrictEqual(g.lastRaid.reward,{bois:Math.round(R.bois/2),pierre:Math.round(R.pierre/2)},'butin partagé : moitié'); assert.strictEqual(g.lastRaid.shared,'w'); assert.ok(/remparts de w/.test(g.alert.m)); }
   // Pillage : dégâts × 3 (× palier), plafonné à 30 % du stock ; rien avec la stratégie « réserves »
-  g=mk(); g.res.bois=1000; g.res.pierre=1000; g.forceRaid(); g.tick(); assert.deepStrictEqual(g.lastRaid.stolen,{bois:66,pierre:66}); assert.ok(/Pillage/.test(g.alert.m));
+  g=mk(); /* 0 actif : force de base 20 (petite audience) → 20 × 3 */ g.res.bois=1000; g.res.pierre=1000; g.forceRaid(); g.tick(); assert.deepStrictEqual(g.lastRaid.stolen,{bois:60,pierre:60}); assert.ok(/Pillage/.test(g.alert.m));
   g=mk(); g.res.bois=1000; g.strategy='reserves'; g.forceRaid(); g.tick(); assert.strictEqual(g.lastRaid.stolen,null); assert.strictEqual(g.res.bois,1000);
   g=mk(); g.stage=5; assert.deepStrictEqual(g.raidReward(),{bois:240,pierre:120}); assert.strictEqual(g.stealPerDmg(),18);
   // Forge (Grande ville) : !defendre compte double
