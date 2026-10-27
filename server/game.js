@@ -19,7 +19,7 @@ const BUILDINGS = {
 // Chaque phase s'ouvre à un palier (Ville, Grande ville, Cité) : la Merveille rythme la fin de partie au lieu d'un long plateau.
 const WONDER={stage:4,phaseStage:[4,5,6],phases:[{bois:450,pierre:300},{bois:780,pierre:540},{bois:7000,pierre:4800}],name:'Merveille',
   // Passe GD 3 : la dernière phase se construit en 3 tranches ; jalons à 33 % et 66 % = récompense + fête 2 min + raid « garde de la Merveille ».
-  parts:3,finalMinMs:3*3600000,milestone:{bois:60,pierre:30,feteMs:2*60000,raidBonus:6,raidInMs:3*60000}};
+  cuts:[1/3,2/3,1],finalMinMs:3*3600000,capRampMs:30*60000,milestone:{bois:60,pierre:30,feteMs:2*60000,raidBonus:6,raidInMs:3*60000}};
 const ROLES={'bûcheron':'!bois','bucheron':'!bois','mineur':'!pierre','chasseur':'!chasse','garde':'!defendre'}, ROLE_MULT=1.5, STREAK_MULT=1.25, STREAK_WIN=10*60000;
 // Bits par paliers (déterministes, session uniquement, plafonnés) : 100 = ressources, 500 = Phare, 1500 = Bénédiction, 5000 = orage (objectif)
 // Seuils configurables (BITS_TIERS / GOAL_STEP dans .env, voir game-config.js) ; effets et plafonds fixes.
@@ -27,7 +27,7 @@ const bitsTiersList=(t,goal)=>[{bits:100,label:'+1 bois / 10 Bits pour le villag
 const BITS_TIERS=bitsTiersList(GC.DEFAULTS.bitsTiers,GC.DEFAULTS.goalStep);
 // ─── Grand Foyer : bâtiment central à protéger (déterministe, aucun hasard) ───
 // Raid : force = RAID_BASE + RAID_STEP × palier. Dégâts = force − défense (tours/palissades, défenseurs !defendre, remparts, stratégie votée).
-const FOYER={max:100,regenMs:2*60000,raidBase:22,raidStep:6,smallBelow:8,smallRaidBase:20,smallRaidStep:4,towerDef:10,defenderPts:3,defenderCap:24,defRef:8,smallMax:2,scaleK:0.35,wallsDef:15,wallsMs:10*60000,wallsMaxMs:20*60000,
+const FOYER={max:100,regenMs:2*60000,raidBase:22,raidStep:6,smallBelow:8,smallRaidBase:20,smallRaidStep:4,towerDef:10,defenderPts:3,defenderCap:24,defRef:8,smallMax:2,scaleK:0.75,smallScaleK:0.35,wallsDef:15,wallsMs:10*60000,wallsMaxMs:20*60000,
   repair:{bois:10,pierre:5,hp:5},stealPerDmg:3,stealMaxShare:0.3,reward:{bois:40,pierre:20},rewardPerStage:1,stratDef:10,warnMs:2*60000,defendWin:5*60000,
   revive:{ms:3*60000,max:2,hp:40,bits:[1000,2500],viewers:[3,6],viewersPerActive:[0.3,0.5]}};
 const BLESS_MS=5*60000, BLESS_QUOTA={windowMs:60*60000,max:1}; // au plus 5 min de Bénédiction par heure
@@ -75,7 +75,7 @@ class Colony {
     // Durée de partie (GAME_LENGTH) : seuils de palier, Merveille et croissance des coûts. Seuils Bits / objectif.
     const L=GC.LENGTHS[opts.gameLength]||GC.LENGTHS[GC.DEFAULTS.gameLength]; this.gameLength=GC.LENGTHS[opts.gameLength]?opts.gameLength:GC.DEFAULTS.gameLength;
     let prev=-1; this.STAGES=STAGES.map((st,i)=>{ const m=i?Math.max(prev+1,Math.round(st.min*L.stageMul)):0; prev=m; return {name:st.name,min:m}; });
-    this.WPH=WONDER.phases.map(p=>({bois:Math.round(p.bois*L.wonderMul/10)*10,pierre:Math.round(p.pierre*L.wonderMul/10)*10})); this.growth=L.growth; this.costMul=L.costMul||1; this.raidMul=Math.min(1,L.stageMul||1);
+    this.WPH=WONDER.phases.map(p=>({bois:Math.round(p.bois*L.wonderMul/10)*10,pierre:Math.round(p.pierre*L.wonderMul/10)*10})); this.growth=L.growth; this.costMul=L.costMul||1; this.raidMul=Math.min(1,L.stageMul||1); this.CUTS=L.wonderCuts||WONDER.cuts;
     this.tiers={...GC.DEFAULTS.bitsTiers,...(opts.bitsTiers||{})}; this.goalStep=opts.goalStep||GC.DEFAULTS.goalStep; this.bitsTiers=bitsTiersList(this.tiers,this.goalStep);
     this.threatMs=opts.threatMs??THREAT_MS; this.now=opts.now||(()=>Date.now()); this.rng=opts.rng||Math.random; this.fixedSeed=opts.seed;
     this.reset();
@@ -89,7 +89,7 @@ class Colony {
     this.nextThreat={type:'raid',at:this.now()+this.threatMs}; this.lastFamine=0;
     this.foyer={hp:FOYER.max,max:FOYER.max,lastRegen:this.now()}; this.defenders={}; this.wallsUntil=0; this.strategy=null; this.stratAsked=0; this.revival=null; this.revivals=0; this.gameOver=null; this.lastRaid=null; this.stats={raids:0,repelled:0,repairs:0};
     this.builders={}; this.patrons={}; this.roles={}; this.windows={}; this.contrib={}; this.named=[]; this.badges=[]; this.defisWon=0;
-    this.wonder=0; this.wonderPart=0; this.wonderIndex=null; this.wallsBy=null; this.blessUntil=0; this.feteUntil=0; this.defi=null; this.nextDefi=this.now()+60000; this.projectsDone=[]; this.completedAt=0; this.pendingBuild=[];
+    this.wonder=0; this.wonderPart=0; this.wonderPaid={bois:0,pierre:0}; this.wonderCapOpened=false; this.wonderIndex=null; this.wallsBy=null; this.blessUntil=0; this.feteUntil=0; this.defi=null; this.nextDefi=this.now()+60000; this.projectsDone=[]; this.completedAt=0; this.pendingBuild=[];
   }
   _badge(k){ if(!this.badges.includes(k)){ this.badges.push(k); this._log(`🏅 Badge de session : ${BADGES[k]}`); } }
   _builder(u,p){ if(!u||!p||this.optout.has(u.toLowerCase())) return; this.builders[u]=(this.builders[u]||0)+p; this._credit(u,p); }
@@ -120,31 +120,55 @@ class Colony {
     const short=d&&!d.done&&n<d.ends?{label:'Défi : '+d.label,cur:Math.min(d.count,d.target),need:d.target,ends:d.ends}:{label:'Prochain défi communautaire',cur:0,need:1,ends:this.nextDefi};
     // À la Cité : barre d'épargne pour la phase suivante de la Merveille (la fin de partie avance visiblement)
     const wc=this.stage===this.STAGES.length-1&&this.wonderCost();
-    if(wc){ const b=Math.min(1,this.res.bois/wc.bois), pi=Math.min(1,this.res.pierre/wc.pierre); var save={label:`Épargne pour la ${WONDER.name}, ${this.wonderStep()} : ${Math.floor(Math.min(this.res.bois,wc.bois))}/${wc.bois} bois · ${Math.floor(Math.min(this.res.pierre,wc.pierre))}/${wc.pierre} pierre`,cur:Math.floor((b+pi)*50),need:100}; }
+    if(wc&&this.wonderFinal()){ const P=this.wonderPaid, f=this.wonderCapFrac(), left=Math.max(0,this.startedAt+WONDER.finalMinMs-n), lk=this.wonderLockedUntil();
+      var save={label:`${WONDER.name}, dernière tranche : ${P.bois}/${wc.bois} bois · ${P.pierre}/${wc.pierre} pierre déposés`+(lk?` · ouverture dans ${Math.ceil((lk-n)/60000)} min`:f<1?` · plafond ${Math.round(f*100)} %, accès complet dans ${Math.ceil(left/60000)} min`:''),cur:Math.floor(this.wonderPaidFrac()*100),need:100}; }
+    else if(wc){ const b=Math.min(1,this.res.bois/wc.bois), pi=Math.min(1,this.res.pierre/wc.pierre); var save={label:`Épargne pour la ${WONDER.name}, ${this.wonderStep()} : ${Math.floor(Math.min(this.res.bois,wc.bois))}/${wc.bois} bois · ${Math.floor(Math.min(this.res.pierre,wc.pierre))}/${wc.pierre} pierre`,cur:Math.floor((b+pi)*50),need:100}; }
     const p=save||this.projects().find(p=>p.cur<p.need&&!(p.live&&this.nextThreat.type!=='hiver'))||{label:'Tous les projets sont faits : visez la Merveille !',cur:1,need:1};
     const cite=this.STAGES[this.STAGES.length-1].min, nx=this.STAGES[this.stage+1];
     return {short,mid:{label:p.label,cur:Math.min(p.cur,p.need),need:p.need},
-      long:{label:`Cité (${Math.min(this.buildings.length,cite)}/${cite} bâtiments) + ${WONDER.name} (${this.wonder}/${this.WPH.length} phases · ${this.wonderPct()} %)`,cur:Math.min(this.buildings.length,cite)+this.wonder*3+(this.wonderLast()?this.wonderPart:0),need:cite+this.WPH.length*3},
+      long:{label:`Cité (${Math.min(this.buildings.length,cite)}/${cite} bâtiments) + ${WONDER.name} (${this.wonder}/${this.WPH.length} phases · ${this.wonderPct()} %)`,cur:Math.min(this.buildings.length,cite)+Math.round(3*this.wonderPct()*this.WPH.length/100),need:cite+this.WPH.length*3},
       nextStage:nx?{name:nx.name,cur:this.buildings.length,need:nx.min}:null};
   }
-  // Dernière tranche de la Merveille disponible après 3 h de partie seulement : aucune partie (même avec beaucoup de Bits) ne finit avant 3 h.
-  wonderLockedUntil(){ const t=this.startedAt+WONDER.finalMinMs; return this.wonderLast()&&this.wonderPart===WONDER.parts-1&&this.now()<t?t:0; }
+  // Passe GD 5 : la dernière tranche se finance par dépôts. Plafond progressif : part du coût de la tranche dépensable = min(1, max(0, (t − 2 h 30) / 30 min)),
+  // donc la tranche ne peut être complète qu'à 3 h de partie (aucune partie ne finit avant 3 h). Jalon à 50 % de la tranche.
+  wonderCuts(){ return this.CUTS||WONDER.cuts; }
+  wonderParts(){ return this.wonderCuts().length; }
+  wonderFinal(){ return this.wonderLast()&&this.wonderPart===this.wonderParts()-1; }
+  wonderCapFrac(){ const t=this.now()-this.startedAt, W=WONDER; return Math.min(1,Math.max(0,(t-(W.finalMinMs-W.capRampMs))/W.capRampMs)); }
+  wonderLockedUntil(){ return this.wonderFinal()&&this.wonderCapFrac()<=0?this.startedAt+WONDER.finalMinMs-WONDER.capRampMs:0; }
   wonderOpen(){ const k=WONDER.phaseStage[this.wonder]; return k!=null&&this.stage>=k&&!this.wonderLockedUntil(); }
   wonderNextStage(){ const k=WONDER.phaseStage[this.wonder]; return k!=null?this.STAGES[k].name:null; }
   wonderLast(){ return this.wonder===this.WPH.length-1; }
-  wonderCost(){ const p=this.WPH[this.wonder]; if(!p) return null; if(!this.wonderLast()) return {...p}; const k=WONDER.parts, i=this.wonderPart, sl=v=>Math.round(v*(i+1)/k)-Math.round(v*i/k); return {bois:sl(p.bois),pierre:sl(p.pierre)}; }
-  wonderStep(){ return `phase ${this.wonder+1}`+(this.wonderLast()?` (tranche ${this.wonderPart+1}/${WONDER.parts})`:''); }
-  wonderPct(){ const n=this.WPH.length; return Math.round(100*(this.wonder+(this.wonderLast()?this.wonderPart/WONDER.parts:0))/n); }
-  buildWonder(){ const c=this.wonderCost(), lk=this.wonderLockedUntil(); if(c&&lk){ this._log(`${WONDER.name} : dernière tranche disponible après 3 h de partie (dans ${Math.ceil((lk-this.now())/60000)} min)`); return false; } if(!c||!this.wonderOpen()) return false; if(this.res.bois<c.bois||this.res.pierre<c.pierre){ this._log(`${WONDER.name} : il manque ${Math.max(0,c.bois-Math.floor(this.res.bois))} bois, ${Math.max(0,c.pierre-Math.floor(this.res.pierre))} pierre`); return false; }
+  wonderCost(){ const p=this.WPH[this.wonder]; if(!p) return null; if(!this.wonderLast()) return {...p}; const C=[0,...this.wonderCuts()], i=this.wonderPart, sl=v=>Math.round(v*C[i+1])-Math.round(v*C[i]); return {bois:sl(p.bois),pierre:sl(p.pierre)}; }
+  // Dépôt possible maintenant sur la dernière tranche : limité par le reste à payer et par le plafond progressif.
+  wonderDeposit(){ const c=this.wonderCost(); if(!c||!this.wonderFinal()) return null; const f=this.wonderCapFrac(), P=this.wonderPaid;
+    const lim=k=>Math.max(0,Math.min(c[k]-P[k],Math.round(c[k]*f)-P[k])); return {bois:Math.min(Math.floor(this.res.bois),lim('bois')),pierre:Math.min(Math.floor(this.res.pierre),lim('pierre')),lim:{bois:lim('bois'),pierre:lim('pierre')},cost:c,f}; }
+  wonderDepositOk(){ const d=this.wonderDeposit(); if(!d) return false; const ok=k=>d[k]>=Math.min(d.lim[k],Math.ceil(d.cost[k]/4)); return (d.lim.bois+d.lim.pierre)>0&&ok('bois')&&ok('pierre'); }
+  wonderPaidFrac(){ const c=this.wonderCost(); if(!c||!this.wonderFinal()) return 0; return Math.min(this.wonderPaid.bois/c.bois,this.wonderPaid.pierre/c.pierre); }
+  wonderStep(){ return `phase ${this.wonder+1}`+(this.wonderLast()?` (tranche ${this.wonderPart+1}/${this.wonderParts()})`:''); }
+  wonderPct(){ const n=this.WPH.length, C=[0,...this.wonderCuts()], i=this.wonderPart; if(!this.wonderLast()) return Math.round(100*this.wonder/n);
+    return Math.round(100*(this.wonder+C[i]+(C[i+1]-C[i])*this.wonderPaidFrac())/n); }
+  buildWonder(){ const c=this.wonderCost(), lk=this.wonderLockedUntil(); if(c&&lk){ this._log(`${WONDER.name} : la dernière tranche ouvre à 2 h 30 de partie (dans ${Math.ceil((lk-this.now())/60000)} min), entièrement à 3 h`); return false; } if(!c||!this.wonderOpen()) return false;
+    if(this.wonderFinal()) return this._wonderDeposit();
+    if(this.res.bois<c.bois||this.res.pierre<c.pierre){ this._log(`${WONDER.name} : il manque ${Math.max(0,c.bois-Math.floor(this.res.bois))} bois, ${Math.max(0,c.pierre-Math.floor(this.res.pierre))} pierre`); return false; }
     this.res.bois-=c.bois; this.res.pierre-=c.pierre; if(!this.wonder) this.wonderIndex=this.buildings.length;
-    if(this.wonderLast()&&this.wonderPart<WONDER.parts-1){ this.wonderPart++; this._wonderMilestone(); return true; }
-    this.wonder++; this.wonderPart=0; this._alert('build',`🏛️ ${WONDER.name} : phase ${this.wonder}/${this.WPH.length} terminée !`);
+    if(this.wonderLast()){ this.wonderPart++; this.wonderPaid={bois:0,pierre:0}; this._wonderMilestone(); return true; }
+    return this._wonderPhaseDone(); }
+  _wonderDeposit(){ const d=this.wonderDeposit(), c=d.cost, P=this.wonderPaid;
+    if(!d.bois&&!d.pierre){ const full=d.lim.bois+d.lim.pierre===0; this._log(full?`${WONDER.name} : plafond atteint (${Math.round(d.f*100)} % de la tranche), accès complet dans ${Math.max(1,Math.ceil((this.startedAt+WONDER.finalMinMs-this.now())/60000))} min`:`${WONDER.name} : il manque du bois ou de la pierre pour la dernière tranche`); return false; }
+    const before=this.wonderPaidFrac(); this.res.bois-=d.bois; this.res.pierre-=d.pierre; P.bois+=d.bois; P.pierre+=d.pierre;
+    if(P.bois>=c.bois&&P.pierre>=c.pierre){ this.wonderPart=0; this.wonderPaid={bois:0,pierre:0}; return this._wonderPhaseDone(); }
+    const now=this.wonderPaidFrac(); if(before<0.5&&now>=0.5) this._wonderMilestone(true);
+    else this._log(`🏛️ ${WONDER.name} : dépôt de ${d.bois} bois et ${d.pierre} pierre (dernière tranche ${Math.floor(now*100)} %${d.f<1?`, plafond ${Math.round(d.f*100)} %, accès complet dans ${Math.max(1,Math.ceil((this.startedAt+WONDER.finalMinMs-this.now())/60000))} min`:''})`);
+    return true; }
+  _wonderPhaseDone(){ this.wonder++; this.wonderPart=0; this._alert('build',`🏛️ ${WONDER.name} : phase ${this.wonder}/${this.WPH.length} terminée !`);
     if(this.wonder===this.WPH.length){ this._badge('wonder'); } else this._badge('merv'+this.wonder); this._checkEnd(); return true; }
-  // Jalon de la dernière phase (33 % puis 66 %) : récompense gratuite, fête de 2 min et raid « garde de la Merveille » (force +6) dans 3 min.
-  _wonderMilestone(){ const M=WONDER.milestone, n=this.now(), pct=Math.floor(100*this.wonderPart/WONDER.parts);
+  // Jalons de la dernière phase (33 %, 66 %, 50 % en longue, puis mi-parcours de la dernière tranche) : récompense gratuite, fête de 2 min et raid « garde de la Merveille » (force +6) dans 3 min.
+  _wonderMilestone(half=false){ const M=WONDER.milestone, n=this.now(), C=this.wonderCuts(), pct=half?Math.floor(100*(C[C.length-2]+1)/2):Math.floor(100*C[this.wonderPart-1]);
     this.res.bois+=M.bois; this.res.pierre+=M.pierre; this.feteUntil=Math.max(this.feteUntil,n+M.feteMs); this.wonderMilestones=(this.wonderMilestones||0)+1;
-    this.nextThreat={type:'raid',at:n+M.raidInMs,guard:true}; this.stratAsked=null;
-    this._alert('stage',`🏛️ ${WONDER.name} : jalon ${pct} % atteint (tranche ${this.wonderPart}/${WONDER.parts} de la phase finale) ! +${M.bois} bois, +${M.pierre} pierre et fête au village. Des pillards visent le chantier : raid « garde de la ${WONDER.name} » (force ${this.raidPower()}) dans ${Math.round(M.raidInMs/60000)} min, !defendre !`); }
+    // Raid « garde » seulement aux jalons historiques (33 % / 66 %…) : les jalons ajoutés en passe GD 5 (50 % et mi-parcours de la dernière tranche) donnent récompense et fête sans raid.
+    const guard=!half&&pct!==50; if(guard){ this.nextThreat={type:'raid',at:n+M.raidInMs,guard:true}; this.stratAsked=null; }
+    this._alert('stage',`🏛️ ${WONDER.name} : jalon ${pct} % atteint (${half?'mi-parcours de la dernière tranche':`tranche ${this.wonderPart}/${this.wonderParts()}`} de la phase finale) ! +${M.bois} bois, +${M.pierre} pierre et fête au village.`+(guard?` Des pillards visent le chantier : raid « garde de la ${WONDER.name} » (force ${this.raidPower()}) dans ${Math.round(M.raidInMs/60000)} min, !defendre !`:'')); }
   _checkEnd(){ if(this.completedAt||this.stage<this.STAGES.length-1||this.wonder<this.WPH.length) return; this.completedAt=this.now(); const m=Math.round((this.completedAt-this.startedAt)/60000);
     this._alert('stage',`🏆 Partie terminée : Cité et ${WONDER.name} achevées en ${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')} ! Bravo le chat !`); }
   rates(){ const bl=this.now()<this.blessUntil?2:1, f=this.count('ferme'), m=this.count('marche');
@@ -216,7 +240,7 @@ class Colony {
     // À la Cité, seule la Merveille reste à finir : les votes automatiques épargnent pour elle (!construire reste possible).
     const saving=this.stage===this.STAGES.length-1&&this.wonderCost();
     const opts=saving?[]:Object.keys(BUILDINGS).filter(b=>this.unlocked(b)&&this.affordable(b));
-    const wc=this.wonderCost(); if(this.wonderOpen()&&wc&&this.res.bois>=wc.bois&&this.res.pierre>=wc.pierre) opts.push('merveille');
+    const wc=this.wonderCost(); if(this.wonderOpen()&&wc&&(this.wonderFinal()?this.wonderDepositOk():this.res.bois>=wc.bois&&this.res.pierre>=wc.pierre)) opts.push('merveille');
     if(!opts.length&&saving){ this._log(`🏛️ Le village épargne pour la ${WONDER.name} (${this.wonderStep()}) : il manque ${Math.max(0,wc.bois-Math.floor(this.res.bois))} bois, ${Math.max(0,wc.pierre-Math.floor(this.res.pierre))} pierre`); return false; }
     if(!opts.length){ this._log(`Rien d'abordable : il manque ${this.missing('hutte')} pour une hutte. À vos !bois !`); return false; }
     return this.startVote(opts);
@@ -297,6 +321,9 @@ class Colony {
   }
   tick(){
     const n=this.now(); this.ticks++;
+    // Dernière tranche atteinte avant 2 h 30 : annonce visible de l'ouverture progressive du chantier final (plein accès à 3 h).
+    if(!this.wonderCapOpened&&!this.gameOver&&this.wonderFinal()&&this.stage>=WONDER.phaseStage[this.wonder]&&n-this.startedAt>=WONDER.finalMinMs-WONDER.capRampMs&&n-this.startedAt<WONDER.finalMinMs){ this.wonderCapOpened=true;
+      this._alert('stage',`🏛️ ${WONDER.name} : le chantier final ouvre ! Les dépôts sont plafonnés et s'ouvrent peu à peu, accès complet dans ${Math.ceil((this.startedAt+WONDER.finalMinMs-n)/60000)} min. !construire merveille`); }
     if(this.ticks%10===0){
       const bl=n<this.blessUntil?2:1, m=this.count('marche');
       this.res.nourriture=Math.max(0,this.res.nourriture+this.count('ferme')*2*bl-Math.ceil(this.pop/4));
@@ -332,7 +359,7 @@ class Colony {
   // Défenseurs au mieux : tous les viewers actifs font !defendre (bonus petite audience et forge compris), dans la limite du plafond.
   defenseMaxFree(){ const a=Math.max(1,this.activeViewers()), small=Math.min(FOYER.smallMax,Math.max(1,FOYER.defRef/a)), forge=this.count('forge')?2:1;
     return (this.count('tour')+this.count('palissade'))*FOYER.towerDef+Math.min(FOYER.defenderCap,Math.round(a*FOYER.defenderPts*small*forge))+FOYER.stratDef; }
-  raidPower(){ const small=this.activeViewers()<FOYER.smallBelow, base=(small?FOYER.smallRaidBase:FOYER.raidBase)+Math.round((small?FOYER.smallRaidStep:FOYER.raidStep)*this.stage*(this.raidMul||1)), extra=Math.max(0,Math.round(FOYER.scaleK*(this.defenseMaxFree()-base)));
+  raidPower(){ const small=this.activeViewers()<FOYER.smallBelow, base=(small?FOYER.smallRaidBase:FOYER.raidBase)+Math.round((small?FOYER.smallRaidStep:FOYER.raidStep)*this.stage*(this.raidMul||1)), extra=Math.max(0,Math.round((small?FOYER.smallScaleK:FOYER.scaleK)*(this.defenseMaxFree()-base)));
     return base+extra+(this.nextThreat&&this.nextThreat.guard?WONDER.milestone.raidBonus:0); }
   // Raid : repoussé ⇒ récompense (si la défense gratuite suffisait) ; perdu ⇒ PV en moins + vol de ressources (sauf stratégie « réserves »).
   _raid(){ const pow=this.raidPower(), d=this.defense(), dmg=Math.max(0,pow-d.total), n=this.now(); this.stats.raids++;
@@ -375,7 +402,7 @@ class Colony {
     const tally={}; if(this.vote){ this.vote.options.forEach(o=>tally[o]=0); Object.values(this.vote.voters).forEach(o=>tally[o]++); }
     const costs={}; Object.keys(BUILDINGS).forEach(b=>costs[b]=this.cost(b));
     return {res:{bois:Math.floor(this.res.bois),pierre:Math.floor(this.res.pierre),nourriture:Math.floor(this.res.nourriture)},yieldFactor:this.yieldFactor(),pop:this.pop,buildings:this.buildings,weather:this.weather,special:this.special,bitsTotal:this.bitsTotal,weatherUntil:this.weatherUntil,goalsReached:this.goalsReached,
-      vote:this.vote&&{title:this.vote.title,tally,ends:this.vote.ends},seed:this.seed,leaderboard:top,patronsBoard:Object.entries(this.patrons).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,pts])=>({name,pts})),objectives:this.objectives(),rates:this.rates(),badges:this.badges.map(k=>BADGES[k]),named:this.named,roles:this.roles,wonder:{index:this.wonderIndex,phase:this.wonder,part:this.wonderPart,parts:WONDER.parts,pct:this.wonderPct(),phases:this.WPH.length,cost:this.wonderCost(),unlocked:this.wonderOpen(),nextStage:this.wonderNextStage(),opensAt:this.wonderLockedUntil()||null},blessUntil:this.blessUntil,feteUntil:this.feteUntil,bitsTiers:this.bitsTiers,gameLength:this.gameLength,pendingBuilds:this.pendingBuild.slice(),stages:this.STAGES,bitsCapLeft:Math.max(0,BITS_CAP.max-(this.bitsLog||[]).filter(e=>this.now()-e.t<BITS_CAP.windowMs).reduce((a,e)=>a+e.n,0)),unlockedBuildings:Object.keys(BUILDINGS).filter(b=>this.unlocked(b)),nextAffordable:this._nextAffordable(),viewers:Object.fromEntries(Object.keys(this.seen).slice(-200).map(u=>[u,this.viewer(u)])),log:this.log,feed:this.feed,alert:this.alert,cooldownMs:this.cooldownMs,goal:{bits:this.goal.to-this.goal.from,cur:this.bitsTotal-this.goal.from,tier:this.goal.tier,target:this.goal.to,label:this.goal.label,done:false},
+      vote:this.vote&&{title:this.vote.title,tally,ends:this.vote.ends},seed:this.seed,leaderboard:top,patronsBoard:Object.entries(this.patrons).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,pts])=>({name,pts})),objectives:this.objectives(),rates:this.rates(),badges:this.badges.map(k=>BADGES[k]),named:this.named,roles:this.roles,wonder:{index:this.wonderIndex,phase:this.wonder,part:this.wonderPart,parts:WONDER.parts,pct:this.wonderPct(),phases:this.WPH.length,cost:this.wonderCost(),unlocked:this.wonderOpen(),nextStage:this.wonderNextStage(),opensAt:this.wonderLockedUntil()||null,final:this.wonderFinal()?{paid:{...this.wonderPaid},cost:this.wonderCost(),cap:Math.round(this.wonderCapFrac()*100),fullAt:this.startedAt+WONDER.finalMinMs,canDeposit:this.wonderDepositOk()}:null},blessUntil:this.blessUntil,feteUntil:this.feteUntil,bitsTiers:this.bitsTiers,gameLength:this.gameLength,pendingBuilds:this.pendingBuild.slice(),stages:this.STAGES,bitsCapLeft:Math.max(0,BITS_CAP.max-(this.bitsLog||[]).filter(e=>this.now()-e.t<BITS_CAP.windowMs).reduce((a,e)=>a+e.n,0)),unlockedBuildings:Object.keys(BUILDINGS).filter(b=>this.unlocked(b)),nextAffordable:this._nextAffordable(),viewers:Object.fromEntries(Object.keys(this.seen).slice(-200).map(u=>[u,this.viewer(u)])),log:this.log,feed:this.feed,alert:this.alert,cooldownMs:this.cooldownMs,goal:{bits:this.goal.to-this.goal.from,cur:this.bitsTotal-this.goal.from,tier:this.goal.tier,target:this.goal.to,label:this.goal.label,done:false},
       stage:this.STAGES[this.stage].name,housing:this.housing(),finalStage:this.STAGES[this.STAGES.length-1].name,completed:!!this.completedAt,completedAt:this.completedAt,startedAt:this.startedAt,citeReached:this.stage===this.STAGES.length-1,threat:this.nextThreat,threatInfo:this.threatInfo(),towersNeeded:this.stage+1,towers:this.count('tour')+this.count('palissade'),foyer:{hp:this.foyer.hp,max:this.foyer.max},defense:this.defense(),raidPower:this.raidPower(),wallsUntil:this.wallsUntil,strategy:this.strategy,lastRaid:this.lastRaid,revival:this.revival&&{until:this.revival.until,bits:this.revival.got,bitsNeed:this.revival.bitsNeed,viewers:this.revival.viewers,count:this.revival.who.size,k:this.revival.k},revivals:this.revivals,revivalsMax:FOYER.revive.max,gameOver:this.gameOver,defendersCount:Object.values(this.defenders).filter(t=>this.now()-t<=FOYER.defendWin).length,defi:this.defi&&{label:this.defi.label,count:this.defi.count,target:this.defi.target,ends:this.defi.ends,done:this.defi.done},nextDefi:this.nextDefi,projects:this.projects(),costs,active:this.activeViewers(),now:this.now()};
   }
 }

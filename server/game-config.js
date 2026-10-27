@@ -7,8 +7,8 @@
   // Toutes les durées respectent la règle : une partie complète (Cité + Merveille) dure au moins 3 h.
   const LENGTHS={
     courte:{label:'courte (≈ 3 h 30)',stageMul:0.85,wonderMul:0.6,growth:1.10,costMul:2.2},
-    normale:{label:'normale (≈ 4 h 30)',stageMul:1,wonderMul:1,growth:1.10,costMul:2.4},
-    longue:{label:'longue (≈ 5 h 30)',stageMul:1.1,wonderMul:1.25,growth:1.10,costMul:2.2},
+    normale:{label:'normale (≈ 4 h 30)',stageMul:1,wonderMul:1,growth:1.10,costMul:2.4,wonderCuts:[1/3,1/2,2/3,1]},
+    longue:{label:'longue (≈ 5 h 30)',stageMul:1.1,wonderMul:1.25,growth:1.10,costMul:2.2,wonderCuts:[0.2,0.35,0.5,0.65,0.8,1]},
   };
   // Seuils Bits (session uniquement, effets plafonnés dans game.js) : remparts < phare < bénédiction.
   // GOAL_STEP : taille de chaque palier de l'objectif communautaire (orage magique).

@@ -42,7 +42,7 @@ function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength}={}){
     if(firstBuild===null&&g.buildings.length) firstBuild=sec;
     const st=STAGES[g.stage].name; if(reached[st]===undefined) reached[st]=sec;
     if(g.wonder===WONDER.phases.length&&reached.Merveille===undefined) reached.Merveille=sec;
-    const pk=g.wonder+'.'+g.wonderPart+'.'+g.stage; if(pk!==lastPk){ lastPk=pk; events.push(sec); }
+    const pk=g.wonder+'.'+g.wonderPart+'.'+g.stage+'.'+(g.wonderMilestones||0)+'.'+(g.wonderCapOpened?1:0); if(pk!==lastPk){ lastPk=pk; events.push(sec); }
     // Évènements visibles (jalon, palier, raid, défi gagné) pour mesurer les creux en fin de partie.
     const ek=pk+'.'+g.stats.raids+'.'+g.defisWon; if(ek!==lastEv){ lastEv=ek; allEv.push(sec); }
     minHp=Math.min(minHp,g.foyer.hp); if(g.gameOver){ over=sec; break; }
