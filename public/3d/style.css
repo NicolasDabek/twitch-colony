@@ -177,3 +177,16 @@ body.obs .boards3{top:calc(var(--voteh,160px) + 26px)}
  .fold{position:fixed;top:auto;right:6px;bottom:0;z-index:5;min-height:44px}
  .ctl.folded{padding:0}
 }
+/* UX passe 5 : anneau de focus clavier visible (contraste ≥ 3:1), mouvement réduit, HUD mobile ≤ 40 % de la hauteur (méthode « bandes ») */
+body button:focus-visible,body .vlaunch:focus-visible{outline:3px solid #ffd23f;outline-offset:-3px;box-shadow:inset 0 0 0 6px #120e1e}
+body summary:focus-visible,body a:focus-visible{outline:3px solid #ffd23f;outline-offset:2px;box-shadow:0 0 0 6px #120e1e}
+@media (prefers-reduced-motion:reduce){.fill,.vb i,.ctl .row button{transition:none!important}}
+@media (max-width:700px),(pointer:coarse) and (max-width:1100px){
+ /* menace sur la même ligne que son titre (icône + minuteur) : une ligne de moins */
+ .vote:not(.active) h3{float:left;margin:0 8px 0 0;gap:6px;width:auto}
+ .vote:not(.active) h3>span:first-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+ .vote:not(.active) .threat{line-height:22px}
+ .vote:not(.active) .vlaunch{clear:both;display:block;width:100%;margin-top:3px}
+ /* titres de groupe des commandes lus par les lecteurs d'écran seulement */
+ .grp .gt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+}

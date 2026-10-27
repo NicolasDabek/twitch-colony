@@ -4,7 +4,7 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 .demo header b{font-size:18px}
 .demo .pseudo{background:#262236;border-radius:22px;padding:0 12px;font-size:15px;display:flex;align-items:center;gap:6px;min-height:44px;cursor:text;min-width:0}
 .demo .pseudo input{background:transparent;border:0;color:#fff;font:inherit;width:110px;min-width:0;min-height:44px;padding:0}
-.demo .pseudo:focus-within{outline:2px solid #cdb8ff}
+.demo .pseudo:focus-within{outline:3px solid #ffd23f;box-shadow:0 0 0 6px #120e1e}
 .demo .layout{display:grid;grid-template-columns:360px 1fr;gap:12px;padding:0 12px 12px;align-items:start}
 .demo .side{display:flex;flex-direction:column;gap:12px}
 .demo .stagewrap{position:sticky;top:12px;overflow:hidden;border-radius:14px}
@@ -14,7 +14,7 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 .demo h4{margin:0 0 10px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#cdb8ff;display:flex;justify-content:space-between;align-items:center}
 .demo .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .demo button{font:inherit;color:#fff;border:0;border-radius:12px;min-height:56px;background:#2d2842;font-size:15px;font-weight:700;cursor:pointer;position:relative;padding:6px}
-.demo button:hover{background:#3a3456}.demo button:focus-visible{outline:2px solid #cdb8ff}
+.demo button:hover{background:#3a3456}.demo button:focus-visible{outline:3px solid #ffd23f;outline-offset:-3px;box-shadow:inset 0 0 0 6px #120e1e}
 .demo button small{display:block;font-size:12px;font-weight:500;color:#ccc}
 .demo button.cool{opacity:.45;cursor:not-allowed}.demo button .cd{position:absolute;right:6px;top:4px;font-size:12px;font-weight:700}
 .demo .bits button{background:#3a2a10;color:#ffd23f}
@@ -74,7 +74,7 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 @media (min-width:901px){
  .demo .layout{grid-template-columns:minmax(0,1fr)}
  .demo .stagewrap{order:-1;position:static;overflow:auto;max-width:100%;max-height:calc(100vh - 90px);overscroll-behavior:contain}
- .demo .stagewrap:focus-visible{outline:2px solid #cdb8ff;outline-offset:2px}
+ .demo .stagewrap:focus-visible{outline:3px solid #ffd23f;outline-offset:-3px;box-shadow:inset 0 0 0 6px #120e1e}
  .demo .stagewrap #ov{transform:none}
  .demo .side{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));align-items:start}
 }
@@ -83,3 +83,5 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 @media (min-width:901px){
  .demo .stagewrap{margin:0 -12px;max-width:none;max-height:none;overflow-x:auto;overflow-y:hidden;border-radius:0}
 }
+/* UX passe 5 : mouvement réduit (mini-carte : pluie figée) */
+@media (prefers-reduced-motion:reduce){.demo .mini.storm::after{animation:none}}

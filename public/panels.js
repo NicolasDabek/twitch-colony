@@ -60,5 +60,23 @@ function liveState(s,user){ if(!s) return; const msgs=[];
   if(user&&feed.length){ const us=[].concat(user), mine=feed.filter(f=>us.some(u=>f.m.includes(' '+u+' '))).reverse(); mine.forEach(f=>msgs.push(f.m)); }
   if(msgs.length) announce(msgs.join(' '));
 }
-window.Panels={lastRaid,pending,voteEmpty,announce,liveState,objectives,foyer,threat,boards,howto,me,revival,gameOver,badges,rate,bar,NAME,DESC,mmss};
+
+// UX passe 5 : remplacer le contenu d'un bloc sans perdre le focus clavier (le bloc se redessine chaque seconde).
+function focusKey(e){ for(const a of ['data-t','data-c','data-b','data-bits','data-w','id']){ const v=e.getAttribute(a); if(v!=null) return `[${a}="${CSS.escape(v)}"]`; } return null; }
+function swap(el,html){ if(el.dataset.k===html) return false; const a=document.activeElement, inside=a&&a!==el&&el.contains(a), k=inside&&focusKey(a);
+  el.dataset.k=html; el.innerHTML=html; if(inside){ const n=(k&&el.querySelector(k))||el.querySelector('button,a,[tabindex="0"]'); if(n) n.focus({preventScroll:true}); } return true; }
+// Boîte de confirmation accessible (même modèle que la fiche Infos) : focus par défaut sur « Annuler », Tab piégé, Échap annule, retour du focus.
+function confirmDialog({title,text,ok='Confirmer',cancel='Annuler',opener,onOk}){
+  let d=document.getElementById('cfm');
+  if(!d){ d=document.createElement('div'); d.id='cfm'; d.className='cfm'; d.hidden=true;
+    d.innerHTML='<div class="cfmbox" role="alertdialog" aria-modal="true" aria-labelledby="cfmt" aria-describedby="cfmd"><h2 id="cfmt"></h2><p id="cfmd"></p><div class="cfmb"><button type="button" id="cfmno"></button><button type="button" id="cfmok" class="danger"></button></div></div>';
+    document.body.appendChild(d); }
+  const box=d.firstChild, no=d.querySelector('#cfmno'), yes=d.querySelector('#cfmok'); d.querySelector('#cfmt').textContent=title; d.querySelector('#cfmd').textContent=text; no.textContent=cancel; yes.textContent=ok;
+  const back=opener||document.activeElement;
+  const close=(confirmed)=>{ d.hidden=true; d.removeEventListener('keydown',key); document.removeEventListener('focusin',guard); no.onclick=yes.onclick=d.onclick=null; if(confirmed&&onOk) onOk(); if(back&&back.isConnected&&back.offsetParent!==null) back.focus(); };
+  const key=e=>{ if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); close(false); } else if(e.key==='Tab'){ e.preventDefault(); (document.activeElement===no?yes:no).focus(); } };
+  const guard=e=>{ if(!d.contains(e.target)) no.focus(); };
+  no.onclick=()=>close(false); yes.onclick=()=>close(true); d.onclick=e=>{ if(e.target===d) close(false); };
+  d.hidden=false; d.addEventListener('keydown',key); document.addEventListener('focusin',guard); no.focus(); return d; }
+window.Panels={swap,confirmDialog,lastRaid,pending,voteEmpty,announce,liveState,objectives,foyer,threat,boards,howto,me,revival,gameOver,badges,rate,bar,NAME,DESC,mmss};
 })();

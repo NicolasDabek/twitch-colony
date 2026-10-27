@@ -1,7 +1,7 @@
 // Contrôles de la démo : boutons groupés, raccourcis, cooldown visible, vote cliquable, vue mobile.
 (function(){
   const $=id=>document.getElementById(id), last={};
-  const put=(id,h)=>{ const e=$(id); if(e.dataset.k!==h){ e.dataset.k=h; e.innerHTML=h; } }; let S=null, cdMs=5000, msgTimer;
+  const put=(id,h)=>Panels.swap($(id),h); let S=null, cdMs=5000, msgTimer;
   const user=()=>{ const u=$('u'); if($('rnd').checked) u.value='Viewer'+Math.floor(Math.random()*50); return u.value.trim()||'Viewer'; };
   const say=m=>{ $('msg').innerHTML=iconify(esc(m)); Panels.announce(m); clearTimeout(msgTimer); msgTimer=setTimeout(()=>$('msg').textContent='',2500); };
   const left=(u,c)=>Math.max(0,Math.ceil(((last[u+c]||0)+cdMs-Date.now())/1000));
@@ -12,7 +12,7 @@
   }
   function act(e){ Driver.send({...e,user:user()}); }
   document.addEventListener('click',ev=>{ const b=ev.target.closest('button'); if(!b) return;
-    if(b.dataset.c) chat(b.dataset.c); else if(b.dataset.bits) act({type:'cheer',bits:+b.dataset.bits}); else if(b.dataset.t==='gift') act({type:'gift',n:5}); else if(b.dataset.w) act({type:'wonder'}); else if(b.dataset.t) act({type:b.dataset.t}); });
+    if(b.dataset.c) chat(b.dataset.c); else if(b.dataset.bits) act({type:'cheer',bits:+b.dataset.bits}); else if(b.dataset.t==='gift') act({type:'gift',n:5}); else if(b.dataset.w) act({type:'wonder'}); else if(b.dataset.t==='reset') Panels.confirmDialog({title:'Recommencer une nouvelle session ?',text:'Le village, les ressources et les classements de cette partie seront effacés. Cette action est définitive.',ok:'Nouvelle session',cancel:'Annuler',opener:b,onOk:()=>act({type:'reset'})}); else if(b.dataset.t) act({type:b.dataset.t}); });
   const K={b:()=>chat('!bois'),p:()=>chat('!pierre'),c:()=>chat('!chasse'),v:()=>act({type:'vote'}),1:()=>act({type:'cheer',bits:100}),5:()=>act({type:'cheer',bits:500}),s:()=>act({type:'sub'})};
   addEventListener('keydown',e=>{ if(e.target.tagName!=='INPUT'&&!e.ctrlKey&&!e.metaKey&&K[e.key]) K[e.key](); });
   function paintCooldowns(){

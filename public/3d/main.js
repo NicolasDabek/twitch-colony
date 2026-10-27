@@ -147,10 +147,10 @@ function hud(s){
       return OBS?`<div class="opt${lead}"><div class="l"><span><code>!vote ${esc(o)}</code></span><span>${n}</span></div><div class="vb"><i style="width:${pct}%"></i></div></div>`
         :`<button class="vopt${lead}" data-v="${esc(o)}" style="--p:${pct}%" title="Voter ${esc(NAMES[o]||o)} (!vote ${esc(o)})"><span class="vn">${I(o)||''} ${esc(NAMES[o]||o)} <small>!vote ${esc(o)}</small></span><span class="vc">${n}</span></button>`; }).join('');
     const html=`<h3><span>🗳️ ${esc(s.vote.title)}</span><span class="pill" id="vtimer"></span></h3>${OBS?'':'<div class="vhint">Touchez une option pour voter</div>'}<div class="vopts">${opts}</div>${P.pending(s)}`;
-    if($('vote').dataset.k!==html){ $('vote').dataset.k=html; $('vote').innerHTML=html; }
+    P.swap($('vote'),html);
     $('vote').classList.add('active'); $('vtimer').innerHTML=I('timer')+' '+secLeft(s.vote.ends)+' s';
   } else { $('vote').classList.remove('active'); const th=P.threat(s)+(OBS?'':P.voteEmpty()+P.pending(s)+'<button class="vlaunch" data-t="vote">🗳️ Lancer un vote maintenant</button>')+(OBS?P.pending(s):'');
-    if($('vote').dataset.k!==th){ $('vote').dataset.k=th; $('vote').innerHTML=th; } }
+    P.swap($('vote'),th); }
   const mob=innerWidth<700||matchMedia('(pointer:coarse) and (max-width:1100px)').matches;
   const inf=P.foyer(s)+P.objectives(s,mob); if($('info').dataset.k!==inf){ $('info').dataset.k=inf; $('info').innerHTML=inf; }
   const bo=P.boards(s); if($('boards').dataset.k!==bo){ $('boards').dataset.k=bo; $('boards').innerHTML=bo; }
@@ -171,6 +171,7 @@ $('ctl').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b
   else if(b.dataset.w) Driver.send({type:'wonder'});
   else if(b.dataset.t==='gift') Driver.send({type:'gift',user:who(),n:5});
   else if(b.id==='infos'){ if($('sheet').hidden) openSheet(b); else closeSheet(); }
+  else if(b.dataset.t==='reset') window.Panels.confirmDialog({title:'Recommencer une nouvelle partie ?',text:'Le village, les ressources et les classements de cette partie seront effacés. Cette action est définitive.',ok:'Nouvelle partie',cancel:'Annuler',opener:b,onOk:()=>{ Driver.send({type:'reset',user:who()}); say('Nouvelle partie lancée'); }});
   else if(b.dataset.t) Driver.send({type:b.dataset.t,user:who()}); });
 function paintSheet(){ if(!last) return; const P=window.Panels; const h=P.objectives(last)+P.howto(last)+'<h3><span>Ma contribution</span></h3>'+crowd.map(u=>P.me(last,u)).join('')+P.boards(last)+P.badges(last); if($('sheetc').dataset.k!==h){ $('sheetc').dataset.k=h; $('sheetc').innerHTML=h; iconifyDom($('sheetc')); } }
 // Fiche « Infos » : boîte de dialogue modale (focus dedans, Tab piégé, Échap ferme, retour au bouton d'ouverture)
@@ -242,6 +243,8 @@ function placeLabels(){ const W=innerWidth,H=innerHeight, kept=[];
     const vis=o.y>h+4&&o.y<H-4&&o.x>-20&&o.x<W+20&&!kept.some(k=>r.l<k.r&&r.r>k.l&&r.t<k.b&&r.b>k.t);
     o.t.el.style.display=vis?'':'none'; if(vis){ kept.push(r); o.t.el.style.left=x+'px'; o.t.el.style.top=o.y+'px'; } } }
 // ─── Orage magique : ciel sombre, pluie, éclairs (purement visuel) ───
+// UX passe 5 : mouvement réduit (prefers-reduced-motion) : pas d'éclairs, pluie lente et discrète, pas de rebond ni de rotation animée.
+const RMQ=matchMedia('(prefers-reduced-motion: reduce)'); let RM=RMQ.matches; RMQ.addEventListener('change',e=>{ RM=e.matches; });
 let storm=0, stormOn=false; const RAIN=1400, rainPos=new Float32Array(RAIN*6), rainSpeed=new Float32Array(RAIN);
 for(let i=0;i<RAIN;i++){ const x=(Math.random()-.5)*50, y=Math.random()*25, z=(Math.random()-.5)*50; rainPos.set([x,y,z,x+.05,y-.6,z],i*6); rainSpeed[i]=18+Math.random()*10; }
 const rainGeo=new THREE.BufferGeometry(); rainGeo.setAttribute('position',new THREE.BufferAttribute(rainPos,3));
@@ -249,21 +252,21 @@ const rain=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0xa
 const bolt=new THREE.PointLight(0xc8d8ff,0,200,0); bolt.position.set(0,30,0); S.add(bolt);
 function stormStep(dt,t){ storm+=((stormOn?1:0)-storm)*Math.min(1,dt*2);
   if(!OBS) S.background.copy(SKY).lerp(STORM_SKY,storm); hemi.intensity=1.1-.65*storm; sun.intensity=2.2-1.6*storm;
-  rain.visible=storm>.05; rain.material.opacity=.55*storm;
+  rain.visible=storm>.05; rain.material.opacity=(RM?.25:.55)*storm;
   if(rain.visible){ rain.position.set(target.x,0,target.z); const a=rainGeo.attributes.position.array;
-    for(let i=0;i<RAIN;i++){ const k=i*6, d=rainSpeed[i]*dt; a[k+1]-=d; a[k+4]-=d; if(a[k+1]<0){ a[k+1]+=25; a[k+4]+=25; } } rainGeo.attributes.position.needsUpdate=true; }
-  const ph=t%3.7; bolt.intensity=storm>.5&&(ph<.08||(ph>.16&&ph<.22))?60*storm:0; // éclairs périodiques
+    for(let i=0;i<RAIN;i++){ const k=i*6, d=rainSpeed[i]*dt*(RM?.25:1); a[k+1]-=d; a[k+4]-=d; if(a[k+1]<0){ a[k+1]+=25; a[k+4]+=25; } } rainGeo.attributes.position.needsUpdate=true; }
+  const ph=t%3.7; bolt.intensity=!RM&&storm>.5&&(ph<.08||(ph>.16&&ph<.22))?60*storm:0; // éclairs périodiques
 }
 // ─── Boucle ───
 resize(); const clock=new THREE.Clock();
 R.setAnimationLoop(()=>{ const dt=Math.min(clock.getDelta(),.05), t=clock.elapsedTime, sp=600*dt, pn=performance.now();
   if(keys.w||keys.arrowup) pan(0,sp*.6); if(keys.s||keys.arrowdown) pan(0,-sp*.6); if(keys.a||keys.arrowleft) pan(sp,0); if(keys.d||keys.arrowright) pan(-sp,0);
-  rotA+=((rot*Math.PI/2+Math.PI/4)-rotA)*Math.min(1,dt*8);
+  rotA+=((rot*Math.PI/2+Math.PI/4)-rotA)*(RM?1:Math.min(1,dt*8));
   cam.position.set(target.x+Math.sin(rotA)*40,target.y+40*Math.tan(Math.PI/6)*1.41,target.z+Math.cos(rotA)*40); cam.lookAt(target);
-  if(foyerG&&foyerG.userData.flames){ const hp=foyerG.userData.hp??1; foyerG.userData.flames.forEach((f,i)=>{ const s=hp>0?(.35+.65*hp)*(1+.12*Math.sin(t*9+i*2)):0.001; f.scale.set(s,s*(1+.15*Math.sin(t*13+i)),s); }); }
+  if(foyerG&&foyerG.userData.flames){ const hp=foyerG.userData.hp??1; foyerG.userData.flames.forEach((f,i)=>{ const s=hp>0?(.35+.65*hp)*(1+(RM?0:.12)*Math.sin(t*9+i*2)):0.001; f.scale.set(s,s*(1+(RM?0:.15)*Math.sin(t*13+i)),s); }); }
   town.children.forEach(g=>{ if(g.userData.spin) g.userData.spin.rotation.z+=dt*2; }); raidStep(pn);
   colonists.forEach(c=>{ const tg=c.userData.tag; if(tg) tg.pos.set(c.position.x,.85,c.position.z); });
-  town.children.forEach(g=>{ const k=Math.min(1,(pn-(g.userData.born||0))/450); g.scale.setScalar(k<1?.01+k*(1+.25*Math.sin(k*Math.PI)):1); });
+  town.children.forEach(g=>{ const k=RM?1:Math.min(1,(pn-(g.userData.born||0))/450); g.scale.setScalar(k<1?.01+k*(1+.25*Math.sin(k*Math.PI)):1); });
   colonists.forEach(c=>{ const u=c.userData, a=t*.6+u.ph; c.position.set(u.c.x+Math.cos(a)*.3,Math.abs(Math.sin(t*6+u.ph))*.05,u.c.z+Math.sin(a)*.3); c.rotation.y=-a; });
   stormStep(dt,t); R.render(S,cam); placeLabels(); });
 let failed=false;
