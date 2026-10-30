@@ -85,3 +85,10 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 }
 /* UX passe 5 : mouvement réduit (mini-carte : pluie figée) */
 @media (prefers-reduced-motion:reduce){.demo .mini.storm::after{animation:none}}
+
+/* UX passe 6 : aperçu de la simulation en 1280 — texte des panneaux ≥ 14 px */
+@media (min-width:901px){
+ .demo .stagewrap #ov{font-size:15px}
+ .demo .stagewrap #ov .card{font-size:15px}
+ .demo .stagewrap #ov small,.demo .stagewrap #ov .sub,.demo .stagewrap #ov .ol{font-size:14px}
+}

@@ -272,3 +272,7 @@ R.setAnimationLoop(()=>{ const dt=Math.min(clock.getDelta(),.05), t=clock.elapse
 let failed=false;
 Driver.start(s=>{ if(failed) return; try{ apply(s); window.__state=s; if(!OBS) window.Panels.liveState(s,crowd); }catch(e){ failed=true; console.error(e); window.showFatal('Erreur d\'affichage du village : '+e.message); } });
 window.__ready=true;
+// UX passe 6 : sur grand écran, 3 groupes visibles + menu « Plus » ; panneaux HUD repliables
+{ const ctl=$('ctl'), plus=$('plus'), pn=$('panels');
+  plus.addEventListener('click',()=>{ const o=ctl.classList.toggle('showmore'); plus.setAttribute('aria-expanded',o); plus.querySelector('span').textContent=o?'✕ Moins':'⋯ Plus'; layoutHud(); });
+  pn.addEventListener('click',()=>{ const c=document.body.classList.toggle('hudmin'); pn.setAttribute('aria-pressed',c); pn.querySelector('span').textContent=c?'▤ Déplier panneaux':'▤ Replier panneaux'; window.Panels.announce(c?'Panneaux repliés':'Panneaux dépliés'); layoutHud(); }); }
