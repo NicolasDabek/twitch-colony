@@ -88,6 +88,7 @@ Le **Grand Foyer** occupe le centre de la carte (le Phare de la session s'y allu
 - Bits modérés : 100 Bits toutes les 10 min, 500 Bits par heure, 1 sub toutes les 15 min, 5 subs offerts toutes les 2 h ;
 - Bits massifs : 500 Bits toutes les 2 min, 1 500 Bits toutes les 10 min, 5 000 Bits par heure, 1 sub toutes les 5 min, 10 subs offerts toutes les 30 min ;
 - Foyer négligé : personne ne défend ni ne répare, la stratégie est votée au hasard (le Foyer tombe à 0 et doit être rallumé, voire la partie est perdue).
+- Mode courte (passe GD 6) : un seul rallumage (à 25 PV), régénération du Foyer 1 PV / 4 min, menace par palier 4 (au lieu de 6), menace petite audience lissée (0,5) et stratégie « murs » par défaut quand moins de 3 viewers votent. Aucune partie ne se termine avant 3 h.
 
 | Scénario | 1er bâtiment | Hameau | Village | Bourg | Ville | Grande ville | Cité | Merveille | Fin | Raids repoussés | PV min | Rallumages |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -98,8 +99,9 @@ Le **Grand Foyer** occupe le centre de la carte (le Phare de la session s'y allu
 | 20 viewers, sans Bits | 4 min | 13 min | 25 min | 43 min | 1 h 25 | 2 h 07 | 3 h 10 | 4 h 55 | 4 h 55 | 7/10 | 84 | 0 |
 | 20 viewers, Bits massifs | 4 min | 10 min | 19 min | 31 min | 1 h 04 | 1 h 34 | 2 h 16 | 3 h 55 | 3 h 55 | 7/9 | 88 | 0 |
 | 20 viewers, Foyer négligé | 4 min | 10 min | 22 min | 40 min | 1 h 16 | 1 h 55 | 2 h 46 | — | — | 0/11 | 0 | 2 (perdu à 4 h 55) |
-| 20 viewers (typique) — courte | 4 min | 10 min | 16 min | 31 min | 52 min | 1 h 13 | 1 h 43 | 3 h 22 | 3 h 22 | 6/8 | 84 | 0 |
-| 20 viewers, Bits massifs — courte | 4 min | 10 min | 16 min | 28 min | 46 min | 1 h 04 | 1 h 28 | 3 h 01 | 3 h 01 | 5/7 | 87 | 0 |
+| 20 viewers (typique) — courte | 4 min | 10 min | 16 min | 31 min | 52 min | 1 h 13 | 1 h 43 | 3 h 22 | 3 h 22 | 6/8 | 83 | 0 |
+| 20 viewers, Bits massifs — courte | 4 min | 10 min | 16 min | 28 min | 46 min | 1 h 04 | 1 h 28 | 3 h 01 | 3 h 01 | 5/7 | 85 | 0 |
+| 20 viewers, Foyer négligé — courte | 4 min | 10 min | 16 min | 34 min | 55 min | 1 h 16 | 1 h 52 | — | — | 0/8 | 0 | 1 (perdu à 3 h 25) |
 | 20 viewers (typique) — longue | 4 min | 10 min | 22 min | 40 min | 1 h 25 | 2 h 07 | 3 h 04 | 5 h 40 | 5 h 40 | 9/13 | 82 | 0 |
 | 20 viewers, Bits massifs — longue | 4 min | 10 min | 22 min | 34 min | 1 h 13 | 1 h 49 | 2 h 37 | 4 h 34 | 4 h 34 | 7/11 | 82 | 0 |
 

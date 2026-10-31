@@ -153,7 +153,14 @@ console.log('équilibrage OK');
   const sim=require('./simulate'), H=3600, S=n=>sim.SCENARIOS.find(x=>x.name===n), rate=r=>r.repelled/r.raids;
   // passe GD 5 (scaleK 0,75) : Bits massifs → 6 à 9 raids sur 10 repoussés et PV min ≤ 90 ; 200 viewers idem ; 20 viewers sans Bits ≥ 1/2
   for(const n of ['200 viewers','20 viewers, Bits massifs']) for(const seed of [1,2]){ const r=sim.run(S(n),{seed}); assert.ok(rate(r)>=0.6&&rate(r)<=0.9&&r.minHp<=90,`${n} (seed ${seed}) : ${r.repelled}/${r.raids}, PV min ${r.minHp}`); }
-  for(const seed of [1,2]){ const r=sim.run(S('20 viewers, sans Bits'),{seed}); assert.ok(rate(r)>=0.5,`20 viewers sans Bits (seed ${seed}) : ${r.repelled}/${r.raids}`); }
+  // passe GD 6 : 20 viewers sans Bits ≥ 70 % en normale et ≥ 65 % en courte (graines 1 à 3)
+  for(const [len,min] of [['normale',0.7],['courte',0.65]]) for(const seed of [1,2,3]){ const r=sim.run(S('20 viewers, sans Bits'),{seed,gameLength:len}); assert.ok(rate(r)>=min,`20 viewers sans Bits ${len} (seed ${seed}) : ${r.repelled}/${r.raids} (< ${min*100} %)`); }
+  // passe GD 6 : en courte, le Foyer négligé perd avant 3 h 30 ; le scénario typique finit toujours
+  for(const seed of [1,2,3]){ const n=sim.run(S('20 viewers, Foyer négligé'),{seed,gameLength:'courte'}); assert.ok(n.over!=null&&n.over<3.5*H,`courte Foyer négligé (seed ${seed}) : ${n.over==null?'gagné':'perdu à '+(n.over/H).toFixed(2)+' h'}`);
+    const t=sim.run(S('20 viewers (typique)'),{seed,gameLength:'courte'}); assert.ok(t.end>=3*H&&t.over==null,`courte typique (seed ${seed}) : non terminée`); }
+  // passe GD 6 : 5 viewers en courte → 40 à 85 % de raids repoussés sur 5 graines, PV min ≤ 92 sur au moins une graine, fin ≥ 3 h
+  { const v=[1,2,3,4,5].map(seed=>sim.run(S('5 viewers'),{seed,gameLength:'courte'})); v.forEach((r,i)=>{ assert.ok(rate(r)>=0.4&&rate(r)<=0.85,`5 viewers courte (seed ${i+1}) : ${r.repelled}/${r.raids}`); assert.ok(r.end>=3*H&&r.over==null,`5 viewers courte (seed ${i+1}) : fin`); });
+    assert.ok(Math.min(...v.map(r=>r.minHp))<=92,'5 viewers courte : PV min'); }
   // 5 viewers sans Bits : environ 6 à 8 raids sur 10 repoussés en moyenne (5 graines), toutes les parties finissent
   const v5=[1,2,3,4,5].map(seed=>{ const r=sim.run({name:'5',viewers:5,bits:'aucun'},{seed}); assert.ok(r.end!=null&&r.over==null,`5 viewers sans Bits (seed ${seed}) : partie non terminée`); return rate(r); });
   const avg=v5.reduce((a,b)=>a+b,0)/v5.length; assert.ok(avg>=0.55&&avg<=0.9&&Math.min(...v5)>=0.5,`5 viewers sans Bits : ${v5.map(x=>x.toFixed(2))}`);

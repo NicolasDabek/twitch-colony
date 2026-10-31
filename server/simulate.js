@@ -61,6 +61,6 @@ function table(results){
 }
 function all(opts){ return SCENARIOS.map(sc=>run(sc,opts)); }
 // Modes de durée : la table « normale » complète, puis une ligne typique et une ligne Bits massifs pour « courte » et « longue ».
-function modes(opts){ const S=n=>SCENARIOS.find(s=>s.name===n); const out=[]; for(const len of ['courte','longue']) for(const n of ['20 viewers (typique)','20 viewers, Bits massifs']) out.push({...run(S(n),{...opts,gameLength:len}),name:`${n} — ${len}`}); return out; }
+function modes(opts){ const S=n=>SCENARIOS.find(s=>s.name===n); const out=[]; for(const len of ['courte','longue']) for(const n of ['20 viewers (typique)','20 viewers, Bits massifs'].concat(len==='courte'?['20 viewers, Foyer négligé']:[])) out.push({...run(S(n),{...opts,gameLength:len}),name:`${n} — ${len}`}); return out; }
 if(require.main===module){ const res=all().concat(modes()); if(process.argv.includes('--json')) console.log(JSON.stringify(res,null,1)); else console.log(table(res)); }
 module.exports={run,all,modes,table,SCENARIOS};
