@@ -275,4 +275,6 @@ window.__ready=true;
 // UX passe 6 : sur grand écran, 3 groupes visibles + menu « Plus » ; panneaux HUD repliables
 { const ctl=$('ctl'), plus=$('plus'), pn=$('panels');
   plus.addEventListener('click',()=>{ const o=ctl.classList.toggle('showmore'); plus.setAttribute('aria-expanded',o); plus.querySelector('span').textContent=o?'✕ Moins':'⋯ Plus'; layoutHud(); });
-  pn.addEventListener('click',()=>{ const c=document.body.classList.toggle('hudmin'); pn.setAttribute('aria-pressed',c); pn.querySelector('span').textContent=c?'▤ Déplier panneaux':'▤ Replier panneaux'; window.Panels.announce(c?'Panneaux repliés':'Panneaux dépliés'); layoutHud(); }); }
+  pn.addEventListener('click',()=>{ const c=document.body.classList.toggle('hudmin'); pn.setAttribute('aria-pressed',c); pn.querySelector('span').textContent=c?'▤ Déplier panneaux':'▤ Replier panneaux'; window.Panels.announce(c?'Panneaux repliés':'Panneaux dépliés'); layoutHud(); });
+  // UX passe 7 : sur desktop, panneaux repliés au chargement (« Prochain raid » reste visible)
+  if(matchMedia('(min-width:901px) and (pointer:fine)').matches){ document.body.classList.add('hudmin'); pn.setAttribute('aria-pressed','true'); pn.querySelector('span').textContent='▤ Déplier panneaux'; layoutHud(); } }
