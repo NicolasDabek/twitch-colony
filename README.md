@@ -90,20 +90,25 @@ Le **Grand Foyer** occupe le centre de la carte (le Phare de la session s'y allu
 - Foyer négligé : personne ne défend ni ne répare, la stratégie est votée au hasard (le Foyer tombe à 0 et doit être rallumé, voire la partie est perdue).
 - Mode courte (passe GD 6) : un seul rallumage (à 25 PV), régénération du Foyer 1 PV / 4 min, menace par palier 4 (au lieu de 6), menace petite audience lissée (0,5) et stratégie « murs » par défaut quand moins de 3 viewers votent. Aucune partie ne se termine avant 3 h.
 
-| Scénario | 1er bâtiment | Hameau | Village | Bourg | Ville | Grande ville | Cité | Merveille | Fin | Raids repoussés | PV min | Rallumages |
+- Passe GD 7 — règle des 3 h : avant 3 h de partie, un Foyer détruit (ou non rallumé à temps) provoque une « Chute » : rallumage gratuit immédiat à 40 PV, le village perd 30 % de son bois et de sa pierre. Le game over définitif (rallumages limités) n'existe qu'après 3 h.
+- Passe GD 7 — raid de climax : une fois par partie, quand la dernière tranche de la Merveille est ouverte et après 2 h 30, une horde annoncée 3 min à l'avance attaque (force = défense gratuite max + 28). Avec 20 viewers sans Bits, le Foyer descend vers 60 PV.
+- Passe GD 7 — Merveille prête avant 3 h (tout est réuni, seul le plafond bloque) : annonce « Merveille prête — inauguration à 3 h » avec compte à rebours. Les Bits reçus ensuite alimentent l'« Éclat de la Merveille », un score cosmétique de session : aucune ressource, aucun avantage, rien de conservé après le stream.
+- Passe GD 7 — mode courte, moins de 8 viewers actifs : la force d'un raid ordinaire est plafonnée à la défense gratuite max − 10 (moins de variance d'une graine à l'autre).
+
+| Scénario | 1er bâtiment | Hameau | Village | Bourg | Ville | Grande ville | Cité | Merveille | Fin | Raids repoussés | PV min | Rallumages (chutes) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 5 viewers | 4 min | 10 min | 19 min | 40 min | 1 h 22 | 1 h 58 | 2 h 52 | 4 h 49 | 4 h 49 | 6/11 | 88 | 0 |
-| 20 viewers (typique) | 4 min | 10 min | 19 min | 40 min | 1 h 10 | 1 h 46 | 2 h 43 | 4 h 34 | 4 h 34 | 7/10 | 85 | 0 |
-| 50 viewers | 4 min | 10 min | 22 min | 37 min | 1 h 10 | 1 h 46 | 2 h 37 | 4 h 37 | 4 h 37 | 7/10 | 85 | 0 |
-| 200 viewers | 4 min | 10 min | 19 min | 37 min | 1 h 10 | 1 h 43 | 2 h 31 | 4 h 25 | 4 h 25 | 8/10 | 85 | 0 |
-| 20 viewers, sans Bits | 4 min | 13 min | 25 min | 43 min | 1 h 25 | 2 h 07 | 3 h 10 | 4 h 55 | 4 h 55 | 7/10 | 84 | 0 |
-| 20 viewers, Bits massifs | 4 min | 10 min | 19 min | 31 min | 1 h 04 | 1 h 34 | 2 h 16 | 3 h 55 | 3 h 55 | 7/9 | 88 | 0 |
-| 20 viewers, Foyer négligé | 4 min | 10 min | 22 min | 40 min | 1 h 16 | 1 h 55 | 2 h 46 | — | — | 0/11 | 0 | 2 (perdu à 4 h 55) |
-| 20 viewers (typique) — courte | 4 min | 10 min | 16 min | 31 min | 52 min | 1 h 13 | 1 h 43 | 3 h 22 | 3 h 22 | 6/8 | 83 | 0 |
-| 20 viewers, Bits massifs — courte | 4 min | 10 min | 16 min | 28 min | 46 min | 1 h 04 | 1 h 28 | 3 h 01 | 3 h 01 | 5/7 | 85 | 0 |
+| 5 viewers | 4 min | 10 min | 19 min | 40 min | 1 h 22 | 1 h 58 | 2 h 52 | 4 h 49 | 4 h 49 | 6/11 | 57 | 0 |
+| 20 viewers (typique) | 4 min | 10 min | 19 min | 40 min | 1 h 10 | 1 h 46 | 2 h 43 | 4 h 37 | 4 h 37 | 7/10 | 62 | 0 |
+| 50 viewers | 4 min | 10 min | 22 min | 37 min | 1 h 10 | 1 h 46 | 2 h 37 | 4 h 37 | 4 h 37 | 7/10 | 62 | 0 |
+| 200 viewers | 4 min | 10 min | 19 min | 37 min | 1 h 10 | 1 h 43 | 2 h 31 | 4 h 25 | 4 h 25 | 8/10 | 62 | 0 |
+| 20 viewers, sans Bits | 4 min | 13 min | 25 min | 43 min | 1 h 25 | 2 h 07 | 3 h 10 | 4 h 52 | 4 h 52 | 7/10 | 62 | 0 |
+| 20 viewers, Bits massifs | 4 min | 10 min | 19 min | 31 min | 1 h 04 | 1 h 34 | 2 h 16 | 3 h 55 | 3 h 55 | 7/9 | 62 | 0 |
+| 20 viewers, Foyer négligé | 4 min | 10 min | 22 min | 40 min | 1 h 16 | 1 h 55 | 2 h 46 | — | — | 0/10 | 0 | 2 (perdu à 4 h 25) |
+| 20 viewers (typique) — courte | 4 min | 10 min | 16 min | 31 min | 52 min | 1 h 13 | 1 h 43 | 3 h 22 | 3 h 22 | 5/7 | 58 | 0 |
+| 20 viewers, Bits massifs — courte | 4 min | 10 min | 16 min | 28 min | 46 min | 1 h 04 | 1 h 28 | 3 h 04 | 3 h 04 | 5/8 | 49 | 0 |
 | 20 viewers, Foyer négligé — courte | 4 min | 10 min | 16 min | 34 min | 55 min | 1 h 16 | 1 h 52 | — | — | 0/8 | 0 | 1 (perdu à 3 h 25) |
-| 20 viewers (typique) — longue | 4 min | 10 min | 22 min | 40 min | 1 h 25 | 2 h 07 | 3 h 04 | 5 h 40 | 5 h 40 | 9/13 | 82 | 0 |
-| 20 viewers, Bits massifs — longue | 4 min | 10 min | 22 min | 34 min | 1 h 13 | 1 h 49 | 2 h 37 | 4 h 34 | 4 h 34 | 7/11 | 82 | 0 |
+| 20 viewers (typique) — longue | 4 min | 10 min | 22 min | 40 min | 1 h 25 | 2 h 07 | 3 h 04 | 5 h 40 | 5 h 40 | 9/13 | 60 | 0 |
+| 20 viewers, Bits massifs — longue | 4 min | 10 min | 22 min | 34 min | 1 h 13 | 1 h 49 | 2 h 37 | 4 h 34 | 4 h 34 | 7/11 | 60 | 0 |
 
 Matrice complète (graine 1, `node server/simulate.js` avec `run({viewers,bits},{gameLength})`) :
 

@@ -155,12 +155,16 @@ console.log('équilibrage OK');
   for(const n of ['200 viewers','20 viewers, Bits massifs']) for(const seed of [1,2]){ const r=sim.run(S(n),{seed}); assert.ok(rate(r)>=0.6&&rate(r)<=0.9&&r.minHp<=90,`${n} (seed ${seed}) : ${r.repelled}/${r.raids}, PV min ${r.minHp}`); }
   // passe GD 6 : 20 viewers sans Bits ≥ 70 % en normale et ≥ 65 % en courte (graines 1 à 3)
   for(const [len,min] of [['normale',0.7],['courte',0.65]]) for(const seed of [1,2,3]){ const r=sim.run(S('20 viewers, sans Bits'),{seed,gameLength:len}); assert.ok(rate(r)>=min,`20 viewers sans Bits ${len} (seed ${seed}) : ${r.repelled}/${r.raids} (< ${min*100} %)`); }
-  // passe GD 6 : en courte, le Foyer négligé perd avant 3 h 30 ; le scénario typique finit toujours
-  for(const seed of [1,2,3]){ const n=sim.run(S('20 viewers, Foyer négligé'),{seed,gameLength:'courte'}); assert.ok(n.over!=null&&n.over<3.5*H,`courte Foyer négligé (seed ${seed}) : ${n.over==null?'gagné':'perdu à '+(n.over/H).toFixed(2)+' h'}`);
+  // passe GD 7 : en courte, le Foyer négligé perd entre 3 h et 4 h (jamais avant 3 h) ; le scénario typique finit toujours
+  for(const seed of [1,2,3]){ const n=sim.run(S('20 viewers, Foyer négligé'),{seed,gameLength:'courte'}); assert.ok(n.over!=null&&n.over>=3*H&&n.over<4*H,`courte Foyer négligé (seed ${seed}) : ${n.over==null?'gagné':'perdu à '+(n.over/H).toFixed(2)+' h'}`);
     const t=sim.run(S('20 viewers (typique)'),{seed,gameLength:'courte'}); assert.ok(t.end>=3*H&&t.over==null,`courte typique (seed ${seed}) : non terminée`); }
-  // passe GD 6 : 5 viewers en courte → 40 à 85 % de raids repoussés sur 5 graines, PV min ≤ 92 sur au moins une graine, fin ≥ 3 h
-  { const v=[1,2,3,4,5].map(seed=>sim.run(S('5 viewers'),{seed,gameLength:'courte'})); v.forEach((r,i)=>{ assert.ok(rate(r)>=0.4&&rate(r)<=0.85,`5 viewers courte (seed ${i+1}) : ${r.repelled}/${r.raids}`); assert.ok(r.end>=3*H&&r.over==null,`5 viewers courte (seed ${i+1}) : fin`); });
+  // passe GD 7 : 5 viewers en courte → 60 à 90 % (cible GD 60–80, le climax compte toujours comme perdu) de raids repoussés sur 5 graines, PV min ≤ 92 sur au moins une graine, fin ≥ 3 h
+  { const v=[1,2,3,4,5].map(seed=>sim.run(S('5 viewers'),{seed,gameLength:'courte'})); v.forEach((r,i)=>{ assert.ok(rate(r)>=0.6&&rate(r)<=0.9,`5 viewers courte (seed ${i+1}) : ${r.repelled}/${r.raids}`); assert.ok(r.end>=3*H&&r.over==null,`5 viewers courte (seed ${i+1}) : fin`); });
     assert.ok(Math.min(...v.map(r=>r.minHp))<=92,'5 viewers courte : PV min'); }
+  // passe GD 7 : règle des 3 h, aucun gameOver avant 10 800 s, quels que soient scénario, mode et graine
+  for(const len of ['courte','normale','longue']) for(const sc of sim.SCENARIOS) for(const seed of [1,2,3]){ const r=sim.run(sc,{seed,gameLength:len}); assert.ok(r.over==null||r.over>=10800,`${len} / ${sc.name} (seed ${seed}) : game over à ${r.over} s`); if(r.end!=null) assert.ok(r.end>=10800,`${len} / ${sc.name} (seed ${seed}) : fin ${r.end} s`); }
+  // passe GD 7 : raid de climax → PV min 50–70 à 20 viewers sans Bits, sans passer sous 65 % de raids repoussés en courte
+  for(const len of ['normale','courte']) for(const seed of [1,2,3]){ const r=sim.run(S('20 viewers, sans Bits'),{seed,gameLength:len}); assert.ok(r.minHp>=50&&r.minHp<=70,`climax ${len} (seed ${seed}) : PV min ${r.minHp}`); if(len==='courte') assert.ok(rate(r)>=0.65,`climax courte (seed ${seed}) : ${r.repelled}/${r.raids}`); }
   // 5 viewers sans Bits : environ 6 à 8 raids sur 10 repoussés en moyenne (5 graines), toutes les parties finissent
   const v5=[1,2,3,4,5].map(seed=>{ const r=sim.run({name:'5',viewers:5,bits:'aucun'},{seed}); assert.ok(r.end!=null&&r.over==null,`5 viewers sans Bits (seed ${seed}) : partie non terminée`); return rate(r); });
   const avg=v5.reduce((a,b)=>a+b,0)/v5.length; assert.ok(avg>=0.55&&avg<=0.9&&Math.min(...v5)>=0.5,`5 viewers sans Bits : ${v5.map(x=>x.toFixed(2))}`);
@@ -229,13 +233,21 @@ console.log('mécaniques OK');}
   // Remparts plafonnés à 20 min
   g=mk(); for(let i=0;i<5;i++) g.cheer('w',300); assert.strictEqual(g.wallsUntil-T,FOYER.wallsMaxMs);
   // Foyer détruit → rallumage (objectif fixe, sans hasard), puis fin de partie au 3e
-  g=mk(); g.foyer.hp=1; g._raid(); assert.ok(g.revival); const need=g.reviveNeed(0); for(let i=0;i<need.viewers;i++) g.chat('f'+i,'!rallumer'); assert.ok(!g.revival&&g.foyer.hp===FOYER.revive.hp&&g.revivals===1);
+  g=mk(); T+=3*3600000; /* passe GD 7 : rallumages limités et game over seulement après 3 h */ g.foyer.hp=1; g._raid(); assert.ok(g.revival); const need=g.reviveNeed(0); for(let i=0;i<need.viewers;i++) g.chat('f'+i,'!rallumer'); assert.ok(!g.revival&&g.foyer.hp===FOYER.revive.hp&&g.revivals===1);
   g.foyer.hp=1; g._raid(); g.cheer('b',FOYER.revive.bits[1]-1); assert.ok(g.revival,'Bits insuffisants'); g.cheer('b',1); assert.ok(!g.revival&&g.revivals===2,'rallumage Bits');
   assert.ok(FOYER.revive.bits[1]>FOYER.revive.bits[0],'exigence croissante');
   g.foyer.hp=1; g._raid(); assert.ok(g.gameOver&&g.gameOver.summary,'plus de rallumage : fin de partie'); T+=31000; g.tick(); assert.ok(!g.gameOver&&g.foyer.hp===FOYER.max,'nouvelle session automatique');
-  g=mk(); g.foyer.hp=1; g._raid(); T+=FOYER.revive.ms+1000; g.tick(); assert.ok(g.gameOver,'délai de rallumage dépassé');
+  g=mk(); T+=3*3600000; g.foyer.hp=1; g._raid(); T+=FOYER.revive.ms+1000; g.tick(); assert.ok(g.gameOver,'délai de rallumage dépassé');
+  // passe GD 7 : avant 3 h, une destruction donne une « Chute » (rallumage gratuit, −30 % bois/pierre), jamais de game over
+  g=mk(); g.res.bois=100; g.res.pierre=50; g.revivals=FOYER.revive.max; g.foyer.hp=1; g._raid(); assert.ok(!g.gameOver&&!g.revival&&g.chutes===1&&g.foyer.hp===FOYER.chute.hp,'chute avant 3 h'); assert.ok(g.res.bois<=70&&g.res.pierre<=35,'pénalité −30 %'); assert.ok(/CHUTE/.test(g.alert.m));
+  g=mk(); g.foyer.hp=1; g._raid(); assert.ok(g.revival); T+=FOYER.revive.ms+1000; g.tick(); assert.ok(!g.gameOver&&g.chutes===1,'délai dépassé avant 3 h : chute');
   // Vote de stratégie avant le raid
   g=mk(); T=g.nextThreat.at-FOYER.warnMs+1; g.tick(); assert.deepStrictEqual(g.vote.options,['murs','reserves']);
+  // passe GD 7 : Merveille prête avant 3 h → « Merveille prête — inauguration à 3 h », Bits en surplus → Éclat (cosmétique, aucune ressource)
+  g=mk(); g.stage=g.STAGES.length-1; g.wonder=g.WPH.length-1; g.wonderPart=g.wonderParts()-1; T+=160*60000; g.res.bois=1e5; g.res.pierre=1e5; assert.ok(g.wonderReady(),'merveille prête');
+  g.tick(); assert.ok(g.log.some(l=>/prête — inauguration à 3 h/.test(l.m))); assert.ok(/inauguration à 3 h/.test(g.objectives().mid.label));
+  { const b0=g.res.bois; g.cheer('m',500); assert.strictEqual(g.eclat,50); assert.ok(g.res.bois<=b0,'pas de bois offert'); assert.ok(g.state().eclat===50&&g.state().wonderReady); }
+  T+=21*60000; assert.ok(!g.wonderReady(),'à 3 h : plus de plafond');
   console.log('mécaniques (rôles, séries, défis, merveille, badges, déblocages, Foyer) OK');
   // ─── Passe GD 2 ───
   const {PENDING_MAX,STAGES:STG}=require('./game');

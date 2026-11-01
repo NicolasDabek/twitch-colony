@@ -50,13 +50,13 @@ function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength}={}){
   }
   const cite=reached[STAGES[STAGES.length-1].name], ev=cite==null?[]:events.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); const ev2=cite==null?[]:allEv.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); let eventGap=0; for(let i=1;i<ev2.length;i++) eventGap=Math.max(eventGap,ev2[i]-ev2[i-1]);
   let finaleGap=0; for(let i=1;i<ev.length;i++) finaleGap=Math.max(finaleGap,ev[i]-ev[i-1]);
-  return {name:sc.name,finaleGap,eventGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
+  return {name:sc.name,finaleGap,eventGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,chutes:g.chutes,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
 }
 const fmt=s=>s==null?'—':s<3600?Math.round(s/60)+' min':Math.floor(s/3600)+' h '+String(Math.round(s%3600/60)).padStart(2,'0');
 function table(results){
   const names=STAGES.map(s=>s.name).concat(['Merveille','Fin']);
-  let t='| Scénario | 1er bâtiment | '+names.slice(1).join(' | ')+' | Raids repoussés | PV min | Rallumages |\n|'+'---|'.repeat(names.length+4)+'\n';
-  for(const r of results) t+=`| ${r.name} | ${fmt(r.firstBuild)} | `+names.slice(1).map(n=>fmt(r.reached[n])).join(' | ')+` | ${r.repelled}/${r.raids} | ${r.minHp} | ${r.revivals}${r.over!=null?' (perdu à '+fmt(r.over)+')':''} |\n`;
+  let t='| Scénario | 1er bâtiment | '+names.slice(1).join(' | ')+' | Raids repoussés | PV min | Rallumages (chutes) |\n|'+'---|'.repeat(names.length+4)+'\n';
+  for(const r of results) t+=`| ${r.name} | ${fmt(r.firstBuild)} | `+names.slice(1).map(n=>fmt(r.reached[n])).join(' | ')+` | ${r.repelled}/${r.raids} | ${r.minHp} | ${r.revivals}${r.chutes?` (${r.chutes} chute${r.chutes>1?"s":""})`:""}${r.over!=null?' (perdu à '+fmt(r.over)+')':''} |\n`;
   return t;
 }
 function all(opts){ return SCENARIOS.map(sc=>run(sc,opts)); }
