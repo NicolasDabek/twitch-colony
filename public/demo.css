@@ -92,3 +92,17 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
  .demo .stagewrap #ov .card{font-size:15px}
  .demo .stagewrap #ov small,.demo .stagewrap #ov .sub,.demo .stagewrap #ov .ol{font-size:14px}
 }
+
+/* UX passe 8 : aperçu de la simulation en 1280 — échelle agrandie (texte, bâtiments, villageois), moins de ciel vide */
+@media (min-width:901px){
+ .demo .stagewrap #ov,.demo .stagewrap #ov .card{font-size:17px}
+ .demo .stagewrap #ov small,.demo .stagewrap #ov .sub,.demo .stagewrap #ov .ol{font-size:15px}
+ .demo .stagewrap #ov h3,.demo .stagewrap #ov .gl,.demo .stagewrap #ov .pill{font-size:17px}
+ .demo .stagewrap #ov .res{font-size:28px}
+ .demo .stagewrap #ov .bld{font-size:100px}
+ .demo .stagewrap #ov .bld.big{font-size:140px}
+ .demo .stagewrap #ov .bld small{font-size:15px}
+ .demo .stagewrap #ov .people{font-size:46px}
+ .demo .stagewrap #ov .town{bottom:120px}
+ .demo .stagewrap #ov .ground{height:300px}
+}

@@ -194,7 +194,7 @@ body summary:focus-visible,body a:focus-visible{outline:3px solid #ffd23f;outlin
 .grpx{display:none}
 @media (min-width:701px) and (pointer:fine),(min-width:1101px){
  .grpx{display:flex;margin-left:auto}
- .ctl:not(.showmore) .grp:has(#g3),.ctl:not(.showmore) .grp:has(#g4){display:none}
+ .ctl:not(.showmore) .grp:has(#g3),.ctl:not(.showmore) .grp:has(#g4),.ctl:not(.showmore) .grp.gmore{display:none}
  .grpx #plus{background:#4b3a7a}
  body.hudmin .info .obj,body.hudmin .info h3,body.hudmin .info .sub,body.hudmin .boards3,body.hudmin .vote .vempty,body.hudmin .vote .vlaunch{display:none!important}
  body.hudmin .goal .track{height:6px}
