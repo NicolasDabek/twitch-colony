@@ -1,6 +1,8 @@
 // UX passe 6 : l'overlay 1280 × 720 est fait pour OBS. Sur téléphone / tablette, on affiche un bandeau lisible vers la simulation.
 (function(){
   var q=location.search;
+  // UX passe 9 : hors OBS (navigateur classique), fond sombre sur toute la fenêtre au lieu du canevas blanc sous les 720 px. Dans OBS, fond transparent.
+  if(!window.obsstudio && !/[?&]obs\b/.test(q)) document.documentElement.classList.add('ovpreview');
   if(/[?&](obs|force)\b/.test(q)) return;
   var small=!!(window.matchMedia&&matchMedia('(hover:none) and (pointer:coarse)').matches);
   if(!small) return;

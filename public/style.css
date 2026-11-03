@@ -125,3 +125,4 @@ html.ovgate #ov{display:none}
 #ov .card{background:rgba(10,8,18,.9)}
 #ov .stat b,#ov .stat em{text-shadow:0 1px 2px rgba(0,0,0,.7)}
 #ov .people{background:rgba(10,8,18,.55);border-radius:10px;padding:0 6px}
+html.ovpreview,html.ovpreview body{background:#15131f;min-height:100vh}
