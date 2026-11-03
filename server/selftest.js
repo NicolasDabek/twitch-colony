@@ -50,7 +50,7 @@ c=mk(); c.cheer('A',100); assert.equal(c.leaders.A,4);
 c=mk(); c.cheer('A',5000); const p0=c.res.pierre; c.chat('U','!bois'); assert.equal(c.res.pierre,p0+1);
 // Raid sur le Foyer : sans défense, dégâts + pertes ; une tour réduit les dégâts de 10 (petite audience < 8 actifs : force de base 20)
 c=mk(); c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.foyer.hp,80); assert.equal(c.res.bois,70,'pillage : dégâts × 3, au plus 30 % du stock'); assert.deepEqual(c.lastRaid.stolen,{bois:30,pierre:0}); T=1e9;
-c=mk(); c.buildings=['tour']; c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.foyer.hp,88,'force 20 + 35 % de l’écart avec la défense max (26) = 22'); assert.equal(c.res.bois,70); assert.equal(c.threat?.type,undefined); assert.equal(c.nextThreat.type,'hiver'); T=1e9;
+c=mk(); c.buildings=['tour']; c.res.bois=100; T+=15*60000; c.tick(); assert.equal(c.foyer.hp,90,'GD9 : force 20 + 35 % de l’écart (22), plafonnée à max(base 20, défense max 26 − 10) = 20'); assert.equal(c.res.bois,70); assert.equal(c.threat?.type,undefined); assert.equal(c.nextThreat.type,'hiver'); T=1e9;
 // Hiver sans nourriture : départs
 c=mk(); c.buildings=['tour']; T+=15*60000; c.tick(); c.res.nourriture=0; c.pop=4; T+=15*60000; c.tick(); assert.ok(c.pop<4); T=1e9;
 // Famine : -1 villageois par minute
@@ -194,7 +194,7 @@ console.log('équilibrage OK');
 // Passe GD 5 : force des raids à 75 % (35 % sous 8 actifs), plafond progressif de la dernière tranche, jalons de fin, 3 h minimum partout
 { const {Colony,FOYER,WONDER}=require('./game.js'); let T=1e12; const mk=(o={})=>new Colony({now:()=>T,seed:3,...o}); const H=3600, sim=require('./simulate');
   assert.strictEqual(FOYER.scaleK,0.75); assert.strictEqual(FOYER.smallScaleK,0.35);
-  { const g=mk(); g.chat('a','!bois'); g.stage=3; g.buildings=['tour','tour']; const base=FOYER.smallRaidBase+FOYER.smallRaidStep*3; assert.strictEqual(g.raidPower(),base+Math.max(0,Math.round(FOYER.smallScaleK*(g.defenseMaxFree()-base))),'petite audience : 35 %'); }
+  { const g=mk(); g.chat('a','!bois'); g.stage=3; g.buildings=['tour','tour']; const base=FOYER.smallRaidBase+FOYER.smallRaidStep*3; assert.strictEqual(g.raidPower(),Math.min(base+Math.max(0,Math.round(FOYER.smallScaleK*(g.defenseMaxFree()-base))),Math.max(base,g.defenseMaxFree()-10)),'petite audience : 35 %, plafond GD9 (max(base, défense max − 10))'); }
   // plafond progressif : 0 % avant 2 h 30, 50 % à 2 h 45, 100 % à 3 h ; la tranche n'est jamais complète avant 3 h
   { const g=mk({gameLength:'courte'}); g.stage=6; g.wonder=2; g.wonderPart=g.wonderParts()-1; g.res.bois=1e6; g.res.pierre=1e6; const c=g.wonderCost();
     T+=2*H*1000; assert.ok(!g.buildWonder()&&g.state().wonder.opensAt,'fermée avant 2 h 30'); assert.ok(/ouverture dans 30 min/.test(g.objectives().mid.label));
@@ -248,7 +248,7 @@ console.log('mécaniques OK');}
   // Remparts plafonnés à 20 min
   g=mk(); for(let i=0;i<5;i++) g.cheer('w',300); assert.strictEqual(g.wallsUntil-T,FOYER.wallsMaxMs);
   // Foyer détruit → rallumage (objectif fixe, sans hasard), puis fin de partie au 3e
-  g=mk(); T+=3*3600000; /* passe GD 7 : rallumages limités et game over seulement après 3 h */ g.foyer.hp=1; g._raid(); assert.ok(g.revival); const need=g.reviveNeed(0); for(let i=0;i<need.viewers;i++) g.chat('f'+i,'!rallumer'); assert.ok(!g.revival&&g.foyer.hp===FOYER.revive.hp&&g.revivals===1);
+  g=mk(); T+=3*3600000; /* passe GD 7 : rallumages limités et game over seulement après 3 h */ g.foyer.hp=1; g._raid(); assert.ok(g.revival); const need=g.reviveNeed(0); for(let i=0;i<need.viewers;i++) g.chat('f'+i,'!rallumer'); assert.ok(!g.revival&&g.foyer.hp===g.FO.revive.hp&&g.revivals===1);
   g.foyer.hp=1; g._raid(); g.cheer('b',FOYER.revive.bits[1]-1); assert.ok(g.revival,'Bits insuffisants'); g.cheer('b',1); assert.ok(!g.revival&&g.revivals===2,'rallumage Bits');
   assert.ok(FOYER.revive.bits[1]>FOYER.revive.bits[0],'exigence croissante');
   g.foyer.hp=1; g._raid(); assert.ok(g.gameOver&&g.gameOver.summary,'plus de rallumage : fin de partie'); T+=31000; g.tick(); assert.ok(!g.gameOver&&g.foyer.hp===FOYER.max,'nouvelle session automatique');

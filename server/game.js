@@ -380,7 +380,7 @@ class Colony {
   raidPower(){ const small=this.activeViewers()<this.FO.smallBelow, base=(small?this.FO.smallRaidBase:this.FO.raidBase)+Math.round((small?this.FO.smallRaidStep:this.FO.raidStep)*this.stage*(this.raidMul||1)), ease=small&&this.FO.smallEase&&this.lastRaid&&this.lastRaid.dmg>0?this.FO.smallEase:1, extra=Math.max(0,Math.round(ease*(small?this.FO.smallScaleK:this.FO.scaleK)*(this.defenseMaxFree()-base)));
     const cl=this.nextThreat&&this.nextThreat.climax, C=this.FO.climax, ex=cl?Math.max(0,Math.round(C.fullK*(this.defenseMaxFree()-base))):extra;
     // Passe GD 7 (courte, petite audience) : force plafonnée à défense gratuite max − smallCapMargin (hors climax) → moins de variance d'une graine à l'autre.
-    const capped=small&&!cl&&this.FO.smallCapMargin!=null?Math.min(base+ex,this.defenseMaxFree()-this.FO.smallCapMargin):base+ex;
+    const capped=small&&!cl&&this.FO.smallCapMargin!=null?Math.min(base+ex,Math.max(this.FO.smallCapFloor?base:0,this.defenseMaxFree()-this.FO.smallCapMargin)):base+ex; // passe GD 9 (normale) : jamais sous la force de base
     // Passe GD 8 : le raid « garde » reste battable par la défense gratuite complète (plafond = défense gratuite max) : les Bits ne sont jamais nécessaires.
     const g=this.nextThreat&&this.nextThreat.guard; return g?Math.min(capped+WONDER.milestone.raidBonus,Math.max(capped,this.defenseMaxFree())):capped+(cl?C.bonus:0); }
   // Raid : repoussé ⇒ récompense (si la défense gratuite suffisait) ; perdu ⇒ PV en moins + vol de ressources (sauf stratégie « réserves »).

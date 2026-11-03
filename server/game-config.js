@@ -13,7 +13,9 @@
       // « murs » par défaut si moins de 3 votants à la stratégie, et menace petite audience lissée.
       wonderCuts:[0.15,1/3,2/3,0.85,1],
       foyer:{raidStep:4,smallScaleK:0.5,smallCapMargin:10,regenMs:4*60000,stratDefaultBelow:3,revive:{max:1,hp:25}}},
-    normale:{label:'normale (≈ 3 h 45)',stageMul:1,wonderMul:0.66,growth:1.10,costMul:2.4,wonderCuts:[0.15,1/3,1/2,2/3,0.85,1]},
+    normale:{label:'normale (≈ 3 h 45)',stageMul:1,wonderMul:0.66,growth:1.10,costMul:2.4,wonderCuts:[0.15,1/3,1/2,2/3,0.85,1],
+      // Passe GD 9 : petite audience plafonnée (défense gratuite max − 10) et rallumage à 25 PV : un Foyer négligé finit par tomber après 3 h.
+      foyer:{smallCapMargin:10,smallCapFloor:true,revive:{hp:25}}},
     longue:{label:'longue (≈ 5 h 30)',stageMul:1.1,wonderMul:1.4,growth:1.10,costMul:2.2,wonderCuts:[0.1,0.2,0.35,0.5,0.65,0.8,0.9,1]},
   };
   // Seuils Bits (session uniquement, effets plafonnés dans game.js) : remparts < phare < bénédiction.
