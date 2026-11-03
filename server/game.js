@@ -91,7 +91,7 @@ class Colony {
     this.special=null; this.bitsTotal=0; this.goal={from:0,to:this.goalStep,tier:1,label:'Orage magique'}; this.goalsReached=0;
     this.log=[]; this.feed=[]; this.alert=null; this.last={}; this.seen={}; this.startedAt=this.now(); this.ticks=0; this.stage=0;
     this.nextThreat={type:'raid',at:this.now()+this.threatMs}; this.lastFamine=0;
-    this.foyer={hp:this.FO.max,max:this.FO.max,lastRegen:this.now()}; this.defenders={}; this.wallsUntil=0; this.strategy=null; this.stratAsked=0; this.revival=null; this.revivals=0; this.chutes=0; this.climaxDone=false; this.eclat=0; this.readyAnnounced=false; this.gameOver=null; this.lastRaid=null; this.stats={raids:0,repelled:0,repairs:0};
+    this.foyer={hp:this.FO.max,max:this.FO.max,lastRegen:this.now()}; this.defenders={}; this.wallsUntil=0; this.strategy=null; this.stratAsked=0; this.revival=null; this.revivals=0; this.chutes=0; this.climaxDone=false; this.eclat=0; this.readyAnnounced=false; this.gameOver=null; this.lastRaid=null; this.stats={raids:0,repelled:0,repairs:0,destructions:0,destructions3h:0};
     this.builders={}; this.patrons={}; this.roles={}; this.windows={}; this.contrib={}; this.named=[]; this.badges=[]; this.defisWon=0;
     this.wonder=0; this.wonderPart=0; this.wonderPaid={bois:0,pierre:0}; this.wonderCapOpened=false; this.wonderIndex=null; this.wallsBy=null; this.blessUntil=0; this.feteUntil=0; this.defi=null; this.nextDefi=this.now()+60000; this.projectsDone=[]; this.completedAt=0; this.pendingBuild=[];
   }
@@ -173,10 +173,12 @@ class Colony {
   _wonderMilestone(half=false){ const M=WONDER.milestone, n=this.now(), C=this.wonderCuts(), pct=half?Math.floor(100*(C[C.length-2]+1)/2):Math.floor(100*C[this.wonderPart-1]);
     this.res.bois+=M.bois; this.res.pierre+=M.pierre; this.feteUntil=Math.max(this.feteUntil,n+M.feteMs); this.wonderMilestones=(this.wonderMilestones||0)+1;
     // Raid « garde » seulement aux jalons historiques (33 % / 66 %…) : les jalons ajoutés en passe GD 5 (50 % et mi-parcours de la dernière tranche) donnent récompense et fête sans raid.
-    const guard=!half&&pct!==50; if(guard){ this.nextThreat={type:'raid',at:n+M.raidInMs,guard:true}; this.stratAsked=null; }
-    this._alert('stage',`🏛️ ${WONDER.name} : jalon ${pct} % atteint (${half?'mi-parcours de la dernière tranche':`tranche ${this.wonderPart}/${this.wonderParts()}`} de la phase finale) ! +${M.bois} bois, +${M.pierre} pierre et fête au village.`+(guard?` Des pillards visent le chantier : raid « garde de la ${WONDER.name} » (force ${this.raidPower()}) dans ${Math.round(M.raidInMs/60000)} min, !defendre !`:'')); }
+    const named=this._wonderNamed(half); const guard=!half&&pct!==50&&!named; if(guard){ this.nextThreat={type:'raid',at:n+M.raidInMs,guard:true}; this.stratAsked=null; }
+    this._alert('stage',`🏛️ ${WONDER.name} : jalon ${named?`« ${named} » (${pct} %)`:`${pct} %`} atteint (${half?'mi-parcours de la dernière tranche':`tranche ${this.wonderPart}/${this.wonderParts()}`} de la phase finale) ! +${M.bois} bois, +${M.pierre} pierre et fête au village.`+(guard?` Des pillards visent le chantier : raid « garde de la ${WONDER.name} » (force ${this.raidPower()}) dans ${Math.round(M.raidInMs/60000)} min, !defendre !`:'')); }
+  // Passe GD 8 : premier jalon = « fondations », dernier avant la tranche finale = « flèche ».
+  _wonderNamed(half){ if(half) return null; const k=this.wonderPart, P=this.wonderParts(); return k===1?GC.NAMED.fondations:k===P-1?GC.NAMED.fleche:null; }
   _checkEnd(){ if(this.completedAt||this.stage<this.STAGES.length-1||this.wonder<this.WPH.length) return; this.completedAt=this.now(); const m=Math.round((this.completedAt-this.startedAt)/60000);
-    this._alert('stage',`🏆 Partie terminée : Cité et ${WONDER.name} achevées en ${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')} ! Bravo le chat !`); }
+    this._alert('stage',`🏆 Partie terminée : Cité et ${WONDER.name} achevées en ${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')} ! Bravo le chat !`+(this.chutes?` Bilan : ${this.chutes} chute${this.chutes>1?'s':''} du Foyer surmontée${this.chutes>1?'s':''}.`:' Bilan : aucune chute du Foyer.')); }
   rates(){ const bl=this.now()<this.blessUntil?2:1, f=this.count('ferme'), m=this.count('marche');
     return {bois:(Math.floor(this.pop/2)+m)*6*bl,pierre:(this.count('carriere')+m)*6*bl,nourriture:(f*2*bl-Math.ceil(this.pop/4))*6}; }
   viewer(u){ const n=this.now(), cd={}; ['!bois','!pierre','!chasse','!vote'].forEach(c=>{ const l=this.last[u+c]; cd[c]=l?Math.max(0,l+this.cooldownMs-n):0; }); return {name:u,cd,builder:this.builders[u]||0,patron:this.patrons[u]||0,role:this.roles[u]||null,streak:this.streak(u),contrib:this.contrib[u]||0}; }
@@ -379,7 +381,8 @@ class Colony {
     const cl=this.nextThreat&&this.nextThreat.climax, C=this.FO.climax, ex=cl?Math.max(0,Math.round(C.fullK*(this.defenseMaxFree()-base))):extra;
     // Passe GD 7 (courte, petite audience) : force plafonnée à défense gratuite max − smallCapMargin (hors climax) → moins de variance d'une graine à l'autre.
     const capped=small&&!cl&&this.FO.smallCapMargin!=null?Math.min(base+ex,this.defenseMaxFree()-this.FO.smallCapMargin):base+ex;
-    return capped+(cl?C.bonus:0)+(this.nextThreat&&this.nextThreat.guard?WONDER.milestone.raidBonus:0); }
+    // Passe GD 8 : le raid « garde » reste battable par la défense gratuite complète (plafond = défense gratuite max) : les Bits ne sont jamais nécessaires.
+    const g=this.nextThreat&&this.nextThreat.guard; return g?Math.min(capped+WONDER.milestone.raidBonus,Math.max(capped,this.defenseMaxFree())):capped+(cl?C.bonus:0); }
   // Raid : repoussé ⇒ récompense (si la défense gratuite suffisait) ; perdu ⇒ PV en moins + vol de ressources (sauf stratégie « réserves »).
   _raid(){ const pow=this.raidPower(), d=this.defense(), dmg=Math.max(0,pow-d.total), n=this.now(); this.stats.raids++;
     const attackers=Math.max(3,Math.round(pow/6));
@@ -401,7 +404,7 @@ class Colony {
       if(this.foyer.hp<=0) this._foyerDown(); }
     this.defenders={}; this.strategy=null; if(this.vote&&this.vote.options[0]==='murs') this.vote=null; }
   reviveNeed(k=this.revivals){ const R=this.FO.revive, a=this.activeViewers(); return {bits:R.bits[k],viewers:Math.max(R.viewers[k],Math.ceil(a*R.viewersPerActive[k]))}; }
-  _foyerDown(){ const n=this.now();
+  _foyerDown(){ const n=this.now(); this.stats.destructions++; if(n-this.startedAt<WONDER.finalMinMs) this.stats.destructions3h++;
     if(this.revivals>=this.FO.revive.max){ return this._gameOver('Le Grand Foyer est détruit et ne peut plus être rallumé'); }
     const need=this.reviveNeed(); this.revival={until:n+this.FO.revive.ms,got:0,who:new Set(),viewers:need.viewers,bitsNeed:need.bits,k:this.revivals+1}; this.vote=null;
     this._alert('threat',`🔥 Le Foyer est détruit ! 3 min pour le rallumer : ${need.viewers} viewers différents tapent !rallumer OU ${need.bits} Bits (objectif fixe, sans hasard)`); }
@@ -413,7 +416,7 @@ class Colony {
     this.revival=null; this.foyer.hp=C.hp; this.foyer.lastRegen=n; this.nextThreat={type:this.nextThreat.type,at:Math.max(this.nextThreat.at,n+this.threatMs)};
     this._alert('threat',`🔥 CHUTE (${reason}) : le Foyer se rallume gratuitement à ${C.hp} PV, mais le village perd ${lb} bois et ${lp} pierre. Avant 3 h de partie, aucune défaite définitive.`); }
   _gameOver(reason){ const n=this.now(); if(n-this.startedAt<WONDER.finalMinMs) return this._chute(reason); const m=Math.round((n-this.startedAt)/60000);
-    this.gameOver={at:n,restartAt:n+30000,reason,summary:{duree:m,stage:this.STAGES[this.stage].name,buildings:this.buildings.length,wonder:this.wonder,raids:this.stats.raids,repelled:this.stats.repelled,defis:this.defisWon,badges:this.badges.map(k=>BADGES[k]),top:Object.entries(this.builders).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0])}};
+    this.gameOver={at:n,restartAt:n+30000,reason,summary:{duree:m,chutes:this.chutes,stage:this.STAGES[this.stage].name,buildings:this.buildings.length,wonder:this.wonder,raids:this.stats.raids,repelled:this.stats.repelled,defis:this.defisWon,badges:this.badges.map(k=>BADGES[k]),top:Object.entries(this.builders).sort((a,b)=>b[1]-a[1]).slice(0,3).map(e=>e[0])}};
     this.revival=null; this.vote=null; this._alert('threat',`💀 Partie terminée : ${reason}. Nouvelle session dans 30 s.`); }
   forceRaid(){ if(this.revival||this.gameOver) return; this.nextThreat={type:'raid',at:this.now()}; this.stratAsked=this.nextThreat.at; }
   threatInfo(){ const t=this.nextThreat, lvl=this.stage+1;

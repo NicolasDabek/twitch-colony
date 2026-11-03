@@ -50,17 +50,27 @@ function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength}={}){
   }
   const cite=reached[STAGES[STAGES.length-1].name], ev=cite==null?[]:events.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); const ev2=cite==null?[]:allEv.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); let eventGap=0; for(let i=1;i<ev2.length;i++) eventGap=Math.max(eventGap,ev2[i]-ev2[i-1]);
   let finaleGap=0; for(let i=1;i<ev.length;i++) finaleGap=Math.max(finaleGap,ev[i]-ev[i-1]);
-  return {name:sc.name,finaleGap,eventGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,chutes:g.chutes,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
+  return {name:sc.name,finaleGap,eventGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,chutes:g.chutes,destructions3h:g.stats.destructions3h,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
 }
 const fmt=s=>s==null?'—':s<3600?Math.round(s/60)+' min':Math.floor(s/3600)+' h '+String(Math.round(s%3600/60)).padStart(2,'0');
 function table(results){
   const names=STAGES.map(s=>s.name).concat(['Merveille','Fin']);
-  let t='| Scénario | 1er bâtiment | '+names.slice(1).join(' | ')+' | Raids repoussés | PV min | Rallumages (chutes) |\n|'+'---|'.repeat(names.length+4)+'\n';
-  for(const r of results) t+=`| ${r.name} | ${fmt(r.firstBuild)} | `+names.slice(1).map(n=>fmt(r.reached[n])).join(' | ')+` | ${r.repelled}/${r.raids} | ${r.minHp} | ${r.revivals}${r.chutes?` (${r.chutes} chute${r.chutes>1?"s":""})`:""}${r.over!=null?' (perdu à '+fmt(r.over)+')':''} |\n`;
+  let t='| Scénario | 1er bâtiment | '+names.slice(1).join(' | ')+' | Raids repoussés | PV min | Rallumages | Chutes |\n|'+'---|'.repeat(names.length+5)+'\n';
+  for(const r of results) t+=`| ${r.name} | ${fmt(r.firstBuild)} | `+names.slice(1).map(n=>fmt(r.reached[n])).join(' | ')+` | ${r.repelled}/${r.raids} | ${r.minHp} | ${r.revivals}${r.over!=null?' (perdu à '+fmt(r.over)+')':''} | ${r.chutes} |\n`;
   return t;
 }
 function all(opts){ return SCENARIOS.map(sc=>run(sc,opts)); }
 // Modes de durée : la table « normale » complète, puis une ligne typique et une ligne Bits massifs pour « courte » et « longue ».
 function modes(opts){ const S=n=>SCENARIOS.find(s=>s.name===n); const out=[]; for(const len of ['courte','longue']) for(const n of ['20 viewers (typique)','20 viewers, Bits massifs'].concat(len==='courte'?['20 viewers, Foyer négligé']:[])) out.push({...run(S(n),{...opts,gameLength:len}),name:`${n} — ${len}`}); return out; }
-if(require.main===module){ const res=all().concat(modes()); if(process.argv.includes('--json')) console.log(JSON.stringify(res,null,1)); else console.log(table(res)); }
-module.exports={run,all,modes,table,SCENARIOS};
+// Passe GD 8 : agrégats sur N graines (min / médiane / max) de la fin, du PV min et du taux de raids repoussés, plus les chutes.
+const CASES=[['20 viewers (typique)','normale'],['20 viewers, sans Bits','normale'],['20 viewers, Bits massifs','normale'],['5 viewers','normale'],['200 viewers','normale'],['20 viewers, Foyer négligé','normale'],
+  ['20 viewers (typique)','courte'],['20 viewers, sans Bits','courte'],['20 viewers, Bits massifs','courte'],['5 viewers','courte'],['20 viewers, Foyer négligé','courte'],['20 viewers (typique)','longue'],['20 viewers, Bits massifs','longue']];
+function seeds(n=5,cases=CASES){ const S=x=>SCENARIOS.find(s=>s.name===x), q=a=>{ const b=a.filter(v=>v!=null).sort((x,y)=>x-y); return b.length?[b[0],b[b.length>>1],b[b.length-1]]:null; };
+  return cases.map(([name,len])=>{ const rs=Array.from({length:n},(_,i)=>run(S(name),{seed:i+1,gameLength:len}));
+    return {name,len,n,end:q(rs.map(r=>r.end)),over:rs.filter(r=>r.over!=null).length,minHp:q(rs.map(r=>r.minHp)),rate:q(rs.map(r=>r.raids?r.repelled/r.raids:1)),gap:Math.max(...rs.map(r=>r.finaleGap)),chutes:rs.reduce((a,r)=>a+r.chutes,0),runs:rs}; }); }
+function seedTable(rows){ const T=a=>a?a.map(fmt).join(' / '):'—', P=a=>a.map(v=>Math.round(v*100)+' %').join(' / ');
+  let t=`| Scénario (${rows[0].n} graines) | Mode | Fin min / méd / max | PV min min / méd / max | Raids repoussés min / méd / max | Creux max après la Cité | Chutes (total) | Perdues |\n|---|---|---|---|---|---|---|---|\n`;
+  for(const r of rows) t+=`| ${r.name} | ${r.len} | ${T(r.end)} | ${r.minHp.join(' / ')} | ${P(r.rate)} | ${Math.round(r.gap/60)} min | ${r.chutes} | ${r.over}/${r.n} |\n`; return t; }
+if(require.main===module){ const res=all().concat(modes()); const ns=+((process.argv.find(a=>a.startsWith('--seeds='))||'').split('=')[1]||5);
+  if(process.argv.includes('--json')) console.log(JSON.stringify(res,null,1)); else { console.log(table(res)); console.log(seedTable(seeds(Math.max(5,ns)))); } }
+module.exports={run,all,modes,table,seeds,seedTable,SCENARIOS,CASES};

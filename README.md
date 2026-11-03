@@ -54,7 +54,7 @@ Raccourcis du simulateur : **B** !bois · **P** !pierre · **C** !chasse · **V*
 ## Enjeux de la partie
 
 - **Paliers** : Campement → Hameau (3 bâtiments) → Village (6) → Bourg (10) → Ville (15) → **Grande ville (18)** → Cité (21). Moins d'une heure entre deux paliers avec une audience typique. **Fin de la partie = Cité + Merveille**, avec une annonce de victoire et la durée.
-- **Durée de partie** (`GAME_LENGTH` dans `.env`) : `courte` (≈ 3 h 30), `normale` (≈ 4 h 30, par défaut) ou `longue` (≈ 5 h 30). Toujours au moins 3 h, même avec beaucoup de Bits. Les réglages partagés serveur / démo sont dans `server/game-config.js`.
+- **Durée de partie** (`GAME_LENGTH` dans `.env`) : `courte` (≈ 3 h 30), `normale` (≈ 3 h 45, par défaut) ou `longue` (≈ 5 h 30). Toujours au moins 3 h, même avec beaucoup de Bits. Les réglages partagés serveur / démo sont dans `server/game-config.js`.
 - **Coûts** : coût de base × 2,4 × 1,25 par exemplaire déjà construit × 1,10 par bâtiment déjà construit (partie normale). Les coûts ne dépendent pas du nombre de viewers.
 - **Adaptation à l'audience** : on compte les viewers actifs A, lissés sur 10 min. Au-delà de 5, chaque commande rapporte (5/A)^0,92 de sa valeur de base. La progression totale n'augmente donc que d'environ 25 % entre 5 et 100 viewers, et chaque commande compte toujours (le gain s'affiche dans le fil, par ex. « +0,4 »).
 - **Logement** : villageois max = 3 + 2 par hutte + 1 pour 3 autres bâtiments. Un sub sans place libre donne de la nourriture.
@@ -80,7 +80,7 @@ Le **Grand Foyer** occupe le centre de la carte (le Phare de la session s'y allu
 
 **Pourquoi aucun hasard ?** Les règles de Twitch interdisent d'utiliser les Bits pour des jeux d'argent ou de hasard (loterie, tirage, loot box, chance de gagner contre des Bits). Ici, tout ce qui touche aux Bits est **déterministe et annoncé à l'avance** : la force d'un raid, la défense, les dégâts, l'objectif de rallumage (un nombre fixe de viewers ou de Bits) et chaque effet payant. Le chemin gratuit (`!rallumer`, `!defendre`, `!reparer`) suffit toujours. Le seul tirage du jeu départage une égalité de **votes gratuits**.
 
-## Équilibrage : une partie complète dure au moins 3 h 20
+## Équilibrage : une partie complète dure au moins 3 h
 
 `node server/simulate.js` lance une simulation accélérée sans dépendance (jusqu'à 10 h de jeu en quelques secondes). La fin de partie = **Cité + Merveille**. Hypothèses :
 - chaque viewer actif envoie une commande toutes les 30 s en moyenne, 70 % prennent un métier (dont des gardes) ;
@@ -95,63 +95,45 @@ Le **Grand Foyer** occupe le centre de la carte (le Phare de la session s'y allu
 - Passe GD 7 — Merveille prête avant 3 h (tout est réuni, seul le plafond bloque) : annonce « Merveille prête — inauguration à 3 h » avec compte à rebours. Les Bits reçus ensuite alimentent l'« Éclat de la Merveille », un score cosmétique de session : aucune ressource, aucun avantage, rien de conservé après le stream.
 - Passe GD 7 — mode courte, moins de 8 viewers actifs : la force d'un raid ordinaire est plafonnée à la défense gratuite max − 10 (moins de variance d'une graine à l'autre).
 
-| Scénario | 1er bâtiment | Hameau | Village | Bourg | Ville | Grande ville | Cité | Merveille | Fin | Raids repoussés | PV min | Rallumages (chutes) |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 5 viewers | 4 min | 10 min | 19 min | 40 min | 1 h 22 | 1 h 58 | 2 h 52 | 4 h 49 | 4 h 49 | 6/11 | 57 | 0 |
-| 20 viewers (typique) | 4 min | 10 min | 19 min | 40 min | 1 h 10 | 1 h 46 | 2 h 43 | 4 h 37 | 4 h 37 | 7/10 | 62 | 0 |
-| 50 viewers | 4 min | 10 min | 22 min | 37 min | 1 h 10 | 1 h 46 | 2 h 37 | 4 h 37 | 4 h 37 | 7/10 | 62 | 0 |
-| 200 viewers | 4 min | 10 min | 19 min | 37 min | 1 h 10 | 1 h 43 | 2 h 31 | 4 h 25 | 4 h 25 | 8/10 | 62 | 0 |
-| 20 viewers, sans Bits | 4 min | 13 min | 25 min | 43 min | 1 h 25 | 2 h 07 | 3 h 10 | 4 h 52 | 4 h 52 | 7/10 | 62 | 0 |
-| 20 viewers, Bits massifs | 4 min | 10 min | 19 min | 31 min | 1 h 04 | 1 h 34 | 2 h 16 | 3 h 55 | 3 h 55 | 7/9 | 62 | 0 |
-| 20 viewers, Foyer négligé | 4 min | 10 min | 22 min | 40 min | 1 h 16 | 1 h 55 | 2 h 46 | — | — | 0/10 | 0 | 2 (perdu à 4 h 25) |
-| 20 viewers (typique) — courte | 4 min | 10 min | 16 min | 31 min | 52 min | 1 h 13 | 1 h 43 | 3 h 22 | 3 h 22 | 5/7 | 58 | 0 |
-| 20 viewers, Bits massifs — courte | 4 min | 10 min | 16 min | 28 min | 46 min | 1 h 04 | 1 h 28 | 3 h 04 | 3 h 04 | 5/8 | 49 | 0 |
-| 20 viewers, Foyer négligé — courte | 4 min | 10 min | 16 min | 34 min | 55 min | 1 h 16 | 1 h 52 | — | — | 0/8 | 0 | 1 (perdu à 3 h 25) |
-| 20 viewers (typique) — longue | 4 min | 10 min | 22 min | 40 min | 1 h 25 | 2 h 07 | 3 h 04 | 5 h 40 | 5 h 40 | 9/13 | 60 | 0 |
-| 20 viewers, Bits massifs — longue | 4 min | 10 min | 22 min | 34 min | 1 h 13 | 1 h 49 | 2 h 37 | 4 h 34 | 4 h 34 | 7/11 | 60 | 0 |
+- Passe GD 8 — deux jalons nommés de la Merveille, « fondations » (premier) et « flèche » (juste avant la tranche finale), avec récompense et fête mais sans raid de garde : jalons à 15/33/50/66/85 % (normale), 15/33/66/85 % (courte), 10/20/35/50/65/80/90 % (longue), plus la mi-parcours de la tranche finale. Aucun creux de plus de 45 min sans jalon après la Cité.
+- Passe GD 8 — rythme : Merveille normale × 0,66 (au lieu de × 1) → fin 3 h 30–4 h 00 à 20 viewers ; longue × 1,4 (au lieu de × 1,25) → ≥ 4 h 30 même avec Bits massifs. Le plafond progressif garde la fin à 3 h minimum.
+- Passe GD 8 — raid « garde de la Merveille » : force +6 mais plafonnée à la défense gratuite max, il reste toujours battable sans Bits (les Bits ne sont jamais nécessaires). Le climax reste calculé sur la défense gratuite (hors remparts achetés).
+- Passe GD 8 — colonne « Chutes » distincte, message de chat à chaque chute, et chutes affichées dans le bilan (fin de partie et game over).
 
-Matrice complète (graine 1, `node server/simulate.js` avec `run({viewers,bits},{gameLength})`) :
+| Scénario | 1er bâtiment | Hameau | Village | Bourg | Ville | Grande ville | Cité | Merveille | Fin | Raids repoussés | PV min | Rallumages | Chutes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 5 viewers | 4 min | 10 min | 19 min | 40 min | 1 h 22 | 1 h 55 | 2 h 46 | 4 h 31 | 4 h 31 | 5/11 | 62 | 0 | 0 |
+| 20 viewers (typique) | 4 min | 10 min | 19 min | 40 min | 1 h 10 | 1 h 46 | 2 h 34 | 3 h 37 | 3 h 37 | 7/9 | 62 | 0 | 0 |
+| 50 viewers | 4 min | 10 min | 22 min | 37 min | 1 h 10 | 1 h 46 | 2 h 31 | 3 h 37 | 3 h 37 | 7/9 | 62 | 0 | 0 |
+| 200 viewers | 4 min | 10 min | 19 min | 37 min | 1 h 10 | 1 h 40 | 2 h 25 | 3 h 31 | 3 h 31 | 7/8 | 62 | 0 | 0 |
+| 20 viewers, sans Bits | 4 min | 13 min | 25 min | 43 min | 1 h 25 | 2 h 04 | 3 h 07 | 4 h 04 | 4 h 04 | 8/10 | 62 | 0 | 0 |
+| 20 viewers, Bits massifs | 4 min | 10 min | 19 min | 31 min | 1 h 04 | 1 h 34 | 2 h 10 | 3 h 01 | 3 h 01 | 7/8 | 62 | 0 | 0 |
+| 20 viewers, Foyer négligé | 4 min | 10 min | 22 min | 40 min | 1 h 16 | 1 h 49 | 2 h 43 | 4 h 13 | 4 h 13 | 0/9 | 0 | 2 | 0 |
+| 20 viewers (typique) — courte | 4 min | 10 min | 16 min | 31 min | 52 min | 1 h 13 | 1 h 43 | 3 h 13 | 3 h 13 | 6/7 | 62 | 0 | 0 |
+| 20 viewers, Bits massifs — courte | 4 min | 10 min | 16 min | 28 min | 46 min | 1 h 04 | 1 h 28 | 3 h 01 | 3 h 01 | 6/7 | 62 | 0 | 0 |
+| 20 viewers, Foyer négligé — courte | 4 min | 10 min | 16 min | 34 min | 55 min | 1 h 16 | 1 h 52 | — | — | 0/8 | 0 | 1 (perdu à 3 h 13) | 1 |
+| 20 viewers (typique) — longue | 4 min | 10 min | 22 min | 40 min | 1 h 25 | 2 h 07 | 3 h 07 | 5 h 55 | 5 h 55 | 12/13 | 62 | 0 | 0 |
+| 20 viewers, Bits massifs — longue | 4 min | 10 min | 22 min | 34 min | 1 h 13 | 1 h 49 | 2 h 40 | 4 h 37 | 4 h 37 | 11/12 | 62 | 0 | 0 |
 
-| Mode | Viewers | Bits | Bourg | Cité | Fin | Raids repoussés | PV min | Creux max (évènements) après la Cité | Creux max (progression) après la Cité |
-|---|---|---|---|---|---|---|---|---|---|
-| normale | 5 | aucun | 43 min | 3h16 | 5h04 | 7/11 | 91 | 22 min | 36 min |
-| normale | 5 | modérés | 40 min | 2h52 | 4h49 | 6/11 | 88 | 17 min | 27 min |
-| normale | 5 | massifs | 34 min | 2h16 | 4h07 | 8/10 | 94 | 15 min | 39 min |
-| normale | 20 | aucun | 43 min | 3h10 | 4h55 | 7/10 | 84 | 11 min | 33 min |
-| normale | 20 | modérés | 40 min | 2h43 | 4h34 | 7/10 | 85 | 13 min | 27 min |
-| normale | 20 | massifs | 31 min | 2h16 | 3h55 | 7/9 | 88 | 12 min | 27 min |
-| normale | 50 | aucun | 40 min | 3h04 | 4h58 | 7/10 | 84 | 19 min | 33 min |
-| normale | 50 | modérés | 37 min | 2h37 | 4h37 | 7/10 | 85 | 15 min | 30 min |
-| normale | 50 | massifs | 34 min | 2h16 | 3h28 | 5/7 | 86 | 13 min | 27 min |
-| normale | 200 | aucun | 43 min | 2h58 | 4h37 | 8/10 | 85 | 13 min | 30 min |
-| normale | 200 | modérés | 37 min | 2h31 | 4h25 | 8/10 | 85 | 13 min | 30 min |
-| normale | 200 | massifs | 34 min | 2h10 | 3h19 | 5/7 | 88 | 11 min | 24 min |
-| courte | 5 | aucun | 34 min | 2h01 | 3h43 | 5/9 | 93 | 25 min | 39 min |
-| courte | 5 | modérés | 34 min | 1h46 | 3h16 | 8/8 | 100 | 30 min | 36 min |
-| courte | 5 | massifs | 28 min | 1h28 | 3h01 | 7/7 | 100 | 24 min | 27 min |
-| courte | 20 | aucun | 34 min | 2h04 | 3h40 | 5/9 | 84 | 14 min | 36 min |
-| courte | 20 | modérés | 31 min | 1h43 | 3h22 | 6/8 | 84 | 18 min | 36 min |
-| courte | 20 | massifs | 28 min | 1h28 | 3h01 | 5/7 | 87 | 15 min | 30 min |
-| courte | 50 | aucun | 34 min | 1h58 | 3h28 | 7/9 | 87 | 11 min | 36 min |
-| courte | 50 | modérés | 34 min | 1h43 | 3h19 | 6/8 | 87 | 10 min | 36 min |
-| courte | 50 | massifs | 28 min | 1h28 | 3h01 | 5/7 | 75 | 15 min | 29 min |
-| courte | 200 | aucun | 31 min | 1h52 | 3h22 | 6/8 | 87 | 14 min | 36 min |
-| courte | 200 | modérés | 34 min | 1h40 | 3h16 | 6/8 | 84 | 9 min | 36 min |
-| courte | 200 | massifs | 28 min | 1h25 | 3h01 | 4/6 | 83 | 14 min | 29 min |
-| longue | 5 | aucun | 46 min | 3h37 | 6h31 | 12/14 | 98 | 24 min | 33 min |
-| longue | 5 | modérés | 43 min | 3h10 | 5h25 | 11/13 | 92 | 24 min | 27 min |
-| longue | 5 | massifs | 37 min | 2h43 | 5h01 | 12/12 | 100 | 17 min | 24 min |
-| longue | 20 | aucun | 46 min | 3h46 | 5h58 | 9/14 | 85 | 15 min | 27 min |
-| longue | 20 | modérés | 40 min | 3h04 | 5h40 | 9/13 | 82 | 15 min | 30 min |
-| longue | 20 | massifs | 34 min | 2h37 | 4h34 | 7/11 | 82 | 13 min | 21 min |
-| longue | 50 | aucun | 46 min | 3h34 | 6h01 | 10/14 | 86 | 15 min | 27 min |
-| longue | 50 | modérés | 40 min | 3h04 | 5h52 | 9/13 | 88 | 14 min | 30 min |
-| longue | 50 | massifs | 37 min | 2h37 | 4h07 | 6/10 | 79 | 12 min | 18 min |
-| longue | 200 | aucun | 43 min | 3h25 | 5h58 | 10/14 | 85 | 12 min | 27 min |
-| longue | 200 | modérés | 40 min | 2h58 | 5h46 | 9/13 | 88 | 15 min | 33 min |
-| longue | 200 | massifs | 34 min | 2h31 | 3h52 | 6/10 | 76 | 12 min | 18 min |
+`node server/simulate.js` affiche aussi l'agrégat sur 5 graines (`--seeds=N` pour plus) :
 
-`npm test` vérifie, sur plusieurs seeds, que **la partie complète dure au moins 3 h 20 dans tous les scénarios (y compris Bits massifs)** et au plus 6 h 30, que le premier bâtiment arrive en moins de 6 min, que la durée varie de moins de 30 % entre 5 et 200 viewers, que négliger le Foyer a des conséquences réelles (au moins 20 min de plus en moyenne), qu'au moins 1 raid sur 2 est repoussé sans Bits à 20 viewers, qu'aucun palier ne prend plus d'une heure à 20 viewers, et que les durées `courte` et `longue` restent au-dessus de 3 h. Il vérifie aussi (passe GD 3) qu'il n'y a jamais plus de 45 min sans progression entre la Cité et la fin à 20 viewers, que courte < normale − 45 min < longue − 45 min, que le mode courte dure au moins 3 h même avec des Bits massifs, et que les 5 viewers sans Bits finissent toujours la partie. La passe GD 4 vérifie que la force du raid suit la défense gratuite maximale sans compter les remparts Bits, qu'à 5 viewers sans Bits 55 à 90 % des raids sont repoussés en moyenne sur 5 graines, que le Bourg arrive en 35 min au plus en mode courte, que toutes les parties durent au moins 3 h même à 200 viewers avec des Bits massifs, et qu'il n'y a **jamais plus de 40 min sans jalon, palier, raid ou défi gagné** entre la Cité et la fin à 20 viewers (modes normale et longue). La passe GD 5 vérifie la force à 75 % (35 % sous 8 viewers actifs), que 6 à 9 raids sur 10 sont repoussés avec un PV min ≤ 90 à 200 viewers et à 20 viewers avec Bits massifs (au moins 1 sur 2 sans Bits), le plafond progressif de la dernière tranche (fermée avant 2 h 30, 50 % à 2 h 45, complète seulement à 3 h), **au plus 45 min sans progression après la Cité dans les 3 modes, avec et sans Bits, graines 1 à 3**, et **une fin à 3 h ou plus dans tous les modes**, y compris à 5, 50 et 200 viewers avec des Bits massifs.
+| Scénario (5 graines) | Mode | Fin min / méd / max | PV min min / méd / max | Raids repoussés min / méd / max | Creux max après la Cité | Chutes (total) | Perdues |
+|---|---|---|---|---|---|---|---|
+| 20 viewers (typique) | normale | 3 h 37 / 3 h 37 / 3 h 40 | 62 / 62 / 62 | 78 % / 78 % / 89 % | 18 min | 0 | 0/5 |
+| 20 viewers, sans Bits | normale | 3 h 55 / 3 h 58 / 4 h 04 | 62 / 62 / 62 | 80 % / 80 % / 80 % | 15 min | 0 | 0/5 |
+| 20 viewers, Bits massifs | normale | 3 h 01 / 3 h 04 / 3 h 22 | 62 / 62 / 62 | 75 % / 88 % / 88 % | 18 min | 0 | 0/5 |
+| 5 viewers | normale | 3 h 49 / 3 h 55 / 4 h 31 | 51 / 62 / 72 | 30 % / 40 % / 45 % | 21 min | 0 | 0/5 |
+| 200 viewers | normale | 3 h 25 / 3 h 28 / 3 h 31 | 62 / 62 / 62 | 78 % / 88 % / 88 % | 18 min | 0 | 0/5 |
+| 20 viewers, Foyer négligé | normale | 4 h 13 / 4 h 37 / 4 h 37 | 0 / 0 / 0 | 0 % / 0 % / 0 % | 21 min | 0 | 3/5 |
+| 20 viewers (typique) | courte | 3 h 13 / 3 h 22 / 3 h 28 | 62 / 62 / 62 | 86 % / 88 % / 88 % | 33 min | 0 | 0/5 |
+| 20 viewers, sans Bits | courte | 3 h 16 / 3 h 25 / 3 h 28 | 62 / 62 / 62 | 88 % / 88 % / 89 % | 36 min | 0 | 0/5 |
+| 20 viewers, Bits massifs | courte | 3 h 01 / 3 h 01 / 3 h 01 | 62 / 62 / 62 | 86 % / 86 % / 88 % | 27 min | 0 | 0/5 |
+| 5 viewers | courte | 3 h 10 / 3 h 22 / 3 h 28 | 62 / 67 / 72 | 67 % / 75 % / 86 % | 36 min | 0 | 0/5 |
+| 20 viewers, Foyer négligé | courte | — | 0 / 0 / 0 | 0 % / 0 % / 0 % | 48 min | 2 | 5/5 |
+| 20 viewers (typique) | longue | 5 h 16 / 5 h 58 / 6 h 07 | 62 / 62 / 62 | 85 % / 92 % / 92 % | 30 min | 0 | 0/5 |
+| 20 viewers, Bits massifs | longue | 4 h 37 / 4 h 52 / 5 h 04 | 62 / 62 / 62 | 83 % / 92 % / 92 % | 27 min | 0 | 0/5 |
+
+`npm test` vérifie, sur plusieurs seeds, que **la partie complète dure au moins 3 h dans tous les scénarios (y compris Bits massifs)** et au plus 6 h 30, que le premier bâtiment arrive en moins de 6 min, que la durée varie de moins de 30 % entre 5 et 200 viewers, que négliger le Foyer a des conséquences réelles (au moins 20 min de plus en moyenne), qu'au moins 1 raid sur 2 est repoussé sans Bits à 20 viewers, qu'aucun palier ne prend plus d'une heure à 20 viewers, et que les durées `courte` et `longue` restent au-dessus de 3 h. Il vérifie aussi (passe GD 3) qu'il n'y a jamais plus de 45 min sans progression entre la Cité et la fin à 20 viewers, que courte < normale < longue − 45 min (passe GD 8), que le mode courte dure au moins 3 h même avec des Bits massifs, et que les 5 viewers sans Bits finissent toujours la partie. La passe GD 4 vérifie que la force du raid suit la défense gratuite maximale sans compter les remparts Bits, qu'à 5 viewers sans Bits 55 à 90 % des raids sont repoussés en moyenne sur 5 graines, que le Bourg arrive en 35 min au plus en mode courte, que toutes les parties durent au moins 3 h même à 200 viewers avec des Bits massifs, et qu'il n'y a **jamais plus de 40 min sans jalon, palier, raid ou défi gagné** entre la Cité et la fin à 20 viewers (modes normale et longue). La passe GD 5 vérifie la force à 75 % (35 % sous 8 viewers actifs), que 6 à 9 raids sur 10 sont repoussés avec un PV min ≤ 90 à 200 viewers et à 20 viewers avec Bits massifs (au moins 1 sur 2 sans Bits), le plafond progressif de la dernière tranche (fermée avant 2 h 30, 50 % à 2 h 45, complète seulement à 3 h), **au plus 45 min sans progression après la Cité dans les 3 modes, avec et sans Bits, graines 1 à 3**, et **une fin à 3 h ou plus dans tous les modes**, y compris à 5, 50 et 200 viewers avec des Bits massifs. La passe GD 8 vérifie les jalons « fondations » et « flèche », aucun creux de plus de 45 min en normale et en courte, une fin normale entre 3 h 30 et 4 h 00 à 20 viewers (graines 1 à 5), longue ≥ 4 h 30, en courte avec Bits massifs ≥ 65 % de raids repoussés et un PV min de 50 à 70, que chaque chute est une destruction avant 3 h et apparaît au bilan, et l'agrégat min / médiane / max sur 5 graines.
 
 ## Bits et subs : effets de session uniquement
 

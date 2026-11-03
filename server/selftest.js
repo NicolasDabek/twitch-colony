@@ -105,7 +105,7 @@ console.log('carte 72 OK');
   for(const seed of [1,2]) for(const sc of sim.SCENARIOS){ const r=sim.run(sc,{seed});
     if(sc.neglect){ assert.ok(r.minHp===0&&(r.revivals>0||r.over!=null),'négliger le Foyer doit avoir des conséquences'); continue; }
     assert.ok(r.end!=null,`${sc.name} (seed ${seed}) : partie non terminée`); assert.ok(r.over==null,`${sc.name} : partie perdue`);
-    assert.ok(r.end>=3*H+20*60,`${sc.name} (seed ${seed}) : fin en ${(r.end/H).toFixed(2)} h (< 3 h 20)`); assert.ok(r.end<=6.5*H,`${sc.name} : trop long`);
+    assert.ok(r.end>=3*H,`${sc.name} (seed ${seed}) : fin en ${(r.end/H).toFixed(2)} h (< 3 h ; passe GD 8 : Bits massifs → 3 h 00 pile)`); assert.ok(r.end<=6.5*H,`${sc.name} : trop long`);
     assert.ok(r.firstBuild<=6*60,`${sc.name} : 1er bâtiment trop lent`); }
   const ends=['5 viewers','20 viewers (typique)','50 viewers','200 viewers'].map(n=>sim.run(sim.SCENARIOS.find(s=>s.name===n)).end);
   assert.ok(Math.max(...ends)/Math.min(...ends)<1.3,'durée trop sensible au nombre de viewers'); }
@@ -123,9 +123,11 @@ console.log('équilibrage OK');
 { const {Colony,FOYER,WONDER,BITS_CAP}=require('./game.js'); let T=1e12; const mk=(o={})=>new Colony({now:()=>T,seed:3,...o});
   // jalons 33 % et 66 % : récompense, fête 2 min, raid « garde » force +6 dans 3 min ; fin seulement à la 3e tranche
   let g=mk({gameLength:'courte'}); g.stage=6; g.wonder=2; g.res.bois=1e5; g.res.pierre=1e5; const base=g.raidPower(), b0=g.res.bois, c=g.wonderCost();
-  assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,2); assert.strictEqual(g.wonderPart,1); assert.strictEqual(g.res.bois,b0-c.bois+WONDER.milestone.bois);
-  assert.ok(g.feteUntil>=T+2*60000-1); assert.ok(g.nextThreat.guard&&g.nextThreat.type==='raid'&&g.nextThreat.at===T+3*60000); assert.strictEqual(g.raidPower(),base+6); assert.ok(/33 %/.test(g.alert.m));
-  assert.strictEqual(g.state().wonder.pct,78); assert.ok(g.buildWonder()); assert.ok(/66 %/.test(g.alert.m)); assert.strictEqual(g.wonderMilestones,2); assert.ok(!g.completedAt);
+  // passe GD 8 : courte = fondations 15 % (sans raid), 33 %, 66 %, flèche 85 % (sans raid), puis tranche finale
+  assert.ok(g.buildWonder()); assert.strictEqual(g.wonderPart,1); assert.ok(/« fondations »/.test(g.alert.m)&&!g.nextThreat.guard,'fondations sans raid'); const c2=g.wonderCost(), b1=g.res.bois;
+  assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,2); assert.strictEqual(g.wonderPart,2); assert.strictEqual(g.res.bois,b1-c2.bois+WONDER.milestone.bois);
+  assert.ok(g.feteUntil>=T+2*60000-1); assert.ok(g.nextThreat.guard&&g.nextThreat.type==='raid'&&g.nextThreat.at===T+3*60000); assert.strictEqual(g.raidPower(),Math.min(base+6,Math.max(base,g.defenseMaxFree())),'garde plafonnée à la défense gratuite max'); assert.ok(/33 %/.test(g.alert.m));
+  assert.strictEqual(g.state().wonder.pct,78); assert.ok(g.buildWonder()); assert.ok(/66 %/.test(g.alert.m)); assert.ok(g.buildWonder()); assert.ok(/« flèche »/.test(g.alert.m)); assert.strictEqual(g.wonderMilestones,4); assert.ok(!g.completedAt);
   g.buildings=Array(21).fill({type:'hutte'}); assert.ok(!g.buildWonder()&&g.state().wonder.opensAt===g.startedAt+WONDER.finalMinMs-WONDER.capRampMs,'dernière tranche : ouverture à 2 h 30'); T+=WONDER.finalMinMs; assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,3); g._checkEnd(); assert.ok(g.completedAt);
   for(const len of ['courte','normale','longue']){ const w=mk({gameLength:len}).WPH[2], n=mk({gameLength:len}).wonderParts(), parts=[...Array(n).keys()].map(i=>{ const h=mk({gameLength:len}); h.wonder=2; h.wonderPart=i; return h.wonderCost(); }); assert.strictEqual(parts.reduce((a,p)=>a+p.bois,0),w.bois); assert.strictEqual(parts.reduce((a,p)=>a+p.pierre,0),w.pierre); }
   // butin partagé : compté dans le plafond Bits (30 / 10 min)
@@ -135,10 +137,10 @@ console.log('équilibrage OK');
   assert.strictEqual(FOYER.defRef,8); g=mk(); g.chat('a','!defendre'); assert.strictEqual(g.defense().defenseurs,FOYER.defenderPts*2,'1 viewer : × 2 au plus');
   const sim=require('./simulate'), H=3600, S=n=>sim.SCENARIOS.find(s=>s.name===n);
   // pas plus de 50 min entre deux tranches/paliers après la Cité (20 viewers, normale) ; la passe GD 4 vérifie les évènements visibles (≤ 40 min)
-  for(const seed of [1,2,3]){ const r=sim.run(S('20 viewers (typique)'),{seed}); assert.strictEqual(r.milestones,4,'normale : jalons 33, 50, 66 et 83 %'); }
-  // durées : courte < normale − 45 min < longue − 45 min ; Bits massifs en courte ≥ 3 h
+  for(const seed of [1,2,3]){ const r=sim.run(S('20 viewers (typique)'),{seed}); assert.strictEqual(r.milestones,6,'normale : jalons fondations 15, 33, 50, 66, flèche 85 et 92 %'); }
+  // durées (passe GD 8) : courte < normale (3 h 30–4 h 00) < longue − 45 min ; Bits massifs en courte ≥ 3 h
   const e=len=>sim.run(S('20 viewers (typique)'),{gameLength:len}).end; const ec=e('courte'), en=e('normale'), el=e('longue');
-  assert.ok(ec<en-45*60&&en-45*60<el-45*60,`durées ${[ec,en,el].map(x=>(x/H).toFixed(2))}`);
+  assert.ok(ec<en&&en+45*60<el,`durées ${[ec,en,el].map(x=>(x/H).toFixed(2))}`);
   for(const seed of [1,2,3]){ const m=sim.run(S('20 viewers, Bits massifs'),{seed,gameLength:'courte'}); assert.ok(m.end>=3*H,`courte + Bits massifs (seed ${seed}) : ${(m.end/H).toFixed(2)} h`); }
   console.log('passe GD 3 (jalons Merveille, butin partagé, petite audience, modes de durée) OK'); }
 // Passe GD 4 : raids indexés sur la défense gratuite max, petite audience, mode court, creux d'évènements
@@ -172,6 +174,19 @@ console.log('équilibrage OK');
   for(const seed of [1,2,3]){ const r=sim.run(S('20 viewers (typique)'),{seed,gameLength:'courte'}); assert.ok(r.reached.Bourg<=35*60,`courte Bourg ${(r.reached.Bourg/60)|0} min`); }
   // 3 h minimum dans tous les modes, même à 200 viewers avec beaucoup de Bits (dernière tranche de la Merveille après 3 h)
   for(const len of ['courte','normale']) for(const v of [50,200]){ const r=sim.run({name:'m',viewers:v,bits:'massifs'},{seed:1,gameLength:len}); assert.ok(r.end>=3*H,`${len} ${v} viewers + Bits massifs : ${(r.end/H).toFixed(2)} h`); }
+  // passe GD 8 : jalons nommés, rythme, Bits massifs en courte, chutes
+  { const g=mk(); g.stage=6; g.wonder=2; g.res.bois=1e6; g.res.pierre=1e6; let seen=[]; const a=g._alert.bind(g); g._alert=(k,m)=>{ seen.push(m); return a(k,m); };
+    for(let i=0;i<g.wonderParts()-1;i++) g.buildWonder(); assert.ok(seen.some(m=>m.includes('« fondations »'))&&seen.some(m=>m.includes('« flèche »')),'jalons fondations et flèche'); }
+  for(const len of ['courte','normale']) for(const bits of ['aucun','modérés','massifs']) for(const seed of [1,2,3]){ const r=sim.run({name:'g8',viewers:20,bits},{seed,gameLength:len}); assert.ok(r.finaleGap<=45*60,`GD 8 ${len} ${bits} (seed ${seed}) : creux ${Math.round(r.finaleGap/60)} min sans jalon`); }
+  for(const seed of [1,2,3,4,5]){ const n=sim.run(S('20 viewers (typique)'),{seed}); assert.ok(n.end>=3.5*H&&n.end<=4*H,`GD 8 normale typique (seed ${seed}) : ${(n.end/H).toFixed(2)} h`);
+    const m=sim.run(S('20 viewers, Bits massifs'),{seed}); assert.ok(m.end>=3*H,`GD 8 normale Bits massifs (seed ${seed}) : ${(m.end/H).toFixed(2)} h`);
+    for(const sc of ['20 viewers (typique)','20 viewers, Bits massifs']){ const l=sim.run(S(sc),{seed,gameLength:'longue'}); assert.ok(l.end>=4.5*H,`GD 8 longue ${sc} (seed ${seed}) : ${(l.end/H).toFixed(2)} h`); }
+    const c=sim.run(S('20 viewers, Bits massifs'),{seed,gameLength:'courte'}); assert.ok(rate(c)>=0.65&&c.minHp>=50&&c.minHp<=70,`GD 8 courte Bits massifs (seed ${seed}) : ${c.repelled}/${c.raids}, PV min ${c.minHp}`); }
+  // chutes : chaque chute est une destruction avant 10 800 s, et aucune défaite définitive avant 3 h
+  for(const len of ['courte','normale','longue']) for(const seed of [1,2,3]){ const r=sim.run(S('20 viewers, Foyer négligé'),{seed,gameLength:len}); assert.ok(r.chutes<=r.destructions3h,`GD 8 ${len} (seed ${seed}) : ${r.chutes} chutes / ${r.destructions3h} destructions avant 3 h`); assert.ok(r.over==null||r.over>=10800); }
+  { const g=mk(); g.revivals=FOYER.revive.max; g.foyer.hp=1; g._raid(); assert.strictEqual(g.stats.destructions3h,1); assert.strictEqual(g.chutes,1); T+=3*3600000; g.foyer.hp=1; g.nextThreat={type:'raid',at:T}; g._raid(); assert.strictEqual(g.chutes,1,'après 3 h : plus de chute'); assert.ok(g.gameOver&&g.gameOver.summary.chutes===1,'bilan : chutes'); }
+  { const s=sim.seeds(5,[['20 viewers (typique)','normale']]); assert.ok(s[0].runs.length===5&&s[0].end.length===3&&s[0].rate.length===3&&s[0].minHp.length===3,'simulate : min/médiane/max sur 5 graines'); assert.ok(sim.table(sim.all()).includes('| Chutes |'),'colonne Chutes'); }
+  console.log('passe GD 8 (jalons fondations/flèche, normale 3 h 30–4 h, Bits massifs courte, chutes, 5 graines) OK');
   // jamais plus de 40 min sans jalon, palier, raid ou défi gagné entre la Cité et la fin (20 viewers, normale et longue)
   for(const len of ['normale','longue']) for(const n of ['20 viewers (typique)','20 viewers, sans Bits']) for(const seed of [1,2,3]){ const r=sim.run(S(n),{seed,gameLength:len});
     assert.ok(r.eventGap<=40*60,`${len} ${n} (seed ${seed}) : ${Math.round(r.eventGap/60)} min sans évènement après la Cité`); }
@@ -181,7 +196,7 @@ console.log('équilibrage OK');
   assert.strictEqual(FOYER.scaleK,0.75); assert.strictEqual(FOYER.smallScaleK,0.35);
   { const g=mk(); g.chat('a','!bois'); g.stage=3; g.buildings=['tour','tour']; const base=FOYER.smallRaidBase+FOYER.smallRaidStep*3; assert.strictEqual(g.raidPower(),base+Math.max(0,Math.round(FOYER.smallScaleK*(g.defenseMaxFree()-base))),'petite audience : 35 %'); }
   // plafond progressif : 0 % avant 2 h 30, 50 % à 2 h 45, 100 % à 3 h ; la tranche n'est jamais complète avant 3 h
-  { const g=mk({gameLength:'courte'}); g.stage=6; g.wonder=2; g.wonderPart=2; g.res.bois=1e6; g.res.pierre=1e6; const c=g.wonderCost();
+  { const g=mk({gameLength:'courte'}); g.stage=6; g.wonder=2; g.wonderPart=g.wonderParts()-1; g.res.bois=1e6; g.res.pierre=1e6; const c=g.wonderCost();
     T+=2*H*1000; assert.ok(!g.buildWonder()&&g.state().wonder.opensAt,'fermée avant 2 h 30'); assert.ok(/ouverture dans 30 min/.test(g.objectives().mid.label));
     T+=45*60000; assert.strictEqual(g.wonderCapFrac(),0.5); g.tick(); assert.ok(g.wonderCapOpened&&/chantier final ouvre/.test(g.log.map(l=>l.m).join()));
     assert.ok(g.buildWonder()); assert.strictEqual(g.wonderPaid.bois,Math.round(c.bois/2)); assert.strictEqual(g.wonderMilestones,1,'jalon à 50 % de la dernière tranche'); assert.ok(/accès complet dans 15 min/.test(g.objectives().mid.label));
