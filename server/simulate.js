@@ -11,9 +11,9 @@ const SCENARIOS=[
   {name:'20 viewers, Foyer négligé',viewers:20,bits:'modérés',neglect:true},
 ];
 // Rythme réaliste : chaque viewer actif envoie en moyenne une commande toutes les 30 s.
-function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength}={}){
+function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength,repair=true}={}){
   let T=1e12; const r=mulberry(seed*7919+sc.viewers), g=new Colony({now:()=>T,rng:r,seed,gameLength});
-  const users=Array.from({length:sc.viewers},(_,i)=>'v'+i), reached={}, start=T; let firstBuild=null, minHp=100, over=null, lastPk=null, lastEv=''; const events=[], allEv=[];
+  const users=Array.from({length:sc.viewers},(_,i)=>'v'+i), reached={}, start=T; let firstBuild=null, minHp=100, over=null, lastPk=null, lastEv=''; let criticalRepairs=0,criticalHpRestored=0; const chat=g.chat.bind(g); g.chat=(u,text)=>{const hp=g.foyer.hp; chat(u,text); if(text==='!reparer'&&hp>0&&hp<=g.FO.vacillantAt&&g.foyer.hp>hp){criticalRepairs++;criticalHpRestored+=g.foyer.hp-hp;}}; const events=[], allEv=[],raidLog=[]; const raid=g._raid.bind(g); g._raid=()=>{const noise=g.raidNoise();raid();raidLog.push({...g.lastRaid,hp:g.foyer.hp,freeMax:g.defenseMaxFree(),repairs:g.stats.repairs,noise,at:(T-start)/1000});};
   STAGES.forEach((s,i)=>{ if(i===0) reached[s.name]=0; });
   // Rôles : 70 % des viewers rejoignent un métier (!rejoindre), et le jouent 60 % du temps.
   const RO=['bûcheron','mineur','chasseur','garde'], RC={'bûcheron':'!bois','mineur':'!pierre','chasseur':'!chasse','garde':'!bois'}, role={};
@@ -22,7 +22,7 @@ function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength}={}){
     if(g.revival) return '!rallumer';
     // Passe GD 10 : chat attentif — chaque viewer défend au moins une fois dans la fenêtre, sans bloquer la récolte.
     if(!sc.neglect&&g.nextThreat.type==='raid'&&g.nextThreat.at-T<=3*60000&&(role[u]==='garde'||!g.defenders[u]||r()<.35)) return '!defendre';
-    if(!sc.neglect&&g.foyer.hp<70&&r()<.25) return '!reparer'; if(role[u]&&r()<.6) return RC[role[u]];
+    if(!sc.neglect&&repair&&g.foyer.hp<70&&r()<.25) return '!reparer'; if(role[u]&&r()<.6) return RC[role[u]];
     if(food<need&&r()<.6) return '!chasse'; if(r()<.35) return '!pierre'; return r()<.85?'!bois':'!chasse'; };
   const want=opts=>{ const s=g.state();
     if(opts.includes('murs')){ if(sc.neglect) return r()<.5?'reserves':'murs'; // chat négligent : stratégie votée au hasard
@@ -51,7 +51,7 @@ function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength}={}){
   }
   const cite=reached[STAGES[STAGES.length-1].name], ev=cite==null?[]:events.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); const ev2=cite==null?[]:allEv.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); let eventGap=0; for(let i=1;i<ev2.length;i++) eventGap=Math.max(eventGap,ev2[i]-ev2[i-1]);
   let finaleGap=0; for(let i=1;i<ev.length;i++) finaleGap=Math.max(finaleGap,ev[i]-ev[i-1]);
-  return {name:sc.name,finaleGap,eventGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,chutes:g.chutes,vacillant:g.vacillant||0,destructions3h:g.stats.destructions3h,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
+  return {name:sc.name,finaleGap,eventGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,chutes:g.chutes,vacillant:g.vacillant||0,repairs:g.stats.repairs,criticalRepairs,criticalHpRestored,finalHp:g.foyer.hp,raidLog,destructions3h:g.stats.destructions3h,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
 }
 const fmt=s=>s==null?'—':s<3600?Math.round(s/60)+' min':Math.floor(s/3600)+' h '+String(Math.round(s%3600/60)).padStart(2,'0');
 function table(results){
