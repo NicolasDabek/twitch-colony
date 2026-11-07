@@ -10,7 +10,7 @@
   document.documentElement.classList.add('ovgate');
   function show(){
     var d=document.createElement('main'); d.className='ovgate-box'; d.setAttribute('role','main');
-    d.innerHTML='<h1>Twitch Colony</h1><p>Cette page est l’<b>overlay pour OBS</b> (1280 × 720) : illisible sur un petit écran.</p>'+
+    d.innerHTML='<div class="ovgate-title" aria-hidden="true">Twitch Colony</div><p>Cette page est l’<b>overlay pour OBS</b> (1280 × 720) : illisible sur un petit écran.</p>'+
       '<a class="ovgate-go" href="sim.html">Ouvrir la simulation →</a><a class="ovgate-alt" href="3d/">Voir le village en 3D</a>'+
       '<a class="ovgate-alt" href="?force">Afficher quand même l’overlay</a>';
     document.body.insertBefore(d,document.body.firstChild);

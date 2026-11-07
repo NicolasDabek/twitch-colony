@@ -356,3 +356,14 @@ console.log('mécaniques OK');}
     for(const p of ['/../server/index.js','/..%2fserver%2findex.js','/../.env','/%2e%2e/.env']){ const b=await raw(`GET ${p} HTTP/1.1`); assert.ok(!/^HTTP\/1\.1 200/.test(b),'traversée refusée : '+p); }
     srv.kill(); console.log('serveur HTTP (127.0.0.1, 413, nosniff + CSP, traversée) OK');
   })().catch(fail); }
+
+// UX10: the mobile gate is visual only; overlay retains exactly one accessible h1.
+{ const vm=require('vm'), html=fs.readFileSync(path.join(__dirname,'../public/overlay.html'),'utf8'), js=fs.readFileSync(path.join(__dirname,'../public/overlay-gate.js'),'utf8');
+  for(const [width,query] of [[390,''],[1280,''],[390,'?obs'],[1280,'?obs']]){ let inserted='';
+    const document={documentElement:{classList:{add(){}}},querySelector:()=>({setAttribute(){}}),createElement:()=>({setAttribute(){},set innerHTML(v){inserted=v;}}),body:{insertBefore(){},firstChild:null}};
+    const media=()=>({matches:width===390}); vm.runInNewContext(js,{document,window:{matchMedia:media},matchMedia:media,location:{search:query}});
+    assert.equal((html+inserted).match(/<h1\b/g).length,1,`UX10 ${width}${query}: one h1`);
+    if(width===390&&!query) assert.ok(inserted.includes('class="ovgate-title" aria-hidden="true"'));
+    assert.ok(!/<script(?![^>]*src=)|\son[a-z]+=/.test(inserted),'UX10: no inline scripts/handlers');
+  }
+}
