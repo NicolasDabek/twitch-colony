@@ -14,7 +14,7 @@ body.demo{background:#15131f;color:#fff;min-height:100vh}
 .demo h4{margin:0 0 10px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#cdb8ff;display:flex;justify-content:space-between;align-items:center}
 .demo .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .demo button{font:inherit;color:#fff;border:0;border-radius:12px;min-height:56px;background:#2d2842;font-size:15px;font-weight:700;cursor:pointer;position:relative;padding:6px}
-.demo button:hover{background:#3a3456}.demo button:focus-visible{outline:3px solid #ffd23f;outline-offset:-3px;box-shadow:inset 0 0 0 6px #120e1e}
+@media (hover:hover){.demo button:hover{background:#3a3456}}.demo button:focus-visible{background:#3a3456;outline:3px solid #ffd23f;outline-offset:-3px;box-shadow:inset 0 0 0 6px #120e1e}
 .demo button small{display:block;font-size:12px;font-weight:500;color:#ccc}
 .demo button.cool{opacity:.45;cursor:not-allowed}.demo button .cd{position:absolute;right:6px;top:4px;font-size:12px;font-weight:700}
 .demo .bits button{background:#3a2a10;color:#ffd23f}

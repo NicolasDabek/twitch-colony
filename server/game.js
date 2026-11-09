@@ -164,7 +164,7 @@ class Colony {
     return Math.round(100*(this.wonder+C[i]+(C[i+1]-C[i])*this.wonderPaidFrac())/n); }
   buildWonder(){ const c=this.wonderCost(), lk=this.wonderLockedUntil(); if(c&&lk){ this._log(`${WONDER.name} : la dernière tranche ouvre dans ${Math.ceil((lk-this.now())/60000)} min ; accès complet après ${Math.floor(this.wonderFullMs()/3600000)} h ${Math.round(this.wonderFullMs()%3600000/60000)} min de partie`); return false; } if(!c||!this.wonderOpen()) return false;
     if(this.wonderFinal()) return this._wonderDeposit();
-    if(this.res.bois<c.bois||this.res.pierre<c.pierre){ this._log(`${WONDER.name} : il manque ${Math.max(0,c.bois-Math.floor(this.res.bois))} bois, ${Math.max(0,c.pierre-Math.floor(this.res.pierre))} pierre`); return false; }
+    if(this.res.bois<c.bois||this.res.pierre<c.pierre){ this._log(`${WONDER.name} : il manque ${Math.max(0,Math.ceil(c.bois-this.res.bois))} bois, ${Math.max(0,Math.ceil(c.pierre-this.res.pierre))} pierre`); return false; }
     this.res.bois-=c.bois; this.res.pierre-=c.pierre; if(!this.wonder) this.wonderIndex=this.buildings.length;
     if(this.wonderLast()){ this.wonderPart++; this.wonderPaid={bois:0,pierre:0}; this._wonderMilestone(); return true; }
     return this._wonderPhaseDone(); }
@@ -204,7 +204,8 @@ class Colony {
     return {bois:Math.ceil(b.bois*k),pierre:Math.ceil(b.pierre*k)};
   }
   affordable(name){ const c=this.cost(name); return this.res.bois>=c.bois&&this.res.pierre>=c.pierre; }
-  missing(name){ const c=this.cost(name),m=[]; for(const r of ['bois','pierre']) if(this.res[r]<c[r]) m.push(`${c[r]-this.res[r]} ${r}`); return m.join(', '); }
+  // UX11 : quantités entières à l'affichage (overlay + chat) ; l'équilibrage interne garde ses fractions.
+  missing(name){ const c=this.cost(name),m=[]; for(const r of ['bois','pierre']) if(this.res[r]<c[r]) m.push(`${Math.ceil(c[r]-this.res[r])} ${r}`); return m.join(', '); }
   phareActive(){ return !!(this.special&&this.now()<this.special.until); }
   chat(user,text){
     const [cmd,arg]=String(text).trim().toLowerCase().split(/\s+/);
@@ -257,7 +258,7 @@ class Colony {
     const saving=this.stage===this.STAGES.length-1&&this.wonderCost();
     const opts=saving?[]:Object.keys(BUILDINGS).filter(b=>this.unlocked(b)&&this.affordable(b));
     const wc=this.wonderCost(); if(this.wonderOpen()&&wc&&(this.wonderFinal()?this.wonderDepositOk():this.res.bois>=wc.bois&&this.res.pierre>=wc.pierre)) opts.push('merveille');
-    if(!opts.length&&saving){ this._log(`🏛️ Le village épargne pour la ${WONDER.name} (${this.wonderStep()}) : il manque ${Math.max(0,wc.bois-Math.floor(this.res.bois))} bois, ${Math.max(0,wc.pierre-Math.floor(this.res.pierre))} pierre`); return false; }
+    if(!opts.length&&saving){ this._log(`🏛️ Le village épargne pour la ${WONDER.name} (${this.wonderStep()}) : il manque ${Math.max(0,Math.ceil(wc.bois-this.res.bois))} bois, ${Math.max(0,Math.ceil(wc.pierre-this.res.pierre))} pierre`); return false; }
     if(!opts.length){ this._log(`Rien d'abordable : il manque ${this.missing('hutte')} pour une hutte. À vos !bois !`); return false; }
     return this.startVote(opts);
   }

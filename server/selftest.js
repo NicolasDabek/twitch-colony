@@ -351,6 +351,26 @@ console.log('mécaniques OK');}
   console.log('GD11: exact raid bounds, independent noise, real critical repairs, long cadence, massive Bits timing OK');
 }
 
+
+// UX11 : aucun « il manque » avec décimale (overlay, chat, logs), et :hover seulement sous @media (hover:hover).
+{ const {Colony:C}=require('./game'); let T=2e12; const msgs=[];
+  for(const frac of [0.191685489488044,0.5,0.999]){
+    const g=new C({cooldownMs:0,now:()=>T,seed:7}); g.res.bois=20+frac; g.res.pierre=3+frac/3; g.res.nourriture=50;
+    g.chat('a','!construire tour'); g.chat('a','!construire carriere'); g.autoVote(); g.build('tour');
+    g.startVote(['hutte','attendre']); g._queueBuild('a','tour'); g.vote.ends=0; T+=1000; g.tick();
+    const w=new C({cooldownMs:0,now:()=>T,seed:7}); w.stage=6; w.wonder=2; w.res.bois=10.37+frac; w.res.pierre=4.2; w.autoVote(); w.stage=4; w.wonder=0; w.buildWonder();
+    const ns=g.state().nextAffordable; if(ns&&!ns.affordable) msgs.push('il manque '+ns.missing);
+    for(const x of [g,w]) for(const l of x.log.concat(x.feed)) msgs.push(l.m); }
+  const manque=msgs.filter(m=>/il manque/.test(m)); assert.ok(manque.length>=5,'UX11 : messages « il manque » générés');
+  for(const m of manque) assert.ok(!/\d[.,]\d/.test(m),'UX11 décimale : '+m);
+  for(const f of ['public/style.css','public/demo.css','public/3d/style.css']){ const css=fs.readFileSync(path.join(__dirname,'..',f),'utf8').replace(/\/\*[\s\S]*?\*\//g,'');
+    const stack=[];
+    for(const m of css.matchAll(/[^{}]*\{|\}/g)){ const t=m[0].trim();
+      if(t==='}'){ stack.pop(); continue; }
+      if(t.startsWith('@media')){ stack.push(/hover\s*:\s*hover/.test(t)?'hover':'media'); continue; }
+      if(/:hover/.test(t)) assert.ok(stack.includes('hover'),`UX11 ${f} : ${t.trim()} hors @media (hover:hover)`);
+      stack.push('rule'); } }
+  console.log('UX11 (il manque sans décimale, :hover sous @media (hover:hover)) OK'); }
 // ─── Sécurité serveur (revue du 17/10) ───
 { const {buildConfig}=require('./config'),{isInside,MAX_BODY,CSP}=require('./http-util'),{userOf}=require('./twitch');
   assert.strictEqual(buildConfig({}).config.host,'127.0.0.1','écoute locale par défaut');
