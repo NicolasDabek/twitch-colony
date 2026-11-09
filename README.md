@@ -108,6 +108,15 @@ Le **Grand Foyer** occupe le centre de la carte (le Phare de la session s'y allu
 
 **[Audit complet avant/après : 105 parties par version, graines 1 à 5](docs/gd11-audit.md)**, avec toutes les audiences, les deux mesures de creux et les réparations critiques effectives. La politique du chat dans le simulateur n'a pas changé. `node server/gd11-audit.js` reproduit les tableaux ; `--json` conserve chaque partie et ses raids. `npm test` vérifie les bornes GD11 exactes, la défense gratuite, l'indépendance du bruit/calendrier vis-à-vis des paiements, le surplus purement cosmétique, les invariants et l'unicité du h1 de l'overlay (UX10).
 
+### Passe GD12 : climax préparable et lisible
+
+- **Raid de climax** (une fois, annoncé 3 min avant, au plus tôt à max(2 h 30, accès complet − 30 min), pendant l'avant-dernière tranche de la Merveille) : la préparation gratuite du chat compte. Chaque viewer **différent** qui tape `!reparer` pendant l'annonce ajoute un **renfort** (même Foyer plein ; besoin : max(3, 25 % des actifs)). Tension = 0,6 × (1 − préparation) + 0,25 × tours manquantes + 0,15 × retard ; la graine ne garde que ±3 PV. Le panneau affiche **« À défense max : −X PV »**, les renforts et le défi **« Tenir la brèche »** (Foyer ≥ 25 PV après l'impact ; récompense gratuite : butin, fête, badge, points). Une brèche ne retire jamais plus de 92 (±3) PV d'un coup ; si le Foyer tombe, la horde revient 12 min plus tard.
+- **Fin** : au moins 15 min après l'impact du climax (cible 15–45 min). Le climax remplace le raid du cycle ; en longue, trêve des raids après un climax tenu.
+- **Cérémonie** : « Merveille prête » → jalon cosmétique toutes les 10 min jusqu'à l'accès complet ; jalon d'épargne (annonce seule) à mi-tranche.
+- 20 viewers en normale, 10 graines : PV min **préparé 38 / 41 / 43**, **typique 29 / 32 / 34** (vacillant 10/10), **passif au climax 5 / 8 / 10** (aucune Chute) ; écart préparé − passif 33 par graine. Climax → fin **15–33 min** (avant 6–117) ; PV min longue ≥ 29 ; creux de progression courte/normale ≤ 18 min.
+
+**[Audit GD12 avant/après : 270 parties par version, graines 1 à 10](docs/gd12-audit.md)** — `node server/gd12-audit.js` (`--json`, `--seeds=N`). Le simulateur ajoute deux politiques limitées à l'annonce du climax (« préparé », « passif au climax ») ; les sept politiques GD11 sont inchangées.
+
 ## Bits et subs : effets de session uniquement
 
 Tous les effets payants sont **déterministes, limités à la session en cours et plafonnés**. Une fois la Merveille prête, les nouveaux Bits/subs vont exclusivement à l’Éclat cosmétique (aucun effet du tableau ci-dessous) :

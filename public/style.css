@@ -68,6 +68,8 @@ body{margin:0;font-family:system-ui,sans-serif;color:#fff;background:transparent
 .boards{display:grid;grid-template-columns:1fr 1fr;gap:12px}.boards .row{display:flex;justify-content:space-between;font-size:14px;padding:1px 0;gap:6px}.boards .row span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.boards b{color:#ffd23f}
 .howto{margin:0;padding-left:18px;font-size:13px;line-height:1.45}.howto code{font-size:12px!important;padding:0 5px!important}
 .threat.ok{color:#9fe39f}.threat.bad{color:#ffb0a0}
+/* GD12 : bloc climax (texte ≥ 13 px, mêmes couleurs que la menace) */
+.clx{font-size:13px;line-height:1.35;margin-top:3px}.clx.ok{color:#9fe39f}.clx.bad{color:#ffb0a0}
 .big-title{font-size:30px;font-weight:900;margin-bottom:6px}.rv{margin-top:10px;font-size:18px;font-weight:700}.rv .pbar{height:16px}
 .me{font-size:13px;color:#e4dcff;background:rgba(145,70,255,.18);border-radius:8px;padding:5px 8px;margin-top:6px}
 #ov .colL{gap:8px}#ov .colL .card{padding:9px 14px}#ov .colR{gap:8px}#ov .colR .card{padding:9px 14px}

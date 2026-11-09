@@ -129,7 +129,7 @@ console.log('équilibrage OK');
   assert.ok(g.feteUntil>=T+2*60000-1); assert.ok(g.nextThreat.guard&&g.nextThreat.type==='raid'&&g.nextThreat.at===T+3*60000); assert.strictEqual(g.raidPower(),Math.min(base+6,Math.max(base,g.defenseMaxFree())),'garde plafonnée à la défense gratuite max'); assert.ok(/22 %/.test(g.alert.m));
   assert.ok(g.buildWonder()); assert.ok(/36 %/.test(g.alert.m)); assert.ok(g.buildWonder()); assert.ok(/50 %/.test(g.alert.m)); assert.ok(g.buildWonder()); assert.ok(/65 %/.test(g.alert.m));
   assert.ok(g.buildWonder()); assert.ok(/« flèche »/.test(g.alert.m)); assert.strictEqual(g.wonderMilestones,6); assert.ok(!g.completedAt);
-  g.buildings=Array(21).fill({type:'hutte'}); assert.ok(!g.buildWonder()&&g.state().wonder.opensAt===g.startedAt+WONDER.finalMinMs-WONDER.capRampMs,'dernière tranche : ouverture à 2 h 30'); T+=g.wonderFullMs(); assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,3); g._checkEnd(); assert.ok(g.completedAt);
+  g.buildings=Array(21).fill({type:'hutte'}); assert.ok(!g.buildWonder()&&g.state().wonder.opensAt===g.startedAt+WONDER.finalMinMs-WONDER.capRampMs,'dernière tranche : ouverture à 2 h 30'); T+=g.wonderFullMs(); assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,3); g._checkEnd(); assert.ok(!g.completedAt,'GD12 : pas de fin avant le climax'); g.climaxHitAt=T-FOYER.climax.minGapMs; g._checkEnd(); assert.ok(g.completedAt);
   for(const len of ['courte','normale','longue']){ const w=mk({gameLength:len}).WPH[2], n=mk({gameLength:len}).wonderParts(), parts=[...Array(n).keys()].map(i=>{ const h=mk({gameLength:len}); h.wonder=2; h.wonderPart=i; return h.wonderCost(); }); assert.strictEqual(parts.reduce((a,p)=>a+p.bois,0),w.bois); assert.strictEqual(parts.reduce((a,p)=>a+p.pierre,0),w.pierre); }
   // butin partagé : compté dans le plafond Bits (30 / 10 min)
   g=mk(); for(let i=0;i<12;i++) g.chat('x'+i,'!bois'); for(let i=0;i<4;i++) g.chat('d'+i,'!defendre'); /* passe GD 5 (force à 75 %) : 4 défenseurs, la défense gratuite ne suffit pas, les remparts Bits font la différence */ g.cheer('w',300); g.strategy='murs'; g._bitsGift(BITS_CAP.max); { const d=g.defense(); assert.ok(d.total-d.remparts<g.raidPower()&&d.total>=g.raidPower(),'remparts décisifs'); } g.forceRaid(); g.tick();
@@ -204,7 +204,7 @@ console.log('équilibrage OK');
     assert.ok(g.buildWonder()); assert.strictEqual(g.wonderPaid.bois,Math.round(c.bois/2)); assert.strictEqual(g.wonderMilestones,1,'jalon à 50 % de la dernière tranche'); assert.ok(g.objectives().mid.label.includes('accès complet dans'));
     assert.ok(!g.buildWonder(),'plafond atteint'); assert.ok(g.state().wonder.final&&g.state().wonder.final.cap===50);
     T=g.startedAt+g.wonderFullMs()-60000; assert.ok(g.buildWonder()); assert.ok(g.wonder===2&&!g.completedAt,'pas de fin avant 3 h');
-    T+=60000; assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,3); g._checkEnd(); assert.ok(g.completedAt-g.startedAt>=3*H*1000); T=1e12; }
+    T+=60000; assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,3); assert.ok(g.climaxDone&&g.nextThreat.climax,'GD12 : climax annoncé dès accès complet − 30 min'); g._threat(); assert.ok(g.breach.status!=='en cours'); g._checkEnd(); assert.ok(!g.completedAt,'GD12 : pas de fin pendant 15 min après le climax'); g.climaxHitAt=T-FOYER.climax.minGapMs+1; g._checkEnd(); assert.ok(!g.completedAt,'GD12 : fin ≥ 15 min après le climax'); T+=1; g._checkEnd(); assert.ok(g.completedAt-g.startedAt>=3*H*1000); T=1e12; }
   // longue : jalon à 50 % de la phase finale
   { const g=mk({gameLength:'longue'}); assert.ok(g.wonderCuts().includes(0.5)); }
   // creux de progression ≤ 45 min après la Cité et fin ≥ 3 h : 3 modes, avec et sans Bits, graines 1 à 3 (20 viewers) ; fin ≥ 3 h aussi à 5/50/200 viewers + Bits massifs
@@ -234,7 +234,7 @@ console.log('mécaniques OK');}
   g=mk(); g.res.bois=1e4; g.res.pierre=1e4; g.chat('x','!construire atelier'); assert.ok(!g.vote,'atelier verrouillé au Campement');
   // Merveille : 3 phases, débloquée à la Ville ; fin = Cité + Merveille
   g=mk(); g.res.bois=1e5; g.res.pierre=1e5; assert.ok(!g.buildWonder(),'Merveille verrouillée'); g.stage=4; assert.ok(g.buildWonder()); assert.ok(!g.buildWonder(),'phase 2 verrouillée avant la Grande ville'); assert.ok(g.badges.includes('merv1')); g.stage=5; assert.ok(g.buildWonder()); g.stage=6; T+=g.wonderFullMs(); /* dernière tranche complète après cérémonie */ for(let k=0,n=g.wonderParts();k<n;k++) assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,WONDER.phases.length); // la phase 3 ne s'ouvre qu'à la Cité
-  g._checkEnd(); assert.ok(g.completedAt,'Cité + Merveille = fin'); assert.ok(g.badges.includes('wonder'));
+  g.climaxHitAt=T-FOYER.climax.minGapMs; g._checkEnd(); assert.ok(g.completedAt,'Cité + Merveille = fin (climax passé)'); assert.ok(g.badges.includes('wonder'));
   // Badges
   g=mk(); g.res.bois=100; g.build('hutte'); assert.ok(g.badges.includes('first')); g.giftSubs('z',3); assert.ok(g.badges.includes('fete'));
   // Vote : +2 aux votants de l'option gagnante, classements séparés
@@ -352,6 +352,44 @@ console.log('mécaniques OK');}
 }
 
 
+
+// GD12 : climax préparable, lisible, placé 15–45 min avant la fin ; cérémonie rythmée. 10 graines, politique de simulation figée.
+{ const {Colony,FOYER}=require('./game'), sim=require('./simulate'), H=3600, S=[...sim.SCENARIOS,...sim.CLIMAX_SCENARIOS], by={};
+  for(const len of ['courte','normale','longue']) for(const sc of S) by[len+'|'+sc.name]=Array.from({length:10},(_,i)=>sim.run(sc,{seed:i+1,gameLength:len}));
+  const med=a=>a.slice().sort((x,y)=>x-y)[a.length>>1];
+  for(const [k,runs] of Object.entries(by)) for(const [i,r] of runs.entries()){ const [len,name]=k.split('|'), tag=`GD12 ${len}/${name}/graine ${i+1}`;
+    assert.ok(r.chutes<=r.destructions3h,tag+' chutes > destructions'); assert.ok(r.end==null||r.end>=3*H,tag+' fin avant 3 h'); assert.ok(r.over==null||r.over>=3*H,tag+' défaite avant 3 h');
+    if(/négligé/.test(name)){ assert.ok(r.over!=null&&r.end==null,tag+' le Foyer négligé doit perdre'); continue; }
+    assert.ok(r.end!=null&&r.over==null&&r.chutes===0,tag+' partie attentive gratuite');
+    assert.ok(r.climaxToEnd>=15*60&&r.climaxToEnd<=45*60,tag+` climax → fin ${r.climaxToEnd} s hors 15–45 min`);
+    if(len!=='longue'){ assert.ok(r.finaleGap<=20*60,tag+` creux de progression ${r.finaleGap} s > 20 min`); }
+    if(r.readyGap!=null) assert.ok(r.readyGap<=12*60,tag+` attente « prête » sans jalon ${r.readyGap} s > 12 min`);
+    if(len==='courte') assert.ok(r.end>=188*60&&r.end<=205*60,tag+' courte hors 3 h 08–3 h 25');
+    if(len==="longue"){ if(!/passif/.test(name)) assert.ok(r.minHp>=20,tag+` PV min longue ${r.minHp} < 20`); assert.ok(r.end>=315*60&&r.end<=345*60,tag+' longue hors 5 h 15–5 h 45'); assert.ok(r.finaleGap<=25*60&&r.eventGap<=25*60,tag+' creux longue > 25 min'); }
+    if(/passif/.test(name)) assert.strictEqual(r.breach,'manqué',tag+' passif : brèche non tenue'); else assert.strictEqual(r.breach,'réussi',tag+' attentif : brèche tenue');
+  }
+  // Objectif 1 (20 viewers, normale) : préparé 36–45, typique 26–38 avec un Foyer vacillant par graine, passif 2–15 sans Chute.
+  const P=by['normale|20 viewers, préparé'], T=by['normale|20 viewers (typique)'], Z=by['normale|20 viewers, passif au climax'];
+  P.forEach(r=>assert.ok(r.minHp>=36&&r.minHp<=45,'GD12 préparé PV min '+r.minHp)); T.forEach(r=>assert.ok(r.minHp>=26&&r.minHp<=38&&r.vacillant>=1,'GD12 typique PV min '+r.minHp));
+  Z.forEach(r=>assert.ok(r.minHp>=2&&r.minHp<=15&&r.chutes===0,'GD12 passif PV min '+r.minHp));
+  P.forEach((r,i)=>assert.ok(r.minHp-Z[i].minHp>=30,`GD12 écart préparé–passif graine ${i+1} : ${r.minHp-Z[i].minHp}`)); assert.ok(med(P.map(r=>r.minHp))-med(Z.map(r=>r.minHp))>=30);
+  assert.ok(med(P.map(r=>r.minHp))-med(T.map(r=>r.minHp))>=5,'GD12 la préparation change le PV min médian');
+  P.forEach((r,i)=>assert.ok(r.climax.prep>=r.climax.prepNeed&&r.climax.maxDmg<T[i].climax.maxDmg,'GD12 la préparation vient de renforts réels'));
+  // Mécanique : renforts gratuits, ±3 PV de graine, brèche plafonnée, aucun effet des Bits ni relance.
+  for(let seed=1;seed<=60;seed++){ let t=1e12; const g=new Colony({seed,now:()=>t,cooldownMs:0}); g.stage=6; g.wonder=2; g.wonderPart=g.wonderParts()-2; g.buildings=['tour','tour','tour']; g.res={bois:5000,pierre:5000,nourriture:500};
+    for(let i=0;i<20;i++) g.chat('v'+i,'!bois'); t=g.startedAt+g.wonderFullMs()-FOYER.climax.leadMs; g.tick(); assert.ok(g.nextThreat.climax&&g.breach.status==='en cours','GD12 climax annoncé');
+    const j=g.climaxJitter(); assert.ok(Math.abs(j)<=FOYER.climax.seedHp); const m0=g.climaxMaxDmg(), info=g.threatInfo(); assert.ok(info.climax&&info.climax.maxDmg===m0&&info.label.includes(`Force ${g.raidPower()}`));
+    g.cheer('payeur',300); g.cheer('payeur',5000); assert.strictEqual(g.climaxMaxDmg(),m0,'GD12 Bits sans effet sur la préparation'); assert.strictEqual(g.climaxJitter(),j);
+    for(let i=0;i<5;i++) g.chat('v'+i,'!reparer'); assert.strictEqual(g.foyer.hp,100); assert.strictEqual(g.climaxPrep.users.size,5); assert.ok(g.climaxMaxDmg()<=m0-8,'GD12 5 renforts gratuits : −8 PV ou mieux');
+    g.wallsUntil=0; t=g.nextThreat.at; g._threat(); assert.ok(g.lastRaid.dmg<=FOYER.climax.breach+FOYER.climax.seedHp,'GD12 brèche plafonnée'); assert.ok(g.foyer.hp>0); }
+  // Lisibilité : bloc climax rendu sans script ni style inline, texte présent ; annonce aria-live.
+  { const vm=require('vm'), js=fs.readFileSync(path.join(__dirname,'../public/panels.js'),'utf8'), live={textContent:''}, ctx={I:()=>'',document:{getElementById:id=>id==='live'?live:null},setTimeout:f=>f(),clearTimeout(){},Date,CSS:{escape:String}};
+    ctx.window=ctx; vm.createContext(ctx); vm.runInContext(js,ctx); const Pn=ctx.Panels;
+    let t=1e12; const g=new Colony({seed:4,now:()=>t,cooldownMs:0}); g.stage=6; g.wonder=2; g.wonderPart=g.wonderParts()-2; t=g.startedAt+g.wonderFullMs(); g.tick(); const s=JSON.parse(JSON.stringify(g.state()));
+    const h=Pn.threat(s); assert.ok(/Raid de CLIMAX/.test(h)&&/À défense max : −\d+ PV/.test(h)&&/Tenir la brèche/.test(h)&&/Renforts 0\/\d+/.test(h),'GD12 climax lisible');
+    assert.ok(!/\sstyle=|\son[a-z]+=|<script/i.test(h.slice(h.indexOf('<div class="clx"'))),'GD12 CSP : bloc climax sans inline'); Pn.liveState(s); Pn.liveState({...s,threat:{...s.threat,at:s.threat.at+1}}); assert.ok(/défense max/.test(live.textContent),'GD12 annonce aria-live du climax');
+    const css=fs.readFileSync(path.join(__dirname,'../public/style.css'),'utf8'); assert.ok(/\.clx\{font-size:1[3-9]px/.test(css),"GD12 texte climax ≥ 12 px"); }
+  console.log('GD12 (climax préparable et lisible, brèche, climax → fin 15–45 min, cérémonie, 10 graines) OK'); }
 // UX11 : aucun « il manque » avec décimale (overlay, chat, logs), et :hover seulement sous @media (hover:hover).
 { const {Colony:C}=require('./game'); let T=2e12; const msgs=[];
   for(const frac of [0.191685489488044,0.5,0.999]){

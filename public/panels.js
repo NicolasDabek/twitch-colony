@@ -17,7 +17,13 @@ function foyer(s){ const f=s.foyer; if(!f) return ''; const p=f.hp/f.max, d=s.de
   return `<div class="fy"><span class="fyl">${ico('foyer')} Grand Foyer</span>${bar(f.hp,f.max,'hp '+(p<.3?'low':p<.6?'mid':''))}<b>${f.hp}/${f.max} PV</b></div>`+
     `<div class="sub">${ico('bouclier')} Défense ${d.total||0} (tours ${d.tours||0} · défenseurs ${d.defenseurs||0}${d.remparts?' · remparts '+d.remparts:''}${d.strategie?' · murs '+d.strategie:''}) contre force ${s.raidPower||0} · <code>!defendre</code> <code>!reparer</code></div>`; }
 function threat(s){ const t=s.threatInfo; if(!t) return '';
-  return lastRaid(s)+`<h3><span>${t.type==='raid'?ico('raid')+(t.guard?' Raid « garde de la Merveille »':' Prochain raid'):ico('hiver')+' Prochain hiver'}</span><span class="pill ${t.ok?'calm':''}">${mmss(t.at)}</span></h3><div class="threat ${t.ok?'ok':'bad'}">${ico(t.ok?'ok':'warn')} ${esc(t.label)}</div>`+bar(t.have,t.need,t.ok?'ok':'bad'); }
+  return lastRaid(s)+breach(s)+`<h3><span>${t.type==='raid'?ico('raid')+(t.climax?' Raid de CLIMAX':t.guard?' Raid « garde de la Merveille »':' Prochain raid'):ico('hiver')+' Prochain hiver'}</span><span class="pill ${t.ok?'calm':''}">${mmss(t.at)}</span></h3><div class="threat ${t.ok?'ok':'bad'}">${ico(t.ok?'ok':'warn')} ${esc(t.label)}</div>`+bar(t.have,t.need,t.ok?'ok':'bad')+climax(t); }
+// GD12 : climax lisible — dégâts à défense max, renforts (!reparer) et défi « Tenir la brèche ».
+function climax(t){ const c=t&&t.climax; if(!c) return '';
+  return `<div class="clx"><b>À défense max : −${c.maxDmg} PV</b> · Renforts ${c.prep}/${c.prepNeed} (<code>!reparer</code>)</div>`+
+    `<div class="clx ${c.holdOk?'ok':'bad'}">${ico(c.holdOk?'ok':'warn')} Défi « Tenir la brèche » : Foyer ≥ ${c.hold} PV${c.holdOk?'':' — renforcez !'}</div>`; }
+function breach(s){ const B=s.breach; if(!B||B.status==='en cours'||!B.at||clk()-B.at>5*60000) return '';
+  return `<div class="raidres ${B.status==='réussi'?'ok':'bad'}">${ico(B.status==='réussi'?'ok':'warn')} Défi « Tenir la brèche » ${B.status} : Foyer à ${B.hp} PV (objectif ${B.hold})${B.reward?` · récompense +${B.reward.bois} bois, +${B.reward.pierre} pierre`:''}</div>`; }
 function boards(s){ const med=['1.','2.','3.','4.','5.'];
   const b=(s.leaderboard||[]).slice(0,3).map((l,i)=>`<div class="row"><span>${med[i]} ${esc(l.name)}</span>${l.title?`<b>${l.pts} · Fondateur</b>`:`<span>${l.pts}</span>`}</div>`).join('')||'<div class="sub">Tapez !bois pour apparaître</div>';
   const m=(s.patronsBoard||[]).slice(0,3).map((l,i)=>`<div class="row"><span>${med[i]} ${esc(l.name)}</span><span>${l.pts}</span></div>`).join('')||'<div class="sub">Aucun soutien pour l\'instant</div>';
@@ -25,7 +31,7 @@ function boards(s){ const med=['1.','2.','3.','4.','5.'];
 function howto(s){ const T=(s&&s.bitsTiers)||[{bits:100},{bits:300},{bits:500},{bits:1500},{bits:5000}], f=n=>Number(n).toLocaleString('fr-FR'); return `<h3><span>${ico('aide')} Comment participer</span></h3><ul class="howto">
 <li><b>Gratuit :</b> <code>!bois</code> <code>!pierre</code> <code>!chasse</code> récoltent · <code>!vote …</code> choisit · <code>!construire …</code> propose (3 propositions max en attente pendant un vote)</li>
 <li><code>!rejoindre bûcheron|mineur|chasseur|garde</code> : +50 % sur ton métier · présence 3 × 10 min : +25 %</li>
-<li><code>!defendre</code> protège le Foyer (raid repoussé = butin pour le village, raid perdu = pillage) · <code>!reparer</code> (10 bois + 5 pierre) : +5 PV · <code>!aide</code></li>
+<li><code>!defendre</code> protège le Foyer (raid repoussé = butin pour le village, raid perdu = pillage) · <code>!reparer</code> (10 bois + 5 pierre) : +5 PV, ou renfort pendant l'annonce du climax · <code>!aide</code></li>
 <li><b>Bits (session uniquement, plafonnés) :</b> ${f(T[0].bits)} ressources · ${f(T[1].bits)} remparts · ${f(T[2].bits)} Phare · ${f(T[3].bits)} Bénédiction · ${f(T[4].bits)} orage</li></ul>`; }
 function me(s,u){ const v=s.viewers&&s.viewers[u]; if(!v) return `<div class="sub">${ico('user')} ${esc(u)} : pas encore de contribution</div>`;
   const cd=Object.entries(v.cd||{}).filter(([c,ms])=>ms>0).map(([c,ms])=>`${c} ${Math.ceil(ms/1000)} s`).join(' · ');
@@ -46,7 +52,7 @@ function pending(s){ const q=s.pendingBuilds||[]; if(!q.length) return ''; retur
 // Vote : état vide (aucun vote en cours) avec la façon dont le prochain s'ouvre.
 const voteEmpty=()=>`<div class="vempty"><b>Aucun vote en cours</b><span>Le prochain s'ouvre automatiquement (toutes les 3 min par défaut) dès qu'un bâtiment est abordable, ou quand un viewer tape <code>!construire hutte</code>.</span></div>`;
 // Annonces polies pour lecteurs d'écran (région #live, aria-live="polite") : retours de commande et votes.
-let liveT=null, lastVoteKey=null, lastFeedT=0, primed=false, lastRaidT=null, lastStageT=null;
+let lastClimaxAt=null, liveT=null, lastVoteKey=null, lastFeedT=0, primed=false, lastRaidT=null, lastStageT=null;
 function announce(m){ const el=document.getElementById('live'); if(!el||!m) return; const t=String(m).replace(/<[^>]*>/g,'').trim(); el.textContent=''; clearTimeout(liveT); liveT=setTimeout(()=>{ el.textContent=t; },60); }
 function liveState(s,user){ if(!s) return; const msgs=[];
   const vk=s.vote?s.vote.title+'|'+s.vote.ends:null;
@@ -54,6 +60,7 @@ function liveState(s,user){ if(!s) return; const msgs=[];
   else if(!vk&&lastVoteKey) msgs.push('Vote terminé.'+(s.alert&&Math.abs((s.now||Date.now())-s.alert.t)<5000?' '+s.alert.m:''));
   lastVoteKey=vk;
   const L=s.lastRaid; if(L&&L.t!==lastRaidT){ if(primed) msgs.push(L.dmg?`Raid perdu : le Foyer perd ${L.dmg} PV.${L.stolen?` Pillage : ${stolenTxt(L.stolen,'moins ').replace(', ',' et ')}.`:' Réserves cachées : rien n\'a été volé.'}`:`Raid repoussé !${L.reward?` Butin${L.shared?` partagé grâce aux remparts de ${L.shared}`:''} : plus ${L.reward.bois} bois et plus ${L.reward.pierre} pierre.`:''}`); lastRaidT=L.t; }
+  const C=s.threatInfo&&s.threatInfo.climax; if(C&&s.threat&&s.threat.at!==lastClimaxAt){ if(primed) msgs.push(`Raid de climax annoncé : à défense max, moins ${C.maxDmg} PV. Renforts ${C.prep} sur ${C.prepNeed} avec !reparer. Défi Tenir la brèche : Foyer à ${C.hold} PV ou plus après l'impact.`); lastClimaxAt=s.threat.at; }
   if(primed&&s.alert&&s.alert.kind==='stage'&&s.alert.t!==lastStageT) msgs.push(s.alert.m); if(s.alert&&s.alert.kind==='stage') lastStageT=s.alert.t;
   const feed=primed?(s.feed||[]).filter(f=>f.t>lastFeedT):[]; if(s.feed&&s.feed.length) lastFeedT=Math.max(lastFeedT,...s.feed.map(f=>f.t));
   primed=true;

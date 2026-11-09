@@ -10,22 +10,32 @@ const SCENARIOS=[
   {name:'20 viewers, Bits massifs',viewers:20,bits:'massifs'},
   {name:'20 viewers, Foyer négligé',viewers:20,bits:'modérés',neglect:true},
 ];
+// GD12 : deux politiques de chat AU CLIMAX seulement (le reste de la partie = 20 viewers typique).
+// « préparé » : pendant l'annonce, chaque viewer !reparer une fois (renfort), !defendre et vote « murs ».
+// « passif au climax » : pendant l'annonce, personne ne défend, ne répare ni ne vote ; jeu attentif ensuite.
+const CLIMAX_SCENARIOS=[
+  {name:'20 viewers, préparé',viewers:20,bits:'modérés',climax:'prepare'},
+  {name:'20 viewers, passif au climax',viewers:20,bits:'modérés',climax:'passive'},
+];
 // Rythme réaliste : chaque viewer actif envoie en moyenne une commande toutes les 30 s.
 function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength,repair=true}={}){
   let T=1e12; const r=mulberry(seed*7919+sc.viewers), g=new Colony({now:()=>T,rng:r,seed,gameLength});
-  const users=Array.from({length:sc.viewers},(_,i)=>'v'+i), reached={}, start=T; let firstBuild=null, minHp=100, over=null, lastPk=null, lastEv=''; let criticalRepairs=0,criticalHpRestored=0; const chat=g.chat.bind(g); g.chat=(u,text)=>{const hp=g.foyer.hp; chat(u,text); if(text==='!reparer'&&hp>0&&hp<=g.FO.vacillantAt&&g.foyer.hp>hp){criticalRepairs++;criticalHpRestored+=g.foyer.hp-hp;}}; const events=[], allEv=[],raidLog=[]; const raid=g._raid.bind(g); g._raid=()=>{const noise=g.raidNoise();raid();raidLog.push({...g.lastRaid,hp:g.foyer.hp,freeMax:g.defenseMaxFree(),repairs:g.stats.repairs,noise,at:(T-start)/1000});};
+  const users=Array.from({length:sc.viewers},(_,i)=>'v'+i), reached={}, start=T; let firstBuild=null, minHp=100, over=null, lastPk=null, lastEv=''; let criticalRepairs=0,criticalHpRestored=0; const chat=g.chat.bind(g); g.chat=(u,text)=>{const hp=g.foyer.hp; chat(u,text); if(text==='!reparer'&&hp>0&&hp<=g.FO.vacillantAt&&g.foyer.hp>hp){criticalRepairs++;criticalHpRestored+=g.foyer.hp-hp;}}; const events=[], allEv=[],raidLog=[]; let climax=null, readyAt=null; const raid=g._raid.bind(g); g._raid=()=>{const noise=g.raidNoise(), cl=g.nextThreat.climax?{hpBefore:g.foyer.hp,maxDmg:g.climaxMaxDmg?g.climaxMaxDmg():Math.max(0,g.raidPower()-g.defenseMaxFree()),prep:g.climaxPrep?g.climaxPrep.users.size:0,prepNeed:g.climaxPrepNeed?g.climaxPrepNeed():null}:null; raid(); const l={...g.lastRaid,hp:g.foyer.hp,freeMax:g.defenseMaxFree(),repairs:g.stats.repairs,noise,at:(T-start)/1000}; raidLog.push(l); if(cl) climax={...cl,at:l.at,dmg:l.dmg,pow:l.pow,def:l.def,freeMax:l.freeMax,hpAfter:l.hp,breach:g.breach&&g.breach.status};};
   STAGES.forEach((s,i)=>{ if(i===0) reached[s.name]=0; });
   // Rôles : 70 % des viewers rejoignent un métier (!rejoindre), et le jouent 60 % du temps.
   const RO=['bûcheron','mineur','chasseur','garde'], RC={'bûcheron':'!bois','mineur':'!pierre','chasseur':'!chasse','garde':'!bois'}, role={};
   users.forEach((u,i)=>{ if(r()<.7){ role[u]=RO[i%7===6?3:i%3]; g.chat(u,'!rejoindre '+role[u]); } });
   const pick=u=>{ const need=g.pop*3, food=g.res.nourriture;
     if(g.revival) return '!rallumer';
+    const clp=sc.climax&&g.nextThreat.climax&&g.nextThreat.at>T, passive=clp&&sc.climax==='passive';
+    if(clp&&sc.climax==='prepare'){ if(g.climaxPrep&&!g.climaxPrep.users.has(u)) return '!reparer'; if(!g.defenders[u]) return '!defendre'; }
+    if(passive){ if(role[u]&&r()<.6) return RC[role[u]]; return r()<.35?'!pierre':r()<.85?'!bois':'!chasse'; }
     // Passe GD 10 : chat attentif — chaque viewer défend au moins une fois dans la fenêtre, sans bloquer la récolte.
     if(!sc.neglect&&g.nextThreat.type==='raid'&&g.nextThreat.at-T<=3*60000&&(role[u]==='garde'||!g.defenders[u]||r()<.35)) return '!defendre';
     if(!sc.neglect&&repair&&g.foyer.hp<70&&r()<.25) return '!reparer'; if(role[u]&&r()<.6) return RC[role[u]];
     if(food<need&&r()<.6) return '!chasse'; if(r()<.35) return '!pierre'; return r()<.85?'!bois':'!chasse'; };
   const want=opts=>{ const s=g.state();
-    if(opts.includes('murs')){ if(sc.neglect) return r()<.5?'reserves':'murs'; // chat négligent : stratégie votée au hasard
+    if(opts.includes('murs')){ if(sc.climax==='passive'&&g.nextThreat.climax) return null; if(sc.neglect) return r()<.5?'reserves':'murs'; // chat négligent : stratégie votée au hasard
       return 'murs'; } // Passe GD 10 : chat attentif vote toujours « murs »
     if(opts.includes('merveille')&&(g.buildings.length>=21||r()<.5)) return 'merveille';
     if(!sc.neglect&&opts.includes('tour')&&s.towers<s.towersNeeded) return 'tour';
@@ -36,22 +46,25 @@ function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength,repair=true}={}){
     T+=1000;
     for(const u of users) if(r()<1/cmdEverySec) g.chat(u,pick(u));
     if(sec%180===0) g.autoVote();
-    if(g.vote&&!g.vote.simVoted){ g.vote.simVoted=true; const w=want(g.vote.options); for(const u of users) if(r()<.5) g.chat(u,'!vote '+(r()<.8?w:g.vote.options[0])); }
+    if(g.vote&&!g.vote.simVoted){ g.vote.simVoted=true; const w=want(g.vote.options); if(w!=null) for(const u of users) if(r()<.5) g.chat(u,'!vote '+(r()<.8?w:g.vote.options[0])); }
     if(sc.bits==='modérés'){ if(sec%600===300) g.cheer('m',100); if(sec%3600===1800) g.cheer('m',500); if(sec%900===450) g.sub('s'+sec); if(sec%7200===3600) g.giftSubs('G',5); }
     if(sc.bits==='massifs'){ if(sec%120===60) g.cheer('M',500); if(sec%300===150) g.sub('S'+sec); if(sec%600===0) g.cheer('M',1500); if(sec%1800===900) g.giftSubs('G',10); if(sec%3600===0&&sec) g.cheer('M',5000); }
     g.tick();
     if(firstBuild===null&&g.buildings.length) firstBuild=sec;
     const st=STAGES[g.stage].name; if(reached[st]===undefined) reached[st]=sec;
     if(g.wonder===WONDER.phases.length&&reached.Merveille===undefined) reached.Merveille=sec;
-    const pk=g.wonder+'.'+g.wonderPart+'.'+g.stage+'.'+(g.wonderMilestones||0)+'.'+(g.wonderCapOpened?1:0)+'.'+(g.assaultDone?1:0)+'.'+(g.climaxDone?1:0)+'.'+(g.readyAnnounced?1:0); if(pk!==lastPk){ lastPk=pk; events.push(sec); }
+    const pk=g.wonder+'.'+g.wonderPart+'.'+g.stage+'.'+(g.wonderMilestones||0)+'.'+(g.wonderCapOpened?1:0)+'.'+(g.assaultDone?1:0)+'.'+(g.climaxDone?1:0)+'.'+(g.readyAnnounced?1:0)+'.'+(g.ceremonySteps||0)+'.'+(g.saveMarks||0); if(pk!==lastPk){ lastPk=pk; events.push(sec); }
     // Évènements visibles (jalon, palier, raid, défi gagné) pour mesurer les creux en fin de partie.
     const ek=pk+'.'+g.stats.raids+'.'+g.defisWon; if(ek!==lastEv){ lastEv=ek; allEv.push(sec); }
+    if(readyAt==null&&g.readyAnnounced) readyAt=sec;
     minHp=Math.min(minHp,g.foyer.hp); if(g.gameOver){ over=sec; break; }
     if(g.completedAt){ reached.Fin=sec; break; }
   }
   const cite=reached[STAGES[STAGES.length-1].name], ev=cite==null?[]:events.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); const ev2=cite==null?[]:allEv.filter(t=>t>=cite).concat(reached.Fin!=null?[reached.Fin]:[]); let eventGap=0; for(let i=1;i<ev2.length;i++) eventGap=Math.max(eventGap,ev2[i]-ev2[i-1]);
   let finaleGap=0; for(let i=1;i<ev.length;i++) finaleGap=Math.max(finaleGap,ev[i]-ev[i-1]);
-  return {name:sc.name,finaleGap,eventGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,chutes:g.chutes,vacillant:g.vacillant||0,repairs:g.stats.repairs,criticalRepairs,criticalHpRestored,finalHp:g.foyer.hp,raidLog,destructions3h:g.stats.destructions3h,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
+  // GD12 : attente « Merveille prête » → accès complet : plus long intervalle sans jalon de progression (cérémonie comprise).
+  const fullAt=g.wonderFullMs()/1000; let readyGap=null; if(readyAt!=null&&readyAt<fullAt){ const w=[readyAt,...events.filter(t=>t>readyAt&&t<fullAt),Math.min(fullAt,reached.Fin??fullAt)]; readyGap=0; for(let i=1;i<w.length;i++) readyGap=Math.max(readyGap,w[i]-w[i-1]); }
+  return {name:sc.name,climax,climaxToEnd:g.completedAt&&climax?(g.completedAt-start)/1000-climax.at:null,breach:g.breach&&g.breach.status,readyAt,fullAt,readyGap,ceremonySteps:g.ceremonySteps||0,finaleGap,eventGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,chutes:g.chutes,vacillant:g.vacillant||0,repairs:g.stats.repairs,criticalRepairs,criticalHpRestored,finalHp:g.foyer.hp,raidLog,destructions3h:g.stats.destructions3h,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
 }
 const fmt=s=>s==null?'—':s<3600?Math.round(s/60)+' min':Math.floor(s/3600)+' h '+String(Math.round(s%3600/60)).padStart(2,'0');
 function table(results){
@@ -74,4 +87,4 @@ function seedTable(rows){ const T=a=>a?a.map(fmt).join(' / '):'—', P=a=>a.map(
   for(const r of rows) t+=`| ${r.name} | ${r.len} | ${T(r.end)} | ${r.minHp.join(' / ')} | ${P(r.rate)} | ${Math.round(r.gap/60)} min | ${Math.round(r.eventGap/60)} min | ${V(r.vacillant)} | ${r.chutes} | ${r.over}/${r.n} |\n`; return t; }
 if(require.main===module){ const res=all().concat(modes()); const ns=+((process.argv.find(a=>a.startsWith('--seeds='))||'').split('=')[1]||5);
   if(process.argv.includes('--json')) console.log(JSON.stringify(res,null,1)); else { console.log(table(res)); console.log(seedTable(seeds(Math.max(5,ns)))); } }
-module.exports={run,all,modes,table,seeds,seedTable,SCENARIOS,CASES};
+module.exports={run,all,modes,table,seeds,seedTable,SCENARIOS,CLIMAX_SCENARIOS,CASES};
