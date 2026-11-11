@@ -1,6 +1,6 @@
 {
   "name": "twitch-colony",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Colonie communautaire pour stream Twitch (overlay OBS)",
   "main": "server/index.js",

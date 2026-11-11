@@ -1,5 +1,7 @@
 # Twitch Colony 🛖
 
+**Version 1.0.0** — voir [CHANGELOG.md](CHANGELOG.md).
+
 Jeu de **colonie communautaire** affiché sur un stream Twitch : le chat récolte, vote et construit ensemble. Overlay HTML/JS à ajouter comme **source navigateur OBS**, servi par un petit serveur Node **sans aucune dépendance** (pas de CDN, pas de `npm install`).
 
 > « Les Bits permettent à la communauté d'influencer la partie en direct. Ils ne donnent accès à aucun objet, compte, service ou avantage en dehors de ce stream. »
@@ -20,18 +22,38 @@ C'est une version 100 % navigateur hébergée sur GitHub Pages. Elle utilise la 
 - Caméra : glisser / WASD / flèches pour déplacer, molette ou pincement pour zoomer (×0,1, carte entière, à ×4), Q/E pour pivoter d'un quart de tour.
 - `three.module.js` (r160) est fourni dans le dépôt (aucun CDN).
 
-## Lancer
+## Installation et lancement
+
+Prérequis : **Node.js 18 ou plus récent**. Aucune dépendance à installer (pas de `npm install`, pas de CDN).
 
 ```bash
-node server/index.js      # ou npm start (Node 18+)
-npm test                  # tests de la logique de jeu
+git clone https://github.com/NicolasDabek/twitch-colony.git
+cd twitch-colony
+cp .env.example .env      # puis remplissez-le (voir « Configurer Twitch ») ; sans .env : mode simulation
+npm start                 # ou node server/index.js
+npm test                  # tests (logique, équilibrage sur 10 graines, sécurité, serveur réel)
 ```
+
+Le serveur écoute sur `http://127.0.0.1:3000` par défaut. `GET /healthz` renvoie la version et le mode (`sim` ou `twitch`). Ctrl+C arrête proprement le serveur.
 
 - Overlay (OBS, 1280×720) : http://localhost:3000/overlay.html
 - Simulateur (boutons + clavier, sans Twitch) : http://localhost:3000/sim.html
 - Confidentialité : http://localhost:3000/confidentialite.html
 
 Le simulateur (et la démo en ligne) regroupe les actions par blocs : Vote, Récolter, Construire, Soutiens, et Outils (repliés). Il affiche le cooldown de 5 s sur les boutons et a une mise en page mobile. L'overlay montre des alertes centrales (subs, Bits, constructions, menaces) et les 3 dernières actions.
+
+### Mode simulation
+
+Avec `MODE=sim` (par défaut, ou sans `.env`), aucun compte Twitch n'est nécessaire : `/sim.html` envoie de faux messages de chat, Bits et subs au serveur (`POST /api/sim`, évènements validés, 30 requêtes/s au maximum, même origine uniquement). En `MODE=twitch`, `/api/sim` est désactivé (403). La démo en ligne fait tourner le même jeu entièrement dans le navigateur.
+
+### Ajouter à OBS
+
+1. Lancez le serveur (`npm start`) sur le PC qui fait tourner OBS.
+2. OBS → **Sources** → **+** → **Navigateur**. URL : `http://localhost:3000/overlay.html` (vue 2D) ou `http://localhost:3000/3d/?obs` (village 3D, fond transparent). Largeur **1280**, hauteur **720**.
+3. Cochez « Actualiser le navigateur quand la scène devient active » si vous changez souvent de scène. Pas de CSS personnalisé nécessaire.
+4. Pour tester avant le live : ouvrez `http://localhost:3000/sim.html` dans un navigateur (en `MODE=sim`).
+
+L'overlay se reconnecte tout seul au serveur (SSE). Si le serveur redémarre, **une nouvelle partie commence** (voir « Limites connues »).
 
 Raccourcis du simulateur : **B** !bois · **P** !pierre · **C** !chasse · **V** lancer un vote · **1** 100 Bits · **5** 500 Bits · **S** sub.
 
@@ -54,7 +76,7 @@ Raccourcis du simulateur : **B** !bois · **P** !pierre · **C** !chasse · **V*
 ## Enjeux de la partie
 
 - **Paliers** : Campement → Hameau (3 bâtiments) → Village (6) → Bourg (10) → Ville (15) → **Grande ville (18)** → Cité (21). Moins d'une heure entre deux paliers avec une audience typique. **Fin de la partie = Cité + Merveille**, avec une annonce de victoire et la durée.
-- **Durée de partie** (`GAME_LENGTH` dans `.env`) : `courte` (≈ 3 h 30), `normale` (≈ 3 h 45, par défaut) ou `longue` (≈ 5 h 30). Toujours au moins 3 h, même avec beaucoup de Bits. Les réglages partagés serveur / démo sont dans `server/game-config.js`.
+- **Durée de partie** (`GAME_LENGTH` dans `.env`) : `courte` (≈ 3 h 15), `normale` (≈ 3 h 45, par défaut) ou `longue` (≈ 5 h 30). Toujours au moins 3 h, même avec beaucoup de Bits. Les réglages partagés serveur / démo sont dans `server/game-config.js`.
 - **Coûts** : coût de base × 2,4 × 1,25 par exemplaire déjà construit × 1,10 par bâtiment déjà construit (partie normale). Les coûts ne dépendent pas du nombre de viewers.
 - **Adaptation à l'audience** : on compte les viewers actifs A, lissés sur 10 min. Au-delà de 5, chaque commande rapporte (5/A)^0,92 de sa valeur de base. La progression totale n'augmente donc que d'environ 25 % entre 5 et 100 viewers, et chaque commande compte toujours (le gain s'affiche dans le fil, par ex. « +0,4 »).
 - **Logement** : villageois max = 3 + 2 par hutte + 1 pour 3 autres bâtiments. Un sub sans place libre donne de la nourriture.
@@ -127,7 +149,7 @@ Tous les effets payants sont **déterministes, limités à la session en cours e
 | **300** | **Remparts** : +15 défense du Foyer pendant 10 min (20 min restantes au maximum) |
 | **500** | **Phare de la session** : gains du chat ×1,5 pendant 10 min (3 fois par heure au maximum) |
 | **1 500** | **Bénédiction** : production passive ×2 pendant 5 min (une fois par heure au maximum) |
-| **5 000** (objectif communautaire, par paliers) | **orage magique** (ciel sombre, pluie, éclairs) 2 min + cadeau au village (+60 bois, +30 pierre, +30 nourriture) ; pendant l'orage, `!bois` donne aussi 1 pierre |
+| **5 000** (objectif communautaire, par paliers) | **orage magique** (ciel sombre, pluie, éclairs) 2 min + cadeau au village (+60 bois, +30 pierre, +30 nourriture) ; pendant l'orage, `!bois` donne aussi 1 pierre. Un seul Bits qui franchit plusieurs paliers ne déclenche **qu'un** orage (6 min au plus) et **qu'un** cadeau ; **6 cadeaux par heure au maximum** |
 
 - **Sub** = un villageois **nommé d'après l'abonné**, visible sur la carte (2 villageois offerts au maximum par 20 min et selon le logement), sinon de la nourriture.
 - **Subs offerts** = **fête au village** (2 min) + 5 nourriture par sub (dans le plafond).
@@ -189,7 +211,23 @@ Ensuite, lancez `npm start`. Au démarrage :
 - si le jeton a expiré et que `TWITCH_REFRESH_TOKEN`, `TWITCH_CLIENT_ID` et `TWITCH_CLIENT_SECRET` sont fournis, il est renouvelé automatiquement (en mémoire uniquement, le fichier `.env` n'est pas modifié) ;
 - les secrets ne sont jamais affichés en clair dans les logs (ils sont masqués).
 
-`server/twitch.js` lit le chat IRC de Twitch (TLS natif, sans dépendance), les Bits (tag `bits`) et les subs (`USERNOTICE`). En mode twitch, le simulateur est désactivé. **À faire** : passer à EventSub (`channel.cheer`, `channel.subscribe`) avec `TWITCH_EVENTSUB_SECRET`.
+`server/twitch.js` lit le chat IRC de Twitch (TLS natif, sans dépendance), les Bits (tag `bits`) et les subs (`USERNOTICE`). En mode twitch, le simulateur est désactivé. Robustesse : reconnexion automatique (5 s puis jusqu'à 2 min), prise en compte de la commande `RECONNECT` de Twitch, reconnexion si plus aucune donnée pendant 6 min, renouvellement du jeton s'il est refusé en cours de stream (avec `TWITCH_REFRESH_TOKEN`). Les subs offerts en groupe comptent une seule fois. EventSub n'est pas utilisé en 1.0 (`TWITCH_EVENTSUB_SECRET` est réservé).
+
+## Vie privée
+
+- Seuls le **pseudo public** Twitch et les commandes de la session sont utilisés, **en mémoire uniquement** : rien n'est écrit sur disque, les journaux du serveur ne contiennent ni pseudos ni messages, et les secrets y sont masqués.
+- `!optout` retire le pseudo des classements Bâtisseurs et Mécènes et des villageois nommés pour la session (`!optin` pour revenir). Classements remis à zéro à chaque stream.
+- Page à lier dans le panneau de la chaîne : `/confidentialite.html`.
+
+## Limites connues (1.0.0)
+
+- **Pas de sauvegarde** : l'état de la partie vit en mémoire. Un redémarrage du serveur (ou un crash) relance une partie neuve. Prévoyez de lancer le serveur avant le stream et de ne pas le couper.
+- **Test Twitch réel** : l'adaptateur IRC est testé avec des lignes IRC réelles et une connexion simulée (reconnexion, `RECONNECT`, Bits, subs), pas encore sur un live avec un vrai jeton.
+- Un seul streamer par serveur ; l'overlay n'est pas fait pour être exposé sur Internet (écoute locale par défaut).
+
+## Licence
+
+Code sous licence **MIT** (fichier [LICENSE](LICENSE)). Composant tiers : three.js r160 (MIT), voir [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Structure
 
