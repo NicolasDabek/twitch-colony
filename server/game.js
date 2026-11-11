@@ -55,7 +55,8 @@ const STAGE_BADGES=['','hameau','village','bourg','ville','grandeville','cite'];
 // Progression totale ∝ A^(1-YIELD_EXP) : 5 → 100 viewers ≈ +25 %. Les coûts ne dépendent plus du nombre de viewers.
 const YIELD_REF=5, YIELD_EXP=0.92, ACTIVE_SMOOTH_MS=10*60000;
 const SUB_POP={windowMs:20*60000,max:2}, PHARE_QUOTA=3, TOTAL_GROWTH=1.19, CHAT_MULT_PHARE=1.5, PHARE_MAX_MS=20*60000, BITS_CAP={windowMs:10*60000,max:30};
-const GOAL_STEP=GC.DEFAULTS.goalStep, GOAL_GIFT={bois:60,pierre:30,nourriture:30};
+const GOAL_STEP=GC.DEFAULTS.goalStep, GOAL_GIFT={bois:60,pierre:30,nourriture:30}, GOAL_QUOTA={windowMs:60*60000,max:6,stormMaxMs:6*60000};
+const KNOWN_CMDS=new Set(['!aide','!bois','!pierre','!chasse','!defendre','!reparer','!rejoindre','!rallumer','!vote','!construire']);
 const MIN=60000, PHARE_MS=10*MIN, ORAGE_MS=2*MIN, THREAT_MS=15*MIN, ACTIVE_WINDOW=5*MIN;
 
 // ─── Placement 3D (village isométrique) ───
@@ -201,6 +202,8 @@ class Colony {
   _feed(m){ this.feed.unshift({t:this.now(),m}); this.feed=this.feed.slice(0,3); }
   _alert(kind,m){ this.alert={kind,m,t:this.now()}; this._log(m); }
   _credit(user,pts){ if(!user||!pts||this.optout.has(user.toLowerCase())) return; this.leaders[user]=(this.leaders[user]||0)+pts; }
+  // Opt-out : retiré de tous les classements publics (bâtisseurs, mécènes) et des villageois nommés, pour la session.
+  _optout(user){ const u=user.toLowerCase(); this.optout.add(u); for(const m of [this.leaders,this.builders,this.patrons]) for(const k of Object.keys(m)) if(k.toLowerCase()===u) delete m[k]; this.named=this.named.filter(x=>String(x).toLowerCase()!==u); }
   _cool(user,cmd){ const k=user+cmd,n=this.now(); if(this.last[k]&&n-this.last[k]<this.cooldownMs) return false; this.last[k]=n; return true; }
   count(name){ return this.buildings.filter(b=>b===name).length; }
   activeViewers(){ const n=this.now(); return Object.values(this.seen).filter(t=>n-t<=ACTIVE_SMOOTH_MS).length; }
@@ -215,11 +218,14 @@ class Colony {
   missing(name){ const c=this.cost(name),m=[]; for(const r of ['bois','pierre']) if(this.res[r]<c[r]) m.push(`${Math.ceil(c[r]-this.res[r])} ${r}`); return m.join(', '); }
   phareActive(){ return !!(this.special&&this.now()<this.special.until); }
   chat(user,text){
-    const [cmd,arg]=String(text).trim().toLowerCase().split(/\s+/);
-    if(cmd==='!optout'){ this.optout.add(user.toLowerCase()); delete this.leaders[user]; this._log(`${user} ne figure plus au classement`); return; }
+    // 1.0.0 : entrées bornées (pseudo ≤ 40 caractères, message ≤ 500) ; cooldown par commande connue, un seul seau pour le reste
+    // (la mémoire ne grossit pas avec les mots du chat).
+    if(typeof user!=='string'||!(user=user.trim().slice(0,40))) return;
+    const [cmd,arg]=String(text??'').slice(0,500).trim().toLowerCase().split(/\s+/);
+    if(cmd==='!optout'){ this._optout(user); this._log(`${user} ne figure plus au classement`); return; }
     if(cmd==='!optin'){ this.optout.delete(user.toLowerCase()); return; }
+    if(!this._cool(user,KNOWN_CMDS.has(cmd)?cmd:'*')) return;
     if(cmd==='!aide'){ this._feed(`❔ Commandes : !bois !pierre !chasse · !defendre !reparer · !rejoindre garde · !vote <option> · !construire <bâtiment> · !rejoindre bûcheron|mineur|chasseur · !optout`); return; }
-    if(!this._cool(user,cmd)) return;
     this.seen[user]=this.now(); const wk=Math.floor(this.now()/STREAK_WIN); (this.windows[user]=this.windows[user]||new Set()).add(wk);
     if(cmd==='!rejoindre'){ const r=ROLES[arg]; if(!r) return; const nm=arg==='bucheron'?'bûcheron':arg; this.roles[user]=nm; this._feed(`🧭 ${user} devient ${nm} (+50 % sur ${r})`); return; }
     if(this.revival&&cmd==='!rallumer'){ this.revival.who.add(user); this._feed(`🔥 ${user} ravive le Foyer (${this.revival.who.size}/${this.revival.viewers})`); this._builder(user,2); this._checkRevival(); return; }
@@ -303,7 +309,7 @@ class Colony {
   cheer(user,bits){
     bits=Math.max(0,Math.floor(bits)); if(!bits) return; this.bitsTotal+=bits; this._patron(user,Math.floor(bits/25));
     // Passe GD 7 : Merveille prête avant 3 h → les Bits vont à l'Éclat (score cosmétique de session : aucune ressource, aucun avantage, rien après le stream).
-    const ready=this.wonderReady(); if(ready){ const e=Math.round(bits/10); this.eclat+=e;  this._alert('bits',`✨ ${user} : ${bits} Bits → +${e} Éclat de la ${WONDER.name} (${this.eclat}) · inauguration dans ${Math.max(1,Math.ceil((this.startedAt+this.wonderFullMs()-this.now())/60000))} min`); while(this.bitsTotal>=this.goal.to){ this.goalsReached++; this.goal={from:this.goal.to,to:this.goal.to+this.goalStep,tier:this.goal.tier+1,label:'Éclat de la cérémonie'}; } return; }
+    const ready=this.wonderReady(); if(ready){ const e=Math.round(bits/10); this.eclat+=e;  this._alert('bits',`✨ ${user} : ${bits} Bits → +${e} Éclat de la ${WONDER.name} (${this.eclat}) · inauguration dans ${Math.max(1,Math.ceil((this.startedAt+this.wonderFullMs()-this.now())/60000))} min`); const k=this._goalTiers(); if(k){ this.goalsReached+=k; const to=this.goal.to+(k-1)*this.goalStep; this.goal={from:to,to:to+this.goalStep,tier:this.goal.tier+k,label:'Éclat de la cérémonie'}; } return; }
     const want=ready?0:Math.round(bits/10), wood=want?this._bitsGift(want):0; this.res.bois+=wood;
     if(wood<want) this._feed(`💎 Merci ${user} ! Plafond de ressources Bits atteint pour 10 min (+${wood} bois au lieu de +${want}) : les effets spéciaux restent actifs`);
     const T=this.tiers;
@@ -321,14 +327,17 @@ class Colony {
     } else if(bits<T.remparts) this._alert('bits',`💎 ${user} : ${bits} Bits → +${wood} bois`);
     // Objectif communautaire par paliers : chaque palier atteint déclenche l'orage magique (session uniquement, sans hasard),
     // offre un cadeau de ressources à toute la colonie, puis la barre repart vers le palier suivant.
-    while(this.bitsTotal>=this.goal.to){
-      const n=this.now(); this.goalsReached++;
-      this.weather='orage magique'; this.weatherUntil=Math.max(this.weatherUntil||0,n)+ORAGE_MS;
-      for(const k in GOAL_GIFT) this.res[k]+=GOAL_GIFT[k]; this._badge('orage');
-      this._alert('goal',`⚡ Objectif communautaire ${this.goal.tier} atteint : ORAGE MAGIQUE ! Cadeau au village : +${GOAL_GIFT.bois} bois, +${GOAL_GIFT.pierre} pierre, +${GOAL_GIFT.nourriture} nourriture. Pendant 2 min, chaque !bois donne aussi 1 pierre`);
-      this.goal={from:this.goal.to,to:this.goal.to+this.goalStep,tier:this.goal.tier+1,label:'Orage magique'};
+    // 1.0.0 : un gros Bits franchit plusieurs paliers d'un coup ⇒ un seul orage (durée plafonnée) et un seul cadeau,
+    // cadeaux limités à GOAL_QUOTA.max par heure glissante : la progression ne s'achète pas.
+    const k=this._goalTiers(); if(k){ const n=this.now(), tier=this.goal.tier; this.goalsReached+=k;
+      this.weather='orage magique'; this.weatherUntil=Math.min(Math.max(this.weatherUntil||0,n)+ORAGE_MS,n+GOAL_QUOTA.stormMaxMs); this._badge('orage');
+      this.goalLog=(this.goalLog||[]).filter(t=>n-t<GOAL_QUOTA.windowMs); const gift=this.goalLog.length<GOAL_QUOTA.max; if(gift){ this.goalLog.push(n); for(const r in GOAL_GIFT) this.res[r]+=GOAL_GIFT[r]; }
+      const lbl=k>1?`Objectifs communautaires ${tier} à ${tier+k-1} atteints`:`Objectif communautaire ${tier} atteint`;
+      this._alert('goal',`⚡ ${lbl} : ORAGE MAGIQUE ! `+(gift?`Cadeau au village : +${GOAL_GIFT.bois} bois, +${GOAL_GIFT.pierre} pierre, +${GOAL_GIFT.nourriture} nourriture.`:`Cadeau déjà offert ${GOAL_QUOTA.max} fois cette heure-ci (plafond).`)+' Pendant 2 min, chaque !bois donne aussi 1 pierre');
+      const to=this.goal.to+(k-1)*this.goalStep; this.goal={from:to,to:to+this.goalStep,tier:tier+k,label:'Orage magique'};
     }
   }
+  _goalTiers(){ return this.bitsTotal>=this.goal.to?Math.floor((this.bitsTotal-this.goal.to)/this.goalStep)+1:0; }
   // Plafond des ressources offertes par les Bits : BITS_CAP.max unités par fenêtre glissante de 10 min,
   // pour qu'une session ne puisse pas être « achetée » en quelques minutes.
   _bitsGift(n){ const t=this.now(); this.bitsLog=(this.bitsLog||[]).filter(e=>t-e.t<BITS_CAP.windowMs);
@@ -339,7 +348,7 @@ class Colony {
   housing(){ const h=this.count('hutte'); return 3+2*h+Math.floor((this.buildings.length-h)/3); }
   sub(user){ if(this.wonderReady()){ this.eclat+=20; this._patron(user,20); this._alert('sub','✨ Abonnement : Éclat de la cérémonie uniquement.'); return; } this._patron(user,20); this.res.nourriture+=this._bitsGift(10);
     const n0=this.now(); this.subPopLog=(this.subPopLog||[]).filter(t=>n0-t<SUB_POP.windowMs);
-    if(this.pop<this.housing()&&this.subPopLog.length<SUB_POP.max){ this.subPopLog.push(n0); this.pop+=1; if(user&&!this.named.includes(user)){ this.named.push(user); this.named=this.named.slice(-12); } this._alert('sub',`⭐ ${user} s'abonne : un villageois rejoint le village !`); }
+    if(this.pop<this.housing()&&this.subPopLog.length<SUB_POP.max){ this.subPopLog.push(n0); this.pop+=1; if(user&&!this.optout.has(String(user).toLowerCase())&&!this.named.includes(user)){ this.named.push(user); this.named=this.named.slice(-12); } this._alert('sub',`⭐ ${user} s'abonne : un villageois rejoint le village !`); }
     else { this.res.nourriture+=this._bitsGift(10); this._alert('sub',`⭐ ${user} s'abonne : de la nourriture pour le village (plus de place ou plafond de 2 villageois offerts / 20 min atteint)`); } }
   _threat(){
     const t=this.nextThreat.type, lvl=this.stage+1, cl=!!this.nextThreat.climax;
@@ -362,6 +371,8 @@ class Colony {
   climaxTruce(){ return !!(this.FO.climax.truce&&this.climaxHitAt&&!this.climaxFell&&!this.completedAt); }
   tick(){
     const n=this.now(); this.ticks++; this._checkEnd();
+    // 1.0.0 : purge des cooldowns expirés (toutes les 10 min) : la mémoire suit l'audience présente, pas la durée du stream.
+    if(this.ticks%600===0) for(const k in this.last) if(n-this.last[k]>=this.cooldownMs) delete this.last[k];
     // Ouverture progressive du chantier final selon le calendrier de session (indépendant du paiement).
     if(!this.wonderCapOpened&&!this.gameOver&&this.wonderFinal()&&this.stage>=WONDER.phaseStage[this.wonder]&&n-this.startedAt>=this.wonderOpenMs()&&n-this.startedAt<this.wonderFullMs()){ this.wonderCapOpened=true;
       this._alert('stage',`🏛️ ${WONDER.name} : le chantier final ouvre ! Les dépôts sont plafonnés et s'ouvrent peu à peu, accès complet dans ${Math.ceil((this.startedAt+this.wonderFullMs()-n)/60000)} min. !construire merveille`); }

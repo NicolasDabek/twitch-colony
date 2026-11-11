@@ -410,6 +410,42 @@ console.log('mécaniques OK');}
       stack.push('rule'); } }
   console.log('UX11 (il manque sans décimale, :hover sous @media (hover:hover)) OK'); }
 // ─── Sécurité serveur (revue du 17/10) ───
+// 1.0.0 : audit de release — entrées validées, IRC robuste, Bits plafonnés même en un seul gros Bits, opt-out complet, mémoire bornée.
+{ const {cleanSimEvent,rateLimiter,sameOrigin}=require('./http-util'),{handleLine,startTwitch,unescapeTag}=require('./twitch'),{Colony:C,mulberry:mb}=require('./game'),{run:R,SCENARIOS:SC}=require('./simulate');
+  assert.deepStrictEqual(cleanSimEvent({type:'chat',user:'A',text:'!bois'}),{type:'chat',user:'A',text:'!bois'});
+  for(const bad of [null,[],'x',{type:'eval'},{type:'chat',user:{x:1},text:'!bois'},{type:'chat',user:'A'},{type:'cheer',bits:-5},{type:'cheer',bits:'1e9'},{type:'cheer',bits:1.5},{type:'gift',n:500},{type:'build',name:'__proto__'},{type:'build'}]) assert.strictEqual(cleanSimEvent(bad),null,'sim refusé : '+JSON.stringify(bad));
+  assert.strictEqual(cleanSimEvent({type:'cheer'}).bits,100); assert.strictEqual(cleanSimEvent({type:'chat',user:'x'.repeat(99),text:'y'.repeat(9999)}).text.length,500); assert.strictEqual(cleanSimEvent({type:'sub',user:'  '}).user,'Viewer');
+  { let t=0; const ok=rateLimiter(3,()=>t); assert.deepStrictEqual([ok(),ok(),ok(),ok()],[true,true,true,false]); t=1000; assert.ok(ok()); }
+  assert.ok(sameOrigin({headers:{host:'127.0.0.1:3000'}})&&sameOrigin({headers:{host:'127.0.0.1:3000',origin:'http://127.0.0.1:3000'}})&&!sameOrigin({headers:{host:'127.0.0.1:3000',origin:'https://evil.example'}})&&!sameOrigin({headers:{host:'h',origin:'%%'}}));
+  // IRC : PING, RECONNECT, Bits, subs offerts groupés comptés une fois, display-name échappé.
+  { const calls=[]; const g={chat:(u,m)=>calls.push(['chat',u,m]),cheer:(u,b)=>calls.push(['cheer',u,b]),sub:u=>calls.push(['sub',u]),giftSubs:(u,n)=>calls.push(['gift',u,n])};
+    assert.strictEqual(handleLine(g,'PING :tmi.twitch.tv'),'pong'); assert.strictEqual(handleLine(g,':tmi.twitch.tv RECONNECT'),'reconnect'); assert.strictEqual(handleLine(g,'@x=1 :tmi.twitch.tv RECONNECT'),'reconnect');
+    assert.strictEqual(handleLine(g,':tmi.twitch.tv NOTICE * :Login authentication failed'),'auth'); assert.strictEqual(handleLine(g,':bot.tmi.twitch.tv 366 bot #c :End of /NAMES list'),'joined');
+    handleLine(g,'@bits=100;display-name=Le\\sChat :lechat!lechat@lechat.tmi.twitch.tv PRIVMSG #c :Cheer100 !bois'); handleLine(g,'@bits=abc;display-name=A :a!a@a.tmi.twitch.tv PRIVMSG #c :!bois');
+    handleLine(g,'@msg-id=submysterygift;msg-param-mass-gift-count=5;display-name=G :tmi.twitch.tv USERNOTICE #c'); handleLine(g,'@msg-id=subgift;msg-param-community-gift-id=99;msg-param-recipient-display-name=R;display-name=G :tmi.twitch.tv USERNOTICE #c');
+    handleLine(g,'@msg-id=subgift;msg-param-recipient-display-name=Solo;display-name=G :tmi.twitch.tv USERNOTICE #c'); handleLine(g,'@msg-id=resub;display-name=S :tmi.twitch.tv USERNOTICE #c');
+    assert.deepStrictEqual(calls,[['cheer','Le Chat',100],['chat','A','!bois'],['gift','G',5],['sub','Solo'],['sub','S']]); assert.strictEqual(unescapeTag('a\\:b\\\\c'),'a;b\\c'); }
+  // Reconnexion : fermeture → nouvelle connexion ; RECONNECT → nouvelle connexion ; le jeton n'apparaît dans aucun journal.
+  { const EE=require('events'); const socks=[], logs=[]; const log={log:m=>logs.push(m),warn:m=>logs.push(m),error:(...a)=>logs.push(a.join(' '))};
+    const realST=global.setTimeout; global.setTimeout=(f,ms)=>{ const h=realST(()=>{},0); if(ms<=120000) f(); return h; };
+    const fake=(port,host,cb)=>{ const s=new EE(); s.written=''; s.write=d=>{ s.written+=d; }; s.destroy=()=>s.emit('close'); socks.push(s); process.nextTick(cb); return s; };
+    const ctl=startTwitch({chat(){},cheer(){},sub(){},giftSubs(){}},{token:'secrettoken1234567890',botUsername:'bot',channel:'c'},log,{connectFn:fake,idleMs:1e9});
+    socks[0].emit('close'); assert.strictEqual(socks.length,2,'reconnexion après fermeture'); socks[1].emit('data',':tmi.twitch.tv RECONNECT\r\n'); assert.strictEqual(socks.length,3,'reconnexion sur RECONNECT');
+    ctl.stop(); global.setTimeout=realST; assert.ok(!logs.join('\n').includes('secrettoken'),'jeton jamais journalisé'); }
+  // Bits : un Bits géant = un seul cadeau et un orage borné ; cadeaux plafonnés par heure ; aucun hasard.
+  { let T=3e12; const g=new C({cooldownMs:0,now:()=>T,seed:3}); const b0=g.res.bois; g.cheer('Riche',1e9); assert.ok(g.res.bois-b0<=60+30,'un seul cadeau : '+(g.res.bois-b0)); assert.ok(g.weatherUntil-T<=6*60000); assert.strictEqual(g.goalsReached,200000);
+    const g2=new C({cooldownMs:0,now:()=>T,seed:3}); let gifts=0; for(let i=0;i<10;i++){ const p=g2.res.pierre; g2.cheer('M',5000); if(g2.res.pierre-p>=30) gifts++; T+=60000; } assert.ok(gifts<=6,'cadeaux plafonnés : '+gifts); }
+  // Opt-out : retiré des classements bâtisseurs ET mécènes et des villageois nommés ; plus crédité ensuite.
+  { let T=3e12; const g=new C({cooldownMs:0,now:()=>T}); g.chat('Nico','!bois'); g.cheer('Nico',100); g.sub('Nico'); assert.ok(g.state().leaderboard.some(x=>x.name==='Nico'));
+    g.chat('Nico','!optout'); const s=g.state(); assert.ok(!s.leaderboard.some(x=>x.name==='Nico')&&!s.patronsBoard.some(x=>x.name==='Nico')&&!g.named.includes('Nico'),'opt-out complet');
+    T+=10000; g.chat('Nico','!bois'); g.cheer('Nico',100); assert.ok(!g.state().leaderboard.some(x=>x.name==='Nico')&&!g.state().patronsBoard.some(x=>x.name==='Nico')); g.chat('Nico','!optin'); T+=10000; g.chat('Nico','!bois'); assert.ok(g.state().leaderboard.some(x=>x.name==='Nico')); }
+  // Entrées de chat : pseudo non texte ignoré, message borné, mémoire des cooldowns bornée (bavardage ≠ nouvelle clé).
+  { let T=3e12; const g=new C({now:()=>T}); g.chat(null,'!bois'); g.chat({},'!bois'); g.chat('A',null); g.chat('A',{});
+    for(let i=0;i<500;i++){ T+=6000; g.chat('U'+(i%5),'mot'+i+' bla'); } assert.ok(Object.keys(g.last).length<=6,'cooldowns bornés : '+Object.keys(g.last).length);
+    T+=11*60000; for(let i=0;i<600;i++) g.tick(); assert.strictEqual(Object.keys(g.last).length,0,'cooldowns expirés purgés'); }
+  // Écart connu GD12 corrigé : 5 viewers ≥ 75 % (et ≤ 88 %) de raids repoussés sur 10 graines dans les 3 modes.
+  for(const len of ['courte','normale','longue']) for(let seed=1;seed<=10;seed++){ const r=R(SC.find(s=>s.name==='5 viewers'),{seed,gameLength:len}), q=r.repelled/r.raids; assert.ok(q>=0.75&&q<=0.88,`5 viewers ${len} graine ${seed} : ${(100*q).toFixed(1)} %`); }
+  console.log('1.0.0 (sim validé, IRC/reconnexion, Bits géant plafonné, opt-out complet, mémoire bornée, 5 viewers ≥ 75 % sur 10 graines) OK'); }
 { const {buildConfig}=require('./config'),{isInside,MAX_BODY,CSP}=require('./http-util'),{userOf}=require('./twitch');
   assert.strictEqual(buildConfig({}).config.host,'127.0.0.1','écoute locale par défaut');
   assert.strictEqual(buildConfig({HOST:'0.0.0.0'}).config.host,'0.0.0.0'); assert.ok(buildConfig({HOST:'a b'}).errors.length);
@@ -439,11 +475,16 @@ console.log('mécaniques OK');}
     let r=await req({path:'/overlay.html'}); assert.strictEqual(r.status,200);
     assert.strictEqual(r.headers['x-content-type-options'],'nosniff'); assert.strictEqual(r.headers['content-security-policy'],CSP);
     r=await req({path:'/api/sim',method:'POST',headers:{'Content-Type':'application/json'}},JSON.stringify({type:'chat',user:'T',text:'!bois'})); assert.strictEqual(r.body,'ok');
+    r=await req({path:'/api/sim',method:'POST'},JSON.stringify({type:'cheer',user:'T',bits:'1e9'})); assert.strictEqual(r.status,400,'Bits hors bornes → 400');
+    r=await req({path:'/api/sim',method:'POST',headers:{Origin:'https://evil.example'}},JSON.stringify({type:'reset'})); assert.strictEqual(r.status,403,'origine tierce → 403');
+    r=await req({path:'/api/sim'}); assert.strictEqual(r.status,405); r=await req({path:'/nope'}); assert.strictEqual(r.status,404); assert.strictEqual(r.headers['x-content-type-options'],'nosniff');
+    r=await req({path:'/healthz'}); assert.strictEqual(JSON.parse(r.body).version,require('../package.json').version);
+    for(const p of ['/sim.html','/3d/','/confidentialite.html','/api/state']){ r=await req({path:p}); assert.strictEqual(r.status,200,p); assert.strictEqual(r.headers['content-security-policy'],CSP,p+' CSP'); }
     r=await req({path:'/api/sim',method:'POST',headers:{'Content-Type':'application/json'}},'x'.repeat(MAX_BODY+1)); assert.strictEqual(r.status,413,'corps > 10 Ko → 413');
     r=await new Promise(ok=>{ const q=http.request({host:'127.0.0.1',port,path:'/api/sim',method:'POST',headers:{'Transfer-Encoding':'chunked'}},res=>{ res.resume(); ok({status:res.statusCode}); }); q.on('error',()=>ok({status:'reset'})); q.write('y'.repeat(8000)); q.write('y'.repeat(8000)); q.end(); });
     assert.strictEqual(r.status,413,'flux sans Content-Length > 10 Ko → 413');
     for(const p of ['/../server/index.js','/..%2fserver%2findex.js','/../.env','/%2e%2e/.env']){ const b=await raw(`GET ${p} HTTP/1.1`); assert.ok(!/^HTTP\/1\.1 200/.test(b),'traversée refusée : '+p); }
-    srv.kill(); console.log('serveur HTTP (127.0.0.1, 413, nosniff + CSP, traversée) OK');
+    srv.kill(); console.log('serveur HTTP (127.0.0.1, 413, 400/403/405, nosniff + CSP partout, traversée, /healthz) OK');
   })().catch(fail); }
 
 // UX10: the mobile gate is visual only; overlay retains exactly one accessible h1.
