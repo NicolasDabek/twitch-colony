@@ -38,7 +38,10 @@ const FOYER={max:100,regenMs:2*60000,raidBase:22,raidStep:6,smallBelow:8,smallRa
   // GD12 : climax PRÉPARABLE. La préparation gratuite (renforts !reparer pendant l'annonce) remplace l'ancien poids graine 0,6 ;
   // la graine ne garde que ±seedHp PV. Brèche : un climax n'abat jamais plus de breach (±seedHp) PV d'un coup, le surplus pille le chantier.
   // Calendrier : annonce au plus tôt à atMs ET à (accès complet − leadMs), pendant l'avant-dernière tranche ; fin ≥ minGapMs après l'impact.
-  climax:{atMs:150*60000,inMs:3*60000,leadMs:30*60000,minGapMs:15*60000,bonus:55,bonusSpread:14,seedHp:3,breach:92,holdHp:25,prep:{min:3,perActive:0.25},fullK:1},vacillantAt:40,
+  // GD13 : renforts max(3, 25 % des actifs), max(2, 25 %) sous 8 actifs ; mobilisation (défenseurs depuis l'annonce, même besoin) :
+  // une audience qui ne se mobilise pas subit jusqu'à mobK PV de plus ; « murs » par défaut au climax seulement si la garde est mobilisée ;
+  // palier cosmétique « Brèche scellée » (≥ sealHp PV) ; avance de l'annonce tirée sur la graine (lead.min + lead.span × u).
+  climax:{atMs:150*60000,inMs:3*60000,leadMs:30*60000,lead:{min:20*60000,span:18*60000},minGapMs:15*60000,bonus:54,bonusSpread:14,prepK:9.5,mobK:20,mobLateMs:30000,seedHp:3,breach:92,holdHp:25,sealHp:38,prep:{min:3,smallMin:2,perActive:0.25},fullK:1},vacillantAt:40,
   // GD11 : assaut à 1 h 45, toutes audiences ; petite perte récupérable sans Bits.
   assault:{atMs:105*60000,inMs:3*60000,bonus:10,fullK:1,minViewers:1}};
 // GD12 : cérémonie (cosmétique) entre « Merveille prête » et l'accès complet : un jalon visible au plus toutes les 10 min.
@@ -46,7 +49,7 @@ const CEREMONY={everyMs:10*60000,feteMs:60000,steps:['bannières hissées','lant
 const BLESS_MS=5*60000, BLESS_QUOTA={windowMs:60*60000,max:1}; // au plus 5 min de Bénédiction par heure
 const DEFIS=[{type:'gather',cmd:'!bois',res:'bois',label:'coupez du bois'},{type:'vote',label:'votez nombreux au prochain vote'},{type:'gather',cmd:'!pierre',res:'pierre',label:'taillez de la pierre'},{type:'gather',cmd:'!chasse',res:'nourriture',label:'chassez'},{type:'survive',label:'survivez à la prochaine menace sans perte'}];
 const PENDING_MAX=3, DEFI_EVERY=5*60000, DEFI_MS=3*60000;
-const BADGES={breche:'Brèche tenue',first:'Premières fondations',raid:'Raid repoussé',winter:'Hiver survécu',defi3:'3 défis réussis',orage:'Orage magique',fete:'Fête au village',wonder:'Merveille achevée',cite:'Cité !',hameau:'Hameau',village:'Village',bourg:'Bourg',ville:'Ville',grandeville:'Grande ville',merv1:'Merveille : phase 1',merv2:'Merveille : phase 2'};
+const BADGES={breche:'Brèche tenue',scellee:'Brèche scellée',first:'Premières fondations',raid:'Raid repoussé',winter:'Hiver survécu',defi3:'3 défis réussis',orage:'Orage magique',fete:'Fête au village',wonder:'Merveille achevée',cite:'Cité !',hameau:'Hameau',village:'Village',bourg:'Bourg',ville:'Ville',grandeville:'Grande ville',merv1:'Merveille : phase 1',merv2:'Merveille : phase 2'};
 // Paliers : la partie est TERMINÉE quand la colonie devient une Cité (objectif de session, ≥ 3 h avec une audience typique).
 const STAGES=[{name:'Campement',min:0},{name:'Hameau',min:3},{name:'Village',min:6},{name:'Bourg',min:10},{name:'Ville',min:15},{name:'Grande ville',min:18},{name:'Cité',min:21}];
 const STAGE_BADGES=['','hameau','village','bourg','ville','grandeville','cite'];
@@ -192,7 +195,7 @@ class Colony {
   // Passe GD 8 : premier jalon = « fondations », dernier avant la tranche finale = « flèche ».
   _wonderNamed(half){ if(half) return null; const k=this.wonderPart, P=this.wonderParts(); return k===1?GC.NAMED.fondations:k===P-1?GC.NAMED.fleche:null; }
   // GD12 : la cérémonie attend la fin du climax (impact + minGapMs) : la tension retombe avant l'inauguration.
-  climaxSettled(){ const C=this.FO.climax; return !!this.climaxHitAt&&!this.climaxFell&&!(this.nextThreat&&this.nextThreat.climax)&&this.now()>=this.climaxHitAt+(C.minGapMs||0); }
+  climaxSettled(){ const C=this.FO.climax; return !!this.climaxHitAt&&!this.climaxFell&&!(this.nextThreat&&this.nextThreat.climax)&&this.now()>=this.climaxHitAt+this.climaxMinGapMs(); }
   _checkEnd(){ if(this.gameOver||this.revival||this.now()-this.startedAt<WONDER.finalMinMs||this.completedAt||this.stage<this.STAGES.length-1||this.wonder<this.WPH.length||!this.climaxSettled()) return; this.completedAt=this.now(); const m=Math.round((this.completedAt-this.startedAt)/60000);
     this._alert('stage',`🏆 Partie terminée : Cité et ${WONDER.name} achevées en ${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')} ! Bravo le chat !`+(this.chutes?` Bilan : ${this.chutes} chute${this.chutes>1?'s':''} du Foyer surmontée${this.chutes>1?'s':''}.`:' Bilan : aucune chute du Foyer.')); }
   rates(){ const bl=this.now()<this.blessUntil?2:1, f=this.count('ferme'), m=this.count('marche');
@@ -231,10 +234,11 @@ class Colony {
     if(this.revival&&cmd==='!rallumer'){ this.revival.who.add(user); this._feed(`🔥 ${user} ravive le Foyer (${this.revival.who.size}/${this.revival.viewers})`); this._builder(user,2); this._checkRevival(); return; }
     if(cmd==='!defendre'){ if(this.revival||this.gameOver) return; this.defenders[user]=this.now(); this._feed(`🛡️ ${user} ${this.roles[user]==='garde'?'(garde) ':''}défend le Foyer`); this._builder(user,1); return; }
     if(cmd==='!reparer'){ const c=this.FO.repair, prep=this.climaxPending()&&this.climaxPrep; if(this.revival||this.gameOver||(this.foyer.hp>=this.foyer.max&&!prep)) return;
+      // GD13 : pendant l'annonce du climax, le renfort est un geste du viewer (gratuit, sans ressources) : chaque viewer distinct qui tape !reparer compte.
+      // Les PV, eux, coûtent toujours des ressources du village.
+      if(prep){ const had=prep.users.has(user); prep.users.add(user); if(!had) this._builder(user,1); if(this.foyer.hp>=this.foyer.max||this.res.bois<c.bois||this.res.pierre<c.pierre){ this.stats.renforts=(this.stats.renforts||0)+1; this._feed(`🧱 ${user} renforce la brèche (${Math.min(prep.users.size,this.climaxPrepNeed())}/${this.climaxPrepNeed()} renforts, à défense max −${this.climaxMaxDmg()} PV)`); return; } }
       if(this.res.bois<c.bois||this.res.pierre<c.pierre){ this._feed(`🔧 ${user} : réparer coûte ${c.bois} bois + ${c.pierre} pierre`); return; }
       this.res.bois-=c.bois; this.res.pierre-=c.pierre;
-      // GD12 : pendant l'annonce du climax, chaque viewer distinct qui répare renforce la brèche (préparation gratuite, ressources du village).
-      if(prep){ const had=prep.users.has(user); prep.users.add(user); if(!had) this._builder(user,1); if(this.foyer.hp>=this.foyer.max){ this.stats.renforts=(this.stats.renforts||0)+1; this._feed(`🧱 ${user} renforce la brèche (${Math.min(prep.users.size,this.climaxPrepNeed())}/${this.climaxPrepNeed()} renforts, à défense max −${this.climaxMaxDmg()} PV)`); return; } }
       this.foyer.hp=Math.min(this.foyer.max,this.foyer.hp+c.hp); if(this.foyer.hp>(this.FO.vacillantAt||55)) this.vacillantLatched=false; this.stats.repairs++; this._feed(`🔧 ${user} répare le Foyer (+${c.hp} PV → ${this.foyer.hp})`); this._builder(user,1); return; }
     const gain={'!bois':['bois',2],'!pierre':['pierre',1],'!chasse':['nourriture',2]}[cmd];
     if(gain){
@@ -281,7 +285,7 @@ class Colony {
   _closeVote(){
     const voters=this.vote.voters, c={}; Object.values(voters).forEach(o=>c[o]=(c[o]||0)+1); this.vote=null;
     // Passe GD 6 : vote de stratégie avec moins de FO.stratDefaultBelow votants ⇒ « murs » par défaut (déterministe, gratuit) : lisse la menace des petites audiences.
-    const nv=Object.keys(voters).length; if(this.FO.stratDefaultBelow&&nv<this.FO.stratDefaultBelow&&this._stratVote){ this._stratVote=false; this.strategy='murs'; this._log(`Vote de stratégie (${nv} votant${nv>1?'s':''}) : « murs » par défaut`); this._alert('vote','🛡️ Stratégie par défaut : renforcer les murs (+10 défense pour ce raid)'); return; }
+    const nv=Object.keys(voters).length; if(this.FO.stratDefaultBelow&&nv<this.FO.stratDefaultBelow&&this._stratVote&&!(this.nextThreat&&this.nextThreat.climax)){ this._stratVote=false; this.strategy='murs'; this._log(`Vote de stratégie (${nv} votant${nv>1?'s':''}) : « murs » par défaut`); this._alert('vote','🛡️ Stratégie par défaut : renforcer les murs (+10 défense pour ce raid)'); return; }
     this._stratVote=false;
     const max=Math.max(0,...Object.values(c)); if(!max){ this._log('Vote sans participants'); return; }
     const top=Object.keys(c).filter(o=>c[o]===max);
@@ -386,7 +390,7 @@ class Colony {
       // La menace ordinaire en attente reprend après le climax (le climax s'ajoute, il ne remplace pas un raid du calendrier).
       // Nouvelle mobilisation : les défenseurs et la stratégie d'un raid annulé ne comptent pas pour la horde.
       this.climaxPrev={type:this.nextThreat.type,at:this.nextThreat.at,guard:!!this.nextThreat.guard}; this.defenders={}; this.strategy=null; this.climaxWave=1;
-      this.nextThreat={type:'raid',at:n+C.inMs,climax:true}; this.stratAsked=null; this.climaxPrep={users:new Set(),start:n}; this.breach={hold:C.holdHp,status:'en cours',at:n+C.inMs};
+      this.nextThreat={type:'raid',at:n+C.inMs,climax:true}; this.stratAsked=null; this.climaxPrep={users:new Set(),start:n}; this.breach={hold:C.holdHp,seal:C.sealHp,status:'en cours',at:n+C.inMs};
       this._alert('threat',`⚔️ Raid de CLIMAX : une horde vise la ${WONDER.name} dans ${Math.round(C.inMs/60000)} min (force ${this.raidPower()}, à défense max −${this.climaxMaxDmg()} PV) ! !defendre, votez « murs », et ${this.climaxPrepNeed()} viewers différents !reparer pour renforcer la brèche. Défi « Tenir la brèche » : Foyer ≥ ${C.holdHp} PV après l'impact.`); }
     // GD12 : jalon d'épargne (annonce seule) quand le village a réuni la moitié de la prochaine tranche de la Merveille, une fois par tranche.
     if(this.wonderOpen()&&!this.wonderFinal()){ const c=this.wonderCost(), key=this.wonder+'.'+this.wonderPart; if(c&&key!==this.saveMarkKey&&Math.min(this.res.bois/Math.max(1,c.bois),this.res.pierre/Math.max(1,c.pierre))>=0.5){ this.saveMarkKey=key; this.saveMarks++;
@@ -394,6 +398,9 @@ class Colony {
     // GD12 : Merveille prête → jalons cosmétiques de cérémonie toutes les 10 min jusqu'à l'accès complet (aucune ressource, aucun effet de jeu).
     if(this.readyAnnounced&&this.wonderReady()&&!this.completedAt){ if(!this.nextCeremony) this.nextCeremony=n+CEREMONY.everyMs; else if(n>=this.nextCeremony){ this.nextCeremony=n+CEREMONY.everyMs; const k=this.ceremonySteps++, step=CEREMONY.steps[k%CEREMONY.steps.length];
       this.feteUntil=Math.max(this.feteUntil,n+CEREMONY.feteMs); this._alert('stage',`✨ Préparatifs de l'inauguration : ${step} (${k+1}) · accès complet dans ${Math.max(1,Math.ceil((this.startedAt+this.wonderFullMs()-n)/60000))} min. Jalon cosmétique : aucune ressource ni effet de jeu.`); } }
+    // GD13 : Merveille achevée mais inauguration retenue par le délai après le climax (tirage de graine) : veillée cosmétique toutes les 10 min.
+    else if(!this.completedAt&&!this.gameOver&&this.wonder>=this.WPH.length&&this.climaxHitAt&&!this.climaxFell&&!this.climaxSettled()){ if(!this.nextCeremony||this.nextCeremony<n-CEREMONY.everyMs) this.nextCeremony=n+CEREMONY.everyMs; else if(n>=this.nextCeremony){ this.nextCeremony=n+CEREMONY.everyMs; const k=this.ceremonySteps++, step=CEREMONY.steps[k%CEREMONY.steps.length];
+      this.feteUntil=Math.max(this.feteUntil,n+CEREMONY.feteMs); this._alert('stage',`✨ Veillée d'inauguration : ${step} (${k+1}) · inauguration dans ${Math.max(1,Math.ceil((this.climaxHitAt+this.climaxMinGapMs()-n)/60000))} min, le temps que la poussière du climax retombe. Jalon cosmétique : aucune ressource ni effet de jeu.`); } }
     // GD11 : surplus exclusivement cosmétique ; aucun changement de durée, force ou ressources.
     if(this.wonderReady()){
       if(!this.readyAnnounced){ this.readyAnnounced=true; this._alert('stage',`🏛️ ${WONDER.name} prête — inauguration dans ${Math.max(1,Math.ceil((this.startedAt+this.wonderFullMs()-n)/60000))} min. Les Bits en plus nourrissent l'Éclat de la ${WONDER.name} (score cosmétique) sans modifier la durée ni la difficulté de la cérémonie.`); } }
@@ -437,17 +444,29 @@ class Colony {
   climaxTension(){ const C=this.FO.climax||{}, towers=this.count('tour')+this.count('palissade'), need=Math.max(1,this.stage+1);
     const under=Math.max(0,Math.min(1,(need-towers)/need)), late=Math.max(0,Math.min(1,((this.now()-this.startedAt)-(C.atMs||0))/(40*60000)));
     return Math.max(0,Math.min(1,0.6*(1-this.climaxPrepFrac())+0.25*under+0.15*late)); }
+  // GD13 : charge du climax (PV) = renforts manquants × prepK + (tours manquantes, retard) × bonusSpread. Avec prepK = 0,6 × bonusSpread, identique à GD12.
+  climaxLoad(){ const C=this.FO.climax, t=this.climaxTension(), p=0.6*(1-this.climaxPrepFrac()); return (C.prepK??0.6*C.bonusSpread)*(1-this.climaxPrepFrac())+C.bonusSpread*(t-p); }
+  // GD13 : mobilisation = défenseurs distincts depuis l'annonce / besoin (le même que les renforts, indexé sur l'audience active).
+  // La garde doit être en place mobLateMs avant l'impact pour compter (un défenseur de dernière seconde défend, mais n'organise plus les murs).
+  climaxMobFrac(){ const P=this.climaxPrep; if(!P) return 0; const n=this.now(), w=this.FO.defendWin, T=this.nextThreat, cut=(T&&T.climax?T.at:n)-(this.FO.climax.mobLateMs||0); let k=0; for(const u in this.defenders){ const t=this.defenders[u]; if(t>=P.start&&t<=cut&&n-t<=w) k++; } return Math.min(1,k/this.climaxPrepNeed()); }
+  // Indexée sur l'audience : sous smallBelow actifs (petite audience), pas de pénalité de mobilisation.
+  climaxMobPenalty(){ if(this.activeViewers()<this.FO.smallBelow) return 0; return Math.round((this.FO.climax.mobK||0)*(1-this.climaxMobFrac())); }
+  // GD13 : avance de l'annonce sur un canal de graine indépendant (jamais relancé, aucun paiement ne l'influence).
+  climaxMomentU(){ return mulberry((this.seed^0x1ead5)>>>0)(); }
+  climaxLeadMs(){ const L=this.FO.climax.lead; if(!L) return this.FO.climax.leadMs||0; return Math.round(L.min+L.span*this.climaxMomentU()); }
+  // Délai minimal climax → inauguration, du même tirage : minGap.min + minGap.span × u (quand la Merveille finit vite, la cérémonie attend un peu plus).
+  climaxMinGapMs(){ const C=this.FO.climax, G=C.minGap; return G?Math.round(G.min+G.span*this.climaxMomentU()):(C.minGapMs||0); }
   climaxPending(){ return !!(this.nextThreat&&this.nextThreat.climax&&this.now()<this.nextThreat.at); }
-  climaxDue(){ const C=this.FO.climax, t=this.now()-this.startedAt, lead=C.leadMs||0; if(t<Math.max(C.atMs,this.wonderFullMs()-lead)) return false;
+  climaxDue(){ const C=this.FO.climax, t=this.now()-this.startedAt, lead=this.climaxLeadMs(); if(t<Math.max(C.atMs,this.wonderFullMs()-lead)) return false;
     if(this.wonder>=this.WPH.length) return true; return this.wonderLast()&&this.stage>=WONDER.phaseStage[this.wonder]&&this.wonderPart>=this.wonderParts()-2; }
   // Renforts : viewers distincts ayant fait !reparer depuis l'annonce ; besoin = max(3, 25 % des actifs).
-  climaxPrepNeed(){ const P=this.FO.climax.prep; return Math.max(P.min,Math.ceil(this.activeViewers()*P.perActive)); }
+  climaxPrepNeed(){ const P=this.FO.climax.prep, a=this.activeViewers(); return Math.max(a<this.FO.smallBelow&&P.smallMin!=null?P.smallMin:P.min,Math.ceil(a*P.perActive)); }
   climaxPrepFrac(){ const P=this.climaxPrep; return P?Math.min(1,P.users.size/this.climaxPrepNeed()):0; }
   // Seule part de la graine : ±seedHp PV (canal indépendant, jamais relancé par un paiement).
   climaxJitter(){ const k=this.FO.climax.seedHp||0; return Math.round(k*(2*mulberry((this.seed^0xc1a7)>>>0)()-1)); }
   climaxBreach(){ return this.FO.climax.breach+this.climaxJitter(); }
   // Dégâts du climax si toute la défense gratuite est mobilisée (tours + défenseurs au plafond + « murs ») : affiché « à défense max : −X PV ».
-  climaxMaxDmg(){ const C=this.FO.climax; return Math.min(this.climaxBreach(),Math.max(0,C.bonus+Math.round(C.bonusSpread*this.climaxTension())+this.climaxJitter())); }
+  climaxMaxDmg(){ const C=this.FO.climax; return Math.min(this.climaxBreach(),Math.max(0,C.bonus+Math.round(this.climaxLoad())+this.climaxJitter())); }
   // Canal environnemental stable par graine et numéro de raid ; indépendant des appels RNG/votes/paiements.
   // GD12 : index des raids hors climax, pour que l'ajout du climax ne décale pas le bruit des raids ordinaires suivants.
   raidNoise(){ const k=this.stats.raids-(this.stats.climaxRaids||0); return 0.9+0.2*mulberry((this.seed^0x52ac)+Math.imul(k+1,0x9e3779b1))(); }
@@ -456,13 +475,17 @@ class Colony {
     // Passe GD 7 (courte, petite audience) : force plafonnée à défense gratuite max − smallCapMargin (hors climax/assaut).
     const capped=small&&!hard&&this.FO.smallCapMargin!=null?Math.min(base+ex,Math.max(this.FO.smallCapFloor?base:0,this.defenseMaxFree()-this.FO.smallCapMargin)):base+ex; // passe GD 9 (normale) : jamais sous la force de base
     // Passe GD 8 : le raid « garde » reste battable par la défense gratuite complète (plafond = défense gratuite max) : les Bits ne sont jamais nécessaires.
-    const g=this.nextThreat&&this.nextThreat.guard; let cBonus=0; if(cl) cBonus=this.FO.climax.bonus+Math.round((this.FO.climax.bonusSpread||0)*this.climaxTension())+this.climaxJitter(); else if(as) cBonus=this.FO.assault.bonus;
+    const g=this.nextThreat&&this.nextThreat.guard; let cBonus=0; if(cl) cBonus=this.FO.climax.bonus+Math.round(this.climaxLoad())+this.climaxJitter()+this.climaxMobPenalty(); else if(as) cBonus=this.FO.assault.bonus;
     // GD11 : marge nominale gratuite avant bruit ±10 % ; un dépassement peut coûter quelques PV, réparables gratuitement.
     if(g) return Math.min(capped+WONDER.milestone.raidBonus,this.defenseMaxFree());
+    // GD13 : le climax se mesure à la défense gratuite max (même quand une colonie à peu de tours est sous la force de base) : seule la préparation fait l'écart.
+    if(cl) return this.defenseMaxFree()+cBonus;
     if(hard) return capped+cBonus;
     return Math.max(1,Math.round(Math.min(capped,this.defenseMaxFree()-4.5)*this.raidNoise())); }
   // Raid : repoussé ⇒ récompense (si la défense gratuite suffisait) ; perdu ⇒ PV en moins + vol de ressources (sauf stratégie « réserves »).
-  _raid(){ const pow=this.raidPower(), d=this.defense(), cl=!!this.nextThreat.climax, raw=Math.max(0,pow-d.total), dmg=cl?Math.min(raw,this.climaxBreach()):raw, over=raw-dmg, n=this.now(), chutes0=this.chutes; this.stats.raids++; if(cl) this.stats.climaxRaids=(this.stats.climaxRaids||0)+1;
+  _raid(){ // GD13 : au climax, sans stratégie votée, « murs » par défaut seulement si la garde est mobilisée (tous modes) ; un chat absent n'a pas de murs.
+    if(this.nextThreat.climax&&!this.strategy&&this.climaxMobFrac()>=1){ this.strategy='murs'; this._log('Climax : la garde mobilisée dresse les murs par défaut (+10 défense)'); }
+    const pow=this.raidPower(), d=this.defense(), cl=!!this.nextThreat.climax, raw=Math.max(0,pow-d.total), dmg=cl?Math.min(raw,this.climaxBreach()):raw, over=raw-dmg, n=this.now(), chutes0=this.chutes; this.stats.raids++; if(cl) this.stats.climaxRaids=(this.stats.climaxRaids||0)+1;
     const attackers=Math.max(3,Math.round(pow/6));
     this.lastRaid={t:n,attackers,dmg,pow,def:d.total,stolen:null,reward:null,guard:!!this.nextThreat.guard,climax:!!this.nextThreat.climax,assault:!!this.nextThreat.assault};
     if(!dmg){ this.stats.repelled++;
@@ -489,7 +512,9 @@ class Colony {
   _climaxResolved(d,fell){ const n=this.now(), B=this.breach, P=this.climaxPrep; this.climaxHitAt=n; this.climaxPrep=null; this.climaxFell=!!fell; if(!B||B.status!=='en cours') return; const hp=fell?0:this.foyer.hp; B.hp=hp; B.prep=P?P.users.size:0;
     if(hp>=B.hold){ B.status='réussi'; this.defisWon++; const R=this.raidReward(); this.res.bois+=R.bois; this.res.pierre+=R.pierre; B.reward={...R}; this.feteUntil=Math.max(this.feteUntil,n+2*60000);
       const who=new Set([...Object.keys(this.defenders).filter(u=>n-this.defenders[u]<=this.FO.defendWin),...(P?P.users:[])]); who.forEach(u=>this._builder(u,3)); this._badge('breche');
-      this._alert('stage',`🛡️ Défi « Tenir la brèche » réussi : le Foyer tient à ${hp} PV (≥ ${B.hold}) ! Récompense gratuite : +${R.bois} bois, +${R.pierre} pierre, fête et +3 points aux ${who.size} défenseurs et renforts.`); }
+      // GD13 : palier « Brèche scellée » (≥ sealHp PV) : récompense uniquement cosmétique (badge de session et sceau affiché), aucune ressource.
+      const seal=this.FO.climax.sealHp; B.seal=seal; B.sealed=seal!=null&&hp>=seal; if(B.sealed) this._badge('scellee');
+      this._alert('stage',`🛡️ Défi « Tenir la brèche » réussi : le Foyer tient à ${hp} PV (≥ ${B.hold}) ! Récompense gratuite : +${R.bois} bois, +${R.pierre} pierre, fête et +3 points aux ${who.size} défenseurs et renforts.`+(B.sealed?` 🔱 Brèche scellée (≥ ${seal} PV) : badge de session « ${BADGES.scellee} ».`:'')); }
     else { B.status='manqué'; this._alert('stage',`🕯️ Défi « Tenir la brèche » manqué : le Foyer est à ${hp} PV (objectif ${B.hold}). !reparer pour le remonter avant l'inauguration.`); } }
   reviveNeed(k=this.revivals){ const R=this.FO.revive, a=this.activeViewers(); return {bits:R.bits[k],viewers:Math.max(R.viewers[k],Math.ceil(a*R.viewersPerActive[k]))}; }
   _foyerDown(){ const n=this.now(); this.stats.destructions++; if(n-this.startedAt<WONDER.finalMinMs) this.stats.destructions3h++;
@@ -512,7 +537,7 @@ class Colony {
       const info={type:'raid',guard:!!t.guard,at:t.at,need:pow,have:d.total,def:d,dmg,ok:!dmg,label:!dmg?`Défense ${d.total} ≥ force ${pow} : le Foyer tiendra`:`Force ${pow} contre défense ${d.total} : le Foyer perdrait ${dmg} PV. !defendre, tours, palissades`};
       // GD12 : climax lisible — dégâts à défense max, renforts et défi « Tenir la brèche ».
       if(t.climax){ const max=this.climaxMaxDmg(), need=this.climaxPrepNeed(), k=this.climaxPrep?this.climaxPrep.users.size:0, after=this.foyer.hp-max, hold=this.FO.climax.holdHp;
-        info.climax={maxDmg:max,prep:Math.min(k,need),prepNeed:need,hold,holdOk:after>=hold,hpAtMax:Math.max(0,after)};
+        const seal=this.FO.climax.sealHp; info.climax={maxDmg:max,prep:Math.min(k,need),prepNeed:need,hold,holdOk:after>=hold,hpAtMax:Math.max(0,after),seal,sealOk:seal!=null&&after>=seal};
         info.label=`Force ${pow} / défense ${d.total}`+(dmg?` : −${dmg} PV maintenant`:' : le Foyer tiendra'); }
       return info; }
     const need=Math.ceil(this.pop*3*(this.count('grenier')?0.5:1)), have=Math.floor(this.res.nourriture); return {type:'hiver',at:t.at,need,have,ok:have>=need,label:have>=need?`${have}/${need} nourriture : l'hiver passera`:`Il manque ${need-have} nourriture (!chasse, fermes), sinon des villageois partent`}; }

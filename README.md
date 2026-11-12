@@ -66,7 +66,7 @@ Raccourcis du simulateur : **B** !bois · **P** !pierre · **C** !chasse · **V*
 | `!vote <option>` | vote en cours ; **+2 points** aux votants de l'option gagnante |
 | `!rejoindre bûcheron\|mineur\|chasseur\|garde` | métier : +50 % sur `!bois` / `!pierre` / `!chasse` ; un garde compte double avec `!defendre` |
 | `!defendre` | va défendre le Grand Foyer (+3 défense par défenseur, +6 pour un garde, plafond 24 ; petite audience : bonus jusqu'à × 2 sous 8 viewers actifs) pour le prochain raid |
-| `!reparer` | 10 bois + 5 pierre de la colonie → +5 PV au Foyer |
+| `!reparer` | 10 bois + 5 pierre de la colonie → +5 PV au Foyer ; pendant l'annonce du climax, compte aussi comme renfort gratuit |
 | `!rallumer` | quand le Foyer est détruit : chaque viewer différent compte pour le rallumage |
 | `!aide` | rappelle les commandes dans le fil |
 | `!optout` / `!optin` | ne pas / de nouveau apparaître aux classements |
@@ -138,6 +138,16 @@ Le **Grand Foyer** occupe le centre de la carte (le Phare de la session s'y allu
 - 20 viewers en normale, 10 graines : PV min **préparé 38 / 41 / 43**, **typique 29 / 32 / 34** (vacillant 10/10), **passif au climax 5 / 8 / 10** (aucune Chute) ; écart préparé − passif 33 par graine. Climax → fin **15–33 min** (avant 6–117) ; PV min longue ≥ 29 ; creux de progression courte/normale ≤ 18 min.
 
 **[Audit GD12 avant/après : 270 parties par version, graines 1 à 10](docs/gd12-audit.md)** — `node server/gd12-audit.js` (`--json`, `--seeds=N`). Le simulateur ajoute deux politiques limitées à l'annonce du climax (« préparé », « passif au climax ») ; les sept politiques GD11 sont inchangées.
+
+### Passe GD13 : climax selon l'audience active, « Brèche scellée », moment variable
+
+- **Audience active** : la force du climax suit la défense maximale gratuite de la colonie ; un chat qui ne se mobilise pas (`!defendre` pendant l'annonce, au plus tard 30 s avant l'impact) subit jusqu'à +20 de force, et la stratégie « murs » par défaut n'est appliquée au climax que si le chat s'est mobilisé. Aucune pénalité sous 8 actifs.
+- **« Brèche scellée »** : Foyer ≥ 38 PV après l'impact → badge et annonce (y compris `aria-live`). Cosmétique uniquement ; « Tenir la brèche » (≥ 25 PV) inchangé.
+- **Moment variable** : le climax arrive 20 à 38 min avant l'accès complet à la Merveille (normale : au moins 15 à 40 min avant la fin), selon un tirage de graine indépendant, jamais relancé ni influencé par un paiement. Climax → fin : 15–45 min, plage ≥ 12 min dans chaque mode. Jalon « Veillée d'inauguration » toutes les 10 min jusqu'à la fin.
+- **Petite audience** : sous 8 actifs, renforts requis = max(2, 25 % des actifs) ; le renfort `!reparer` pendant l'annonce est gratuit.
+- 20 graines × 3 modes : écart préparé − passif ≥ 33 à 20 viewers et 34 à 50/200 (avant : 5 en courte 200) ; brèche passive 0/20 ; scellée préparé 19–20/20, typique 0/20.
+
+**[Audit GD13 avant/après : 720 parties par version, graines 1 à 20, 5/20/50/200 viewers](docs/gd13-audit.md)** — `node server/gd13-audit.js` (`--json`, `--seeds=N`, `--workers=N`).
 
 ## Bits et subs : effets de session uniquement
 

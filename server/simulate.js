@@ -17,6 +17,12 @@ const CLIMAX_SCENARIOS=[
   {name:'20 viewers, préparé',viewers:20,bits:'modérés',climax:'prepare'},
   {name:'20 viewers, passif au climax',viewers:20,bits:'modérés',climax:'passive'},
 ];
+// GD13 : mêmes politiques « préparé » / « passif au climax » à 5, 20, 50 et 200 viewers (le reste de la partie = politique typique).
+const GD13_AUDIENCES=[5,20,50,200];
+const GD13_SCENARIOS=GD13_AUDIENCES.flatMap(v=>[
+  {name:v===20?'20 viewers (typique)':`${v} viewers`,viewers:v,bits:'modérés',kind:'typique'},
+  {name:`${v} viewers, préparé`,viewers:v,bits:'modérés',climax:'prepare',kind:'préparé'},
+  {name:`${v} viewers, passif au climax`,viewers:v,bits:'modérés',climax:'passive',kind:'passif'}]);
 // Rythme réaliste : chaque viewer actif envoie en moyenne une commande toutes les 30 s.
 function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength,repair=true}={}){
   let T=1e12; const r=mulberry(seed*7919+sc.viewers), g=new Colony({now:()=>T,rng:r,seed,gameLength});
@@ -64,7 +70,7 @@ function run(sc,{hours=10,seed=1,cmdEverySec=30,gameLength,repair=true}={}){
   let finaleGap=0; for(let i=1;i<ev.length;i++) finaleGap=Math.max(finaleGap,ev[i]-ev[i-1]);
   // GD12 : attente « Merveille prête » → accès complet : plus long intervalle sans jalon de progression (cérémonie comprise).
   const fullAt=g.wonderFullMs()/1000; let readyGap=null; if(readyAt!=null&&readyAt<fullAt){ const w=[readyAt,...events.filter(t=>t>readyAt&&t<fullAt),Math.min(fullAt,reached.Fin??fullAt)]; readyGap=0; for(let i=1;i<w.length;i++) readyGap=Math.max(readyGap,w[i]-w[i-1]); }
-  return {name:sc.name,climax,climaxToEnd:g.completedAt&&climax?(g.completedAt-start)/1000-climax.at:null,breach:g.breach&&g.breach.status,readyAt,fullAt,readyGap,ceremonySteps:g.ceremonySteps||0,finaleGap,eventGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,chutes:g.chutes,vacillant:g.vacillant||0,repairs:g.stats.repairs,criticalRepairs,criticalHpRestored,finalHp:g.foyer.hp,raidLog,destructions3h:g.stats.destructions3h,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
+  return {name:sc.name,climax,climaxToEnd:g.completedAt&&climax?(g.completedAt-start)/1000-climax.at:null,breach:g.breach&&g.breach.status,sealed:!!(g.breach&&g.breach.sealed),readyAt,fullAt,readyGap,ceremonySteps:g.ceremonySteps||0,finaleGap,eventGap,milestones:g.wonderMilestones||0,firstBuild,reached,end:reached.Fin??null,minHp,over,revivals:g.revivals,chutes:g.chutes,vacillant:g.vacillant||0,repairs:g.stats.repairs,criticalRepairs,criticalHpRestored,finalHp:g.foyer.hp,raidLog,destructions3h:g.stats.destructions3h,raids:g.stats.raids,repelled:g.stats.repelled,defis:g.defisWon,badges:g.badges.length,buildings:g.buildings.length,pop:g.pop};
 }
 const fmt=s=>s==null?'—':s<3600?Math.round(s/60)+' min':Math.floor(s/3600)+' h '+String(Math.round(s%3600/60)).padStart(2,'0');
 function table(results){
@@ -87,4 +93,4 @@ function seedTable(rows){ const T=a=>a?a.map(fmt).join(' / '):'—', P=a=>a.map(
   for(const r of rows) t+=`| ${r.name} | ${r.len} | ${T(r.end)} | ${r.minHp.join(' / ')} | ${P(r.rate)} | ${Math.round(r.gap/60)} min | ${Math.round(r.eventGap/60)} min | ${V(r.vacillant)} | ${r.chutes} | ${r.over}/${r.n} |\n`; return t; }
 if(require.main===module){ const res=all().concat(modes()); const ns=+((process.argv.find(a=>a.startsWith('--seeds='))||'').split('=')[1]||5);
   if(process.argv.includes('--json')) console.log(JSON.stringify(res,null,1)); else { console.log(table(res)); console.log(seedTable(seeds(Math.max(5,ns)))); } }
-module.exports={run,all,modes,table,seeds,seedTable,SCENARIOS,CLIMAX_SCENARIOS,CASES};
+module.exports={run,all,modes,table,seeds,seedTable,SCENARIOS,CLIMAX_SCENARIOS,CASES,GD13_SCENARIOS,GD13_AUDIENCES};

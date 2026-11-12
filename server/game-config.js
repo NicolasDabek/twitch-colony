@@ -18,7 +18,8 @@
     normale:{threatMs:12*60000,label:'normale (≈ 3 h 45)',stageMul:1,wonderMul:0.64,growth:1.10,costMul:2.4,wonderCuts:[0.15,1/3,1/2,2/3,0.85,1],
       // Passe GD 9 : petite audience plafonnée et rallumage à 25 PV.
       // Passe GD 10 : petite audience plus clémente (base 16, marge 18) → ≥ 60 % de raids repoussés à 5 viewers.
-      foyer:{smallCapMargin:18,smallCapFloor:true,smallRaidBase:16,smallScaleK:0.25,revive:{hp:25}}},
+      // GD13 : en normale, le climax suit la progression (avant-dernière tranche) ; son moment varie par le délai minimal climax → inauguration (15 à 40 min, tiré sur la graine).
+      foyer:{smallCapMargin:18,smallCapFloor:true,smallRaidBase:16,smallScaleK:0.25,revive:{hp:25},climax:{minGap:{min:15*60000,span:25*60000}}}},
     // GD11 : finale 5 h 15–5 h 45, jalons rapprochés et consolidation gratuite.
     // GD12 : climax vers 4 h 50–5 h 05 (accès complet − 30 min), puis trêve : plus de raid ordinaire avant l'inauguration.
     longue:{threatMs:12*60000,label:'longue (≈ 5 h 30)',stageMul:1.1,wonderMul:1.0,growth:1.10,costMul:2.2,wonderCuts:[0.08,0.16,0.24,0.32,0.4,0.5,0.56,0.64,0.72,0.8,0.9,1],foyer:{stratDefaultBelow:3,climax:{truce:true}}},

@@ -2,6 +2,18 @@
 
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/). Versions selon [SemVer](https://semver.org/lang/fr/).
 
+## [Non publié] — 1.1.0-dev
+
+### Ajouté (GD13)
+- Palier **« Brèche scellée »** (Foyer ≥ 38 PV après le climax) : badge et annonce `aria-live`, sans ressource supplémentaire.
+- Moment du climax variable (20–38 min avant l'accès complet ; normale : écart minimal 15–40 min avant la fin), tiré sur un canal de graine indépendant.
+- Jalon cosmétique « Veillée d'inauguration » toutes les 10 min entre le climax et la fin.
+- `server/gd13-audit.js` et [docs/gd13-audit.md](docs/gd13-audit.md) : 20 graines, préparé/typique/passif à 5/20/50/200 viewers.
+
+### Modifié (GD13)
+- Climax indexé sur l'audience active : force = défense max gratuite + bonus + charge + pénalité de mobilisation (0 sous 8 actifs) ; stratégie « murs » par défaut au climax seulement si le chat est mobilisé.
+- Petite audience : renforts requis max(2, 25 % des actifs) sous 8 actifs ; renfort `!reparer` gratuit pendant l'annonce.
+
 ## [1.0.0] — 2026-11-11
 
 Première version stable : jeu complet pour un stream de 3 h à 5 h 30, overlay OBS, simulateur et démo en ligne.

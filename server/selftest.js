@@ -234,7 +234,7 @@ console.log('mécaniques OK');}
   g=mk(); g.res.bois=1e4; g.res.pierre=1e4; g.chat('x','!construire atelier'); assert.ok(!g.vote,'atelier verrouillé au Campement');
   // Merveille : 3 phases, débloquée à la Ville ; fin = Cité + Merveille
   g=mk(); g.res.bois=1e5; g.res.pierre=1e5; assert.ok(!g.buildWonder(),'Merveille verrouillée'); g.stage=4; assert.ok(g.buildWonder()); assert.ok(!g.buildWonder(),'phase 2 verrouillée avant la Grande ville'); assert.ok(g.badges.includes('merv1')); g.stage=5; assert.ok(g.buildWonder()); g.stage=6; T+=g.wonderFullMs(); /* dernière tranche complète après cérémonie */ for(let k=0,n=g.wonderParts();k<n;k++) assert.ok(g.buildWonder()); assert.strictEqual(g.wonder,WONDER.phases.length); // la phase 3 ne s'ouvre qu'à la Cité
-  g.climaxHitAt=T-FOYER.climax.minGapMs; g._checkEnd(); assert.ok(g.completedAt,'Cité + Merveille = fin (climax passé)'); assert.ok(g.badges.includes('wonder'));
+  g.climaxHitAt=T-g.climaxMinGapMs(); g._checkEnd(); assert.ok(g.completedAt,'Cité + Merveille = fin (climax passé)'); assert.ok(g.badges.includes('wonder'));
   // Badges
   g=mk(); g.res.bois=100; g.build('hutte'); assert.ok(g.badges.includes('first')); g.giftSubs('z',3); assert.ok(g.badges.includes('fete'));
   // Vote : +2 aux votants de l'option gagnante, classements séparés
@@ -377,7 +377,7 @@ console.log('mécaniques OK');}
   P.forEach((r,i)=>assert.ok(r.climax.prep>=r.climax.prepNeed&&r.climax.maxDmg<T[i].climax.maxDmg,'GD12 la préparation vient de renforts réels'));
   // Mécanique : renforts gratuits, ±3 PV de graine, brèche plafonnée, aucun effet des Bits ni relance.
   for(let seed=1;seed<=60;seed++){ let t=1e12; const g=new Colony({seed,now:()=>t,cooldownMs:0}); g.stage=6; g.wonder=2; g.wonderPart=g.wonderParts()-2; g.buildings=['tour','tour','tour']; g.res={bois:5000,pierre:5000,nourriture:500};
-    for(let i=0;i<20;i++) g.chat('v'+i,'!bois'); t=g.startedAt+g.wonderFullMs()-FOYER.climax.leadMs; g.tick(); assert.ok(g.nextThreat.climax&&g.breach.status==='en cours','GD12 climax annoncé');
+    for(let i=0;i<20;i++) g.chat('v'+i,'!bois'); t=g.startedAt+g.wonderFullMs()-g.climaxLeadMs(); g.tick(); assert.ok(g.nextThreat.climax&&g.breach.status==='en cours','GD12 climax annoncé');
     const j=g.climaxJitter(); assert.ok(Math.abs(j)<=FOYER.climax.seedHp); const m0=g.climaxMaxDmg(), info=g.threatInfo(); assert.ok(info.climax&&info.climax.maxDmg===m0&&info.label.includes(`Force ${g.raidPower()}`));
     g.cheer('payeur',300); g.cheer('payeur',5000); assert.strictEqual(g.climaxMaxDmg(),m0,'GD12 Bits sans effet sur la préparation'); assert.strictEqual(g.climaxJitter(),j);
     for(let i=0;i<5;i++) g.chat('v'+i,'!reparer'); assert.strictEqual(g.foyer.hp,100); assert.strictEqual(g.climaxPrep.users.size,5); assert.ok(g.climaxMaxDmg()<=m0-8,'GD12 5 renforts gratuits : −8 PV ou mieux');
@@ -390,6 +390,50 @@ console.log('mécaniques OK');}
     assert.ok(!/\sstyle=|\son[a-z]+=|<script/i.test(h.slice(h.indexOf('<div class="clx"'))),'GD12 CSP : bloc climax sans inline'); Pn.liveState(s); Pn.liveState({...s,threat:{...s.threat,at:s.threat.at+1}}); assert.ok(/défense max/.test(live.textContent),'GD12 annonce aria-live du climax');
     const css=fs.readFileSync(path.join(__dirname,'../public/style.css'),'utf8'); assert.ok(/\.clx\{font-size:1[3-9]px/.test(css),"GD12 texte climax ≥ 12 px"); }
   console.log('GD12 (climax préparable et lisible, brèche, climax → fin 15–45 min, cérémonie, 10 graines) OK'); }
+// GD13 : climax indexé sur l'audience, « Brèche scellée », moment variable, petite audience — 20 graines, 3 modes, 5/20/50/200 viewers (audit parallèle).
+{ const {spawnSync}=require('child_process'), M=60;
+  const out=spawnSync(process.execPath,[path.join(__dirname,'gd13-audit.js'),'--json','--seeds=20'],{encoding:'utf8',maxBuffer:1<<26}); assert.strictEqual(out.status,0,'gd13-audit : '+out.stderr);
+  const {rows}=JSON.parse(out.stdout); assert.strictEqual(rows.length,12);
+  for(const r of rows){ const k=`GD13 ${r.len}/${r.viewers}`;
+    // Invariants : aucune défaite ni Chute, fins ≥ 3 h (courte 3 h 08–3 h 25, longue 5 h 15–5 h 45), raids 70–88 %.
+    assert.strictEqual(r.over,0,k+' défaite'); assert.strictEqual(r.chutes,0,k+' Chute'); assert.ok(r.chutesOk);
+    assert.ok(r.end[0]>=3*3600,k+' fin < 3 h'); if(r.len==='courte') assert.ok(r.end[0]>=188*M&&r.end[2]<=205*M,k+' fins courte '+r.end); if(r.len==='longue') assert.ok(r.end[0]>=315*M&&r.end[2]<=345*M,k+' fins longue '+r.end);
+    assert.ok(r.rate[0]>=0.70&&r.rate[2]<=0.88,k+' raids '+r.rate);
+    // 1. Audience active : 50/200 → écart ≥ 25 par graine, passif ≤ 2/20, préparé 20/20 ; 20 → écart ≥ 30.
+    if(r.viewers>=50){ assert.ok(r.gapMin>=25,k+' écart '+r.gapMin); assert.ok(r.breach.pass<=2,k+' brèche passive '+r.breach.pass); assert.strictEqual(r.breach.prep,r.n,k+' préparé'); }
+    if(r.viewers===20) assert.ok(r.gapMin>=30,k+' écart '+r.gapMin);
+    assert.strictEqual(r.breach.prep,r.n,k+' préparé tient'); assert.strictEqual(r.breach.typ,r.n,k+' typique tient'); assert.ok(r.breach.pass<=2);
+    // 2. Brèche scellée (≥ 38 PV) : préparé ≥ 18/20, typique ≤ 3/20, passif 0/20.
+    assert.ok(r.sealed.prep>=18,k+' scellée préparé '+r.sealed.prep); assert.ok(r.sealed.typ<=3,k+' scellée typique '+r.sealed.typ); assert.strictEqual(r.sealed.pass,0,k+' scellée passif');
+    // 3. Moment variable : climax → fin entre 15 et 45 min, plage ≥ 12 min.
+    assert.ok(r.c2e[0]>=15*M&&r.c2e[2]<=45*M,k+' climax → fin '+r.c2e); assert.ok(r.c2eRange>=12*M,k+' plage '+r.c2eRange);
+    // 4. Petite audience (5 viewers) : préparé ≥ 36 PV, typique normale ≥ 26 PV, passif ≤ 15 PV.
+    if(r.viewers===5){ assert.ok(r.prep[0]>=36,k+' préparé '+r.prep); assert.ok(r.pass[2]<=15,k+' passif '+r.pass); if(r.len==='normale') assert.ok(r.typ[0]>=26,k+' typique '+r.typ); } }
+  // Mécanique : tirage du moment sur un canal de graine indépendant, sans effet des Bits ; renfort gratuit ; besoin petite audience ; pénalité de mobilisation ≥ 8 actifs.
+  { const {Colony:C,FOYER:F}=require('./game'); const leads=new Set(), gaps=new Set();
+    for(let seed=1;seed<=40;seed++){ let t=1e12; const g=new C({seed,now:()=>t,cooldownMs:0}), u=g.climaxMomentU(), L=g.climaxLeadMs(), G=g.climaxMinGapMs(); leads.add(Math.round(L/60000)); gaps.add(Math.round(G/60000));
+      assert.ok(L>=F.climax.lead.min&&L<=F.climax.lead.min+F.climax.lead.span); assert.ok(G>=15*60000&&G<=40*60000);
+      g.cheer('payeur',5000); g.sub('s'); g.giftSubs('G',10); g.chat('a','!bois'); assert.strictEqual(g.climaxMomentU(),u); assert.strictEqual(g.climaxLeadMs(),L,'GD13 : les Bits ne déplacent pas le climax'); assert.strictEqual(g.climaxMinGapMs(),G);
+      const c=new C({seed,now:()=>t,gameLength:'courte'}); assert.strictEqual(c.climaxMinGapMs(),F.climax.minGapMs,'courte : délai fixe'); }
+    assert.ok(leads.size>=8&&gaps.size>=8,'GD13 : moments variés selon la graine');
+    let t=1e12; const g=new C({seed:5,now:()=>t,cooldownMs:0}); g.stage=6; g.wonder=2; g.wonderPart=g.wonderParts()-2; g.buildings=['tour','tour','tour'];
+    for(let i=0;i<5;i++) g.chat('p'+i,'!bois'); assert.strictEqual(g.climaxPrepNeed(),2,'GD13 : besoin max(2, 25 %) sous 8 actifs'); t=g.startedAt+g.wonderFullMs()-g.climaxLeadMs(); g.tick(); assert.ok(g.nextThreat.climax);
+    g.res={bois:0,pierre:0,nourriture:50}; g.chat('p0','!reparer'); assert.ok(g.climaxPrep.users.has('p0'),'GD13 : renfort gratuit sans ressources'); assert.strictEqual(g.res.bois,0);
+    assert.strictEqual(g.climaxMobPenalty(),0,'pas de pénalité de mobilisation sous 8 actifs');
+    for(let i=5;i<20;i++) g.chat('p'+i,'!bois'); assert.ok(g.activeViewers()>=8&&g.climaxMobPenalty()===F.climax.mobK,'pénalité pleine sans garde'); for(let i=0;i<5;i++) g.chat('p'+i,'!defendre'); assert.strictEqual(g.climaxMobPenalty(),0,'garde mobilisée : plus de pénalité');
+    // Brèche scellée : badge seulement, ressources identiques à « Tenir la brèche » seul.
+    const res=[]; for(let k=0;k<2;k++){ const hp0=k?100-(res[0].hp-31):100; let t2=1e12; const h=new C({seed:9,now:()=>t2,cooldownMs:0}); h.stage=6; h.wonder=2; h.wonderPart=h.wonderParts()-2; h.buildings=Array(6).fill('tour'); for(let i=0;i<20;i++) h.chat('v'+i,'!bois'); t2=h.startedAt+h.wonderFullMs()-h.climaxLeadMs(); h.tick();
+      for(let i=0;i<20;i++){ h.chat('v'+i,'!reparer'); h.chat('v'+i,'!defendre'); } h.strategy='murs'; h.foyer.hp=hp0; const b0={...h.res}; t2=h.nextThreat.at-1000; t2+=1000; h._threat(); res.push({st:h.breach.status,sealed:h.breach.sealed,hp:h.breach.hp,d:h.res.bois-b0.bois,badge:h.badges.includes('scellee')}); }
+    assert.ok(res[0].sealed&&res[0].badge&&res[0].hp>=38,'GD13 : brèche scellée '+JSON.stringify(res[0])); assert.ok(!res[1].sealed&&!res[1].badge&&res[1].st==='réussi','GD13 : tenue sans être scellée '+JSON.stringify(res[1]));
+    assert.strictEqual(res[0].d,res[1].d,'GD13 : le sceau ne donne aucune ressource'); }
+  // Lisibilité : palier affiché dans le bloc climax et le résultat, annonce aria-live, sans inline.
+  { const vm=require('vm'), js=fs.readFileSync(path.join(__dirname,'../public/panels.js'),'utf8'), live={textContent:''}, ctx={I:()=>'',document:{getElementById:id=>id==='live'?live:null},setTimeout:f=>f(),clearTimeout(){},Date,CSS:{escape:String}};
+    ctx.window=ctx; vm.createContext(ctx); vm.runInContext(js,ctx); const Pn=ctx.Panels, {Colony:C}=require('./game');
+    let t=1e12; const g=new C({seed:4,now:()=>t,cooldownMs:0}); g.stage=6; g.wonder=2; g.wonderPart=g.wonderParts()-2; t=g.startedAt+g.wonderFullMs(); g.tick(); const s=JSON.parse(JSON.stringify(g.state()));
+    const h=Pn.threat(s); assert.ok(/Brèche scellée ≥ 38 PV/.test(h)&&/Tenir la brèche/.test(h),'GD13 palier affiché'); assert.ok(!/\sstyle=|\son[a-z]+=|<script/i.test(h.slice(h.indexOf('<div class="clx"'))),'GD13 : sans inline');
+    Pn.liveState(s); Pn.liveState({...s,threat:{...s.threat,at:s.threat.at+1}}); assert.ok(/Brèche scellée à 38 PV/.test(live.textContent),'GD13 annonce aria-live');
+    const B={...s,threatInfo:null,breach:{status:'réussi',hp:41,hold:25,seal:38,sealed:true,at:Date.now(),reward:{bois:1,pierre:1}}}; assert.ok(/Brèche scellée/.test(Pn.threat({...B,threatInfo:s.threatInfo}))); }
+  console.log('GD13 (audience active, Brèche scellée, moment variable, petite audience, 20 graines × 3 modes × 5/20/50/200 viewers) OK'); }
 // UX11 : aucun « il manque » avec décimale (overlay, chat, logs), et :hover seulement sous @media (hover:hover).
 { const {Colony:C}=require('./game'); let T=2e12; const msgs=[];
   for(const frac of [0.191685489488044,0.5,0.999]){
